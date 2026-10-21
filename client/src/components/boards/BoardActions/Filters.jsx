@@ -17,7 +17,9 @@ import { Input, Tooltip } from '../../../lib/custom-ui';
 import selectors from '../../../selectors';
 import entryActions from '../../../entry-actions';
 import { useNestedRef } from '../../../hooks';
+import pendoTrack from '../../../utils/pendo-track';
 import { BoardViews, LabelFilterModes } from '../../../constants/Enums';
+import { BoardSearchSources } from '../../../constants/TrackEventEnums';
 import UserAvatar from '../../users/UserAvatar';
 import BoardMembershipsStep from '../../board-memberships/BoardMembershipsStep';
 import LabelChip from '../../labels/LabelChip';
@@ -28,6 +30,7 @@ import SavedFiltersStep from './SavedFiltersStep';
 import {
   addSavedFilter,
   clearLastFilter,
+  getSavedFilterAgeDays,
   readLastFilter,
   readSavedFilters,
   removeSavedFilter,
@@ -86,10 +89,13 @@ const Filters = React.memo(() => {
   // arrives uninvited.
   const [storageRev, setStorageRev] = useState(0);
 
+  // The only dispatch that passes a source: a search someone typed. Clearing the
+  // field and putting a filter back go through the same entry action without
+  // one, which keeps them out of the `board_cards_searched` event.
   const debouncedSearch = useMemo(
     () =>
       debounce((nextSearch) => {
-        dispatch(entryActions.searchInCurrentBoard(nextSearch));
+        dispatch(entryActions.searchInCurrentBoard(nextSearch, BoardSearchSources.TYPING));
       }, 400),
     [dispatch],
   );
@@ -386,9 +392,33 @@ const Filters = React.memo(() => {
 
       if (item.id !== activeSavedFilterId) {
         applyFilter(item);
+
+        // Only putting a saved filter back on counts; switching the active one
+        // off is the same click and stays out of this.
+        pendoTrack('saved_board_filter_applied', {
+          boardId: board.id,
+          boardView: board.view,
+          savedFiltersCount: savedFilters.length,
+          replacedActiveFilter: hasFilter,
+          userIdsCount: (item.userIds || []).length,
+          labelIdsCount: (item.labelIds || []).length,
+          excludedLabelIdsCount: (item.excludedLabelIds || []).length,
+          listIdsCount: (item.listIds || []).length,
+          noMember: !!item.noMember,
+          hasSearch: !!item.search,
+          savedFilterAgeDays: getSavedFilterAgeDays(item),
+        });
       }
     },
-    [activeSavedFilterId, applyFilter, clearCurrentFilter],
+    [
+      activeSavedFilterId,
+      applyFilter,
+      board.id,
+      board.view,
+      clearCurrentFilter,
+      hasFilter,
+      savedFilters.length,
+    ],
   );
 
   const handleSavedFilterRemove = useCallback(
@@ -401,14 +431,37 @@ const Filters = React.memo(() => {
 
   const handleSaveFilter = useCallback(
     (name) => {
-      addSavedFilter(currentUserId, board.id, {
+      const savedFilter = addSavedFilter(currentUserId, board.id, {
         name,
         ...currentFilter,
       });
 
+      if (savedFilter) {
+        // Read back rather than trust the entry handed over: it comes back even
+        // when storage refused the write, and a save that did not stick is not
+        // one. Only counts and flags are sent, never the name or the search.
+        const nextSavedFilters = readSavedFilters(currentUserId, board.id);
+
+        if (nextSavedFilters.some((item) => item.id === savedFilter.id)) {
+          pendoTrack('board_filter_saved', {
+            boardId: board.id,
+            boardView: board.view,
+            userIdsCount: savedFilter.userIds.length,
+            labelIdsCount: savedFilter.labelIds.length,
+            excludedLabelIdsCount: savedFilter.excludedLabelIds.length,
+            listIdsCount: savedFilter.listIds.length,
+            noMember: savedFilter.noMember,
+            hasSearch: savedFilter.search.length > 0,
+            isRegexSearch: savedFilter.search.startsWith('/'),
+            replacedExistingName: savedFilters.some((item) => item.name === savedFilter.name),
+            savedFiltersCount: nextSavedFilters.length,
+          });
+        }
+      }
+
       setStorageRev((prevStorageRev) => prevStorageRev + 1);
     },
-    [board.id, currentFilter, currentUserId],
+    [board.id, board.view, currentFilter, currentUserId, savedFilters],
   );
 
   useDidUpdate(() => {

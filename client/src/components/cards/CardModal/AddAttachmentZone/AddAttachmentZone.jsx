@@ -15,6 +15,7 @@ import { useModal } from '../../../../hooks';
 import { isUrl } from '../../../../utils/validator';
 import { isActiveTextElement } from '../../../../utils/element-helpers';
 import { AttachmentTypes } from '../../../../constants/Enums';
+import { AttachmentSources } from '../../../../constants/TrackEventEnums';
 import AddTextFileModal from './AddTextFileModal';
 
 import styles from './AddAttachmentZone.module.scss';
@@ -25,12 +26,13 @@ const AddAttachmentZone = React.memo(({ children }) => {
   const [modal, openModal, handleModalClose] = useModal();
 
   const submitFile = useCallback(
-    (file) => {
+    (file, source) => {
       dispatch(
         entryActions.createAttachmentInCurrentCard({
           file,
           type: AttachmentTypes.FILE,
           name: file.name,
+          source,
         }),
       );
     },
@@ -44,6 +46,7 @@ const AddAttachmentZone = React.memo(({ children }) => {
           url,
           type: AttachmentTypes.LINK,
           name: url,
+          source: AttachmentSources.PASTE_LINK,
         }),
       );
     },
@@ -53,7 +56,7 @@ const AddAttachmentZone = React.memo(({ children }) => {
   const handleDropAccepted = useCallback(
     (files) => {
       files.forEach((file) => {
-        submitFile(file);
+        submitFile(file, AttachmentSources.DROP);
       });
     },
     [submitFile],
@@ -65,9 +68,10 @@ const AddAttachmentZone = React.memo(({ children }) => {
     onDropAccepted: handleDropAccepted,
   });
 
+  // Pasted plain text, turned into a file in AddTextFileModal
   const handleFileCreate = useCallback(
     (file) => {
-      submitFile(file);
+      submitFile(file, AttachmentSources.PASTE_TEXT);
     },
     [submitFile],
   );
@@ -82,7 +86,7 @@ const AddAttachmentZone = React.memo(({ children }) => {
 
       if (files.length > 0) {
         [...files].forEach((file) => {
-          submitFile(file);
+          submitFile(file, AttachmentSources.PASTE_FILE);
         });
 
         return;
@@ -117,7 +121,7 @@ const AddAttachmentZone = React.memo(({ children }) => {
           return;
         }
 
-        submitFile(item.getAsFile());
+        submitFile(item.getAsFile(), AttachmentSources.PASTE_FILE);
       });
     };
 

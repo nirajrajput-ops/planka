@@ -9,6 +9,7 @@ import { call, cancelled, delay, put, race, select, take } from 'redux-saga/effe
 import { logout as logoutService } from './core';
 import selectors from '../../../selectors';
 import actions from '../../../actions';
+import pendoTrack from '../../../utils/pendo-track';
 import {
   postActivity as broadcastActivity,
   postLogout as broadcastLogout,
@@ -174,6 +175,17 @@ function* runTimerMode(channel, mode) {
     yield put(actions.dismissAutoLogoutWarning());
 
     if (warningResult.timeout) {
+      // Sent before logging out, which ends in a full navigation to the login
+      // page. Only the tab whose timer ran out gets here: the others follow the
+      // REMOTE_LOGOUT broadcast above and stay quiet.
+      const currentUser = yield select(selectors.selectCurrentUser);
+
+      yield call(pendoTrack, 'session_auto_logged_out', {
+        autoLogoutMode: mode,
+        timeoutMs: totalMs,
+        userRole: currentUser && currentUser.role,
+      });
+
       yield call(triggerLogout);
       return;
     }

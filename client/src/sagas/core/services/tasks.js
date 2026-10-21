@@ -9,6 +9,7 @@ import request from '../request';
 import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
+import pendoTrack from '../../../utils/pendo-track';
 import { createLocalId } from '../../../utils/local-id';
 
 export function* createTask(taskListId, data) {
@@ -62,6 +63,27 @@ export function* updateTask(id, data) {
   }
 
   yield put(actions.updateTask.success(task));
+
+  // A checklist is finished by someone ticking its last open box. Linked-card
+  // tasks completed by socket updates go through handleTaskUpdate, not here.
+  if (data.isCompleted === true) {
+    const tasks = yield select(selectors.selectTasksByTaskListId, task.taskListId);
+
+    if (tasks && tasks.length > 0 && tasks.every((taskItem) => taskItem.isCompleted)) {
+      const taskList = yield select(selectors.selectTaskListById, task.taskListId);
+      const card = yield select(selectors.selectCardById, taskList.cardId);
+
+      yield call(pendoTrack, 'task_list_completed', {
+        taskListId: taskList.id,
+        cardId: taskList.cardId,
+        boardId: card && card.boardId,
+        taskCount: tasks.length,
+        linkedCardTaskCount: tasks.filter((taskItem) => taskItem.linkedCardId).length,
+        assignedTaskCount: tasks.filter((taskItem) => taskItem.assigneeUserId).length,
+        showOnFrontOfCard: taskList.showOnFrontOfCard,
+      });
+    }
+  }
 }
 
 export function* handleTaskUpdate(task) {
