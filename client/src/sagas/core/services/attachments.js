@@ -63,6 +63,18 @@ export function* createAttachment(cardId, data) {
   }
 
   yield put(actions.createAttachment.success(localId, attachment));
+
+  // Track successful attachment upload
+  try {
+    if (window.pendo) {
+      window.pendo.track('attachment_uploaded', {
+        attachment_type: nextData.type || 'unknown',
+        file_name: nextData.name || '',
+      });
+    }
+  } catch (e) {
+    // Do not let tracking break application flow
+  }
 }
 
 export function* createAttachmentInCurrentCard(data) {
