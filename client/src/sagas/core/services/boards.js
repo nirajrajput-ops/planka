@@ -64,6 +64,20 @@ export function* createBoard(projectId, { import: boardImport, ...data }) {
 
   yield put(actions.createBoard.success(localId, board, boardMemberships));
 
+  // Track board import completion when created via file import
+  if (boardImport) {
+    try {
+      if (window.pendo) {
+        window.pendo.track('board_import_completed', {
+          import_type: boardImport.type || 'unknown',
+          board_name: data.name || '',
+        });
+      }
+    } catch (e) {
+      // Do not let tracking break application flow
+    }
+  }
+
   if (watchForCreateBoardActionTask.isRunning()) {
     yield call(goToBoard, board.id);
     yield call(openModal, ModalTypes.BOARD_SETTINGS, {

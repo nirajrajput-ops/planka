@@ -525,6 +525,19 @@ export function* transferCard(id, boardId, listId, index) {
       customFieldValues,
     ),
   );
+
+  // Track successful card transfer to a different board
+  try {
+    if (window.pendo) {
+      window.pendo.track('card_transferred', {
+        source_board_id: currentBoardId,
+        destination_board_id: boardId,
+        destination_list_id: listId,
+      });
+    }
+  } catch (e) {
+    // Do not let tracking break application flow
+  }
 }
 
 export function* transferCurrentCard(boardId, listId, index) {

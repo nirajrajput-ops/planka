@@ -39,6 +39,17 @@ export function* createUser(data) {
   }
 
   yield put(actions.createUser.success(user));
+
+  // Track successful user creation with assigned role
+  try {
+    if (window.pendo) {
+      window.pendo.track('user_created', {
+        user_role: data.role || 'unknown',
+      });
+    }
+  } catch (e) {
+    // Do not let tracking break application flow
+  }
 }
 
 export function* handleUserCreate(user) {
@@ -428,6 +439,15 @@ export function* enableUserTotp(id, data) {
   }
 
   yield put(actions.enableUserTotp.success(user, recoveryCodes));
+
+  // Track successful TOTP two-factor authentication enablement
+  try {
+    if (window.pendo) {
+      window.pendo.track('totp_enabled');
+    }
+  } catch (e) {
+    // Do not let tracking break application flow
+  }
 }
 
 export function* enableCurrentUserTotp(data) {
