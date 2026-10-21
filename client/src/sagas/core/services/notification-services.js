@@ -9,7 +9,17 @@ import request from '../request';
 import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
+import pendoTrack from '../../../utils/pendo-track';
 import { createLocalId } from '../../../utils/local-id';
+
+// Which channel an Apprise URL points at (tgram, slack, discord, mailto, ...).
+// Everything after the scheme can hold tokens and credentials, so the scheme is
+// all that is ever read out of it, and only in the `scheme://` shape.
+const getServiceScheme = (url) => {
+  const match = /^([a-z][a-z0-9+.-]{0,31}):\/\//i.exec(url);
+
+  return match ? match[1].toLowerCase() : null;
+};
 
 export function* createNotificationServiceInCurrentUser(data) {
   const localId = yield call(createLocalId);
@@ -37,6 +47,15 @@ export function* createNotificationServiceInCurrentUser(data) {
   }
 
   yield put(actions.createNotificationService.success(localId, notificationService));
+
+  const notificationServiceIds = yield select(selectors.selectNotificationServiceIdsForCurrentUser);
+
+  yield call(pendoTrack, 'notification_service_added', {
+    scope: 'user',
+    serviceScheme: getServiceScheme(data.url),
+    format: data.format,
+    serviceCount: notificationServiceIds && notificationServiceIds.length,
+  });
 }
 
 export function* createNotificationServiceInBoard(boardId, data) {
@@ -64,6 +83,19 @@ export function* createNotificationServiceInBoard(boardId, data) {
   }
 
   yield put(actions.createNotificationService.success(localId, notificationService));
+
+  const notificationServiceIds = yield select(
+    selectors.selectNotificationServiceIdsByBoardId,
+    boardId,
+  );
+
+  yield call(pendoTrack, 'notification_service_added', {
+    scope: 'board',
+    serviceScheme: getServiceScheme(data.url),
+    format: data.format,
+    serviceCount: notificationServiceIds && notificationServiceIds.length,
+    boardId,
+  });
 }
 
 export function* handleNotificationServiceCreate(notificationService) {
