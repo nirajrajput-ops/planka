@@ -15,6 +15,7 @@ import {
   postStayLoggedIn as broadcastStayLoggedIn,
   subscribe as subscribeToChannel,
 } from '../../../utils/auto-logout-channel';
+import pendo from '../../../utils/pendo';
 import { AutoLogoutModes } from '../../../constants/Enums';
 import ActionTypes from '../../../constants/ActionTypes';
 import EntryActionTypes from '../../../constants/EntryActionTypes';
@@ -101,6 +102,15 @@ function* maybeBroadcastActivity() {
 }
 
 function* triggerLogout({ broadcast = true } = {}) {
+  const autoLogoutMode = yield select(selectCurrentUserAutoLogoutMode);
+
+  // Sent while the session is still there: this tab broadcasts only when its own timer ran out
+  pendo.track('session_auto_logged_out', {
+    autoLogoutMode,
+    broadcast,
+    trigger: broadcast ? 'inactivity_timeout' : 'remote_tab_logout',
+  });
+
   if (broadcast) {
     yield call(broadcastLogout);
   }

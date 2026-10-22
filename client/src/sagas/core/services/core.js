@@ -13,6 +13,7 @@ import api from '../../../api';
 import i18n from '../../../i18n';
 import { removeAccessToken } from '../../../utils/access-token-storage';
 import { forgetBoardViews } from '../../../utils/board-view-memory';
+import pendo from '../../../utils/pendo';
 
 export function* initializeCore() {
   const { item: bootstrap } = yield call(request, api.getBootstrap); // TODO: handle error
@@ -77,6 +78,10 @@ export function* initializeCore() {
       notificationServices,
     ),
   );
+
+  // The signed-in user is loaded, so the Pendo visitor can be identified as them from here on.
+  // Sends whatever signing in held back for that (see utils/pendo).
+  pendo.markIdentified();
 }
 
 export function* changeCoreLanguage(language) {
