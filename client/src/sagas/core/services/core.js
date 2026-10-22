@@ -13,6 +13,7 @@ import api from '../../../api';
 import i18n from '../../../i18n';
 import { removeAccessToken } from '../../../utils/access-token-storage';
 import { forgetBoardViews } from '../../../utils/board-view-memory';
+import { clearPendoSession, identifyPendoVisitor } from '../../../utils/pendo';
 
 export function* initializeCore() {
   const { item: bootstrap } = yield call(request, api.getBootstrap); // TODO: handle error
@@ -45,6 +46,8 @@ export function* initializeCore() {
     notifications,
     notificationServices,
   } = yield call(requests.fetchCore); // TODO: handle error
+
+  yield call(identifyPendoVisitor, user);
 
   yield call(i18n.changeLanguage, user.language);
   yield call(i18n.loadCoreLocale);
@@ -121,6 +124,8 @@ export function* logout(revokeAccessToken) {
   // Everything this window was holding about the boards it had open. None of it
   // belongs to the next person to sign in here.
   yield call(forgetBoardViews);
+  // Nor does the analytics identity: whoever signs in next starts out anonymous.
+  yield call(clearPendoSession);
 
   if (revokeAccessToken) {
     yield put(actions.logout.revokeAccessToken());
