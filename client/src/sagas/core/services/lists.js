@@ -12,6 +12,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import pendo from '../../../utils/pendo';
 import ToastTypes from '../../../constants/ToastTypes';
 
 export function* createList(boardId, data) {
@@ -200,6 +201,15 @@ export function* moveListCards(id, nextId) {
   }
 
   yield put(actions.moveListCards.success(list, cards, activities));
+
+  // Only reached through moveListCardsToArchiveList, and the server only moves cards from a
+  // closed list into the archive. The count is what it actually moved.
+  pendo.track('completed_cards_archived', {
+    listId: list.id,
+    boardId: list.boardId,
+    listType: list.type,
+    cardCount: cards.length,
+  });
 }
 
 export function* moveListCardsToArchiveList(id) {

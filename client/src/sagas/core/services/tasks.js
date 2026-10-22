@@ -10,6 +10,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import pendo from '../../../utils/pendo';
 
 export function* createTask(taskListId, data) {
   let isCompleted;
@@ -62,6 +63,20 @@ export function* updateTask(id, data) {
   }
 
   yield put(actions.updateTask.success(task));
+
+  // The checkbox toggles both ways; only ticking it off counts
+  if (data.isCompleted === true) {
+    const tasks = (yield select(selectors.selectTasksByTaskListId, task.taskListId)) || [];
+    const completedTasksCount = tasks.filter((item) => item.isCompleted).length;
+
+    pendo.track('task_completed', {
+      taskListId: task.taskListId,
+      hasAssignee: !!task.assigneeUserId,
+      completedTasksCount,
+      totalTasksCount: tasks.length,
+      isTaskListCompleted: tasks.length > 0 && completedTasksCount === tasks.length,
+    });
+  }
 }
 
 export function* handleTaskUpdate(task) {

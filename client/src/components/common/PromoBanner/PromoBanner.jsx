@@ -8,6 +8,7 @@ import { useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 
 import selectors from '../../../selectors';
+import pendo from '../../../utils/pendo';
 import { UserRoles } from '../../../constants/Enums';
 
 import styles from './PromoBanner.module.scss';
@@ -112,13 +113,32 @@ const PromoBanner = React.memo(() => {
     return () => clearInterval(interval);
   }, [dismissed, texts]);
 
+  // The message rotates every few seconds, so the one on screen goes along with the action
+  const trackEngagement = useCallback(
+    (action) => {
+      pendo.track('pro_upgrade_promo_engaged', {
+        action,
+        messageKey: texts[textIndex],
+        destination: isAdmin ? 'trial' : 'pro',
+        isAdmin,
+      });
+    },
+    [isAdmin, textIndex, texts],
+  );
+
+  const handleLinkClick = useCallback(() => {
+    trackEngagement('opened_link');
+  }, [trackEngagement]);
+
   const handleDismiss = useCallback(
     (e) => {
       e.preventDefault();
       localStorage.setItem(getDismissKey(userId), new Date().toISOString());
       setDismissed(true);
+
+      trackEngagement('dismissed');
     },
-    [userId],
+    [trackEngagement, userId],
   );
 
   if (dismissed) return null;
@@ -130,6 +150,7 @@ const PromoBanner = React.memo(() => {
         target="_blank"
         rel="noopener noreferrer"
         className={`${styles.textLink} ${visible ? styles.textVisible : styles.textHidden}`}
+        onClick={handleLinkClick}
       >
         {t(`common.${texts[textIndex]}`)}
         <span className={styles.externalIcon}>↗</span>
