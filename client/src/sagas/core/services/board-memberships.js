@@ -13,6 +13,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
 import mergeRecords from '../../../utils/merge-records';
+import trackPendoEvent from '../../../utils/pendo';
 
 export function* createBoardMembership(boardId, data) {
   const localId = yield call(createLocalId);
@@ -32,6 +33,14 @@ export function* createBoardMembership(boardId, data) {
     yield put(actions.createBoardMembership.failure(localId, error));
     return;
   }
+
+  // Membership confirmed by the server, with the granted role
+  yield call(trackPendoEvent, 'board_member_added', {
+    boardId,
+    projectId: boardMembership.projectId,
+    role: boardMembership.role,
+    canComment: boardMembership.canComment === null ? null : !!boardMembership.canComment,
+  });
 
   yield put(actions.createBoardMembership.success(localId, boardMembership));
 }

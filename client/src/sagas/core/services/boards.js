@@ -13,6 +13,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
 import { rememberBoardView } from '../../../utils/board-view-memory';
+import trackPendoEvent from '../../../utils/pendo';
 import ActionTypes from '../../../constants/ActionTypes';
 import ModalTypes from '../../../constants/ModalTypes';
 
@@ -58,9 +59,26 @@ export function* createBoard(projectId, { import: boardImport, ...data }) {
         )
       : call(request, api.createBoard, projectId, nextData));
   } catch (error) {
+    // Server rejected the board creation or import
+    yield call(trackPendoEvent, 'board_create_failed', {
+      projectId,
+      isImport: !!boardImport,
+      importType: boardImport ? boardImport.type : null,
+      errorCode: (error && error.code) || 'unknown',
+    });
+
     yield put(actions.createBoard.failure(localId, error));
     return;
   }
+
+  // Board (optionally imported) confirmed by the server
+  yield call(trackPendoEvent, 'board_created', {
+    boardId: board.id,
+    projectId,
+    isImport: !!boardImport,
+    importType: boardImport ? boardImport.type : null,
+    boardMembershipsCount: boardMemberships ? boardMemberships.length : 0,
+  });
 
   yield put(actions.createBoard.success(localId, board, boardMemberships));
 
@@ -221,8 +239,38 @@ export function* updateViewInCurrentBoard(value) {
 export function* searchInCurrentBoard(value) {
   const { boardId } = yield select(selectors.selectPath);
   const currentListId = yield select(selectors.selectCurrentListId);
+  const prevBoard = yield select(selectors.selectBoardById, boardId);
 
   yield put(actions.searchInBoard(boardId, value, currentListId));
+
+  const query = (value || '').trim();
+  const prevQuery = ((prevBoard && prevBoard.search) || '').trim();
+
+  // Debounced search value applied to the board. Clearing the search, or a
+  // change that only differs by whitespace, is not a new search. The raw
+  // query is never sent since it may contain PII.
+  if (query && query !== prevQuery) {
+    const filteredCardIds = yield select(selectors.selectFilteredCardIdsForCurrentBoard);
+    const filterUserIds = yield select(selectors.selectFilterUserIdsForCurrentBoard);
+    const filterLabelIds = yield select(selectors.selectFilterLabelIdsForCurrentBoard);
+    const filterExcludedLabelIds = yield select(
+      selectors.selectFilterExcludedLabelIdsForCurrentBoard,
+    );
+    const filterListIds = yield select(selectors.selectFilterListIdsForCurrentBoard);
+
+    yield call(trackPendoEvent, 'board_search_performed', {
+      boardId,
+      boardView: prevBoard ? prevBoard.view : null,
+      queryLength: query.length,
+      resultsCount: filteredCardIds ? filteredCardIds.length : 0,
+      activeFilterCount:
+        (filterUserIds || []).length +
+        (filterLabelIds || []).length +
+        (filterExcludedLabelIds || []).length +
+        (filterListIds || []).length +
+        (prevBoard && prevBoard.filterNoMember ? 1 : 0),
+    });
+  }
 }
 
 export function* deleteBoard(id) {

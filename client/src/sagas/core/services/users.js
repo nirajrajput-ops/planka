@@ -13,6 +13,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import { setAccessToken } from '../../../utils/access-token-storage';
 import mergeRecords from '../../../utils/merge-records';
+import trackPendoEvent from '../../../utils/pendo';
 import { isUserAdminOrProjectOwner } from '../../../utils/record-helpers';
 import { UserRoles } from '../../../constants/Enums';
 
@@ -37,6 +38,12 @@ export function* createUser(data) {
     yield put(actions.createUser.failure(error));
     return;
   }
+
+  // User account created by an admin
+  yield call(trackPendoEvent, 'user_created', {
+    createdUserId: user.id,
+    role: user.role,
+  });
 
   yield put(actions.createUser.success(user));
 }
@@ -280,6 +287,15 @@ export function* updateUserPassword(id, data) {
     yield call(setAccessToken, accessToken);
   }
 
+  const currentUserId = yield select(selectors.selectCurrentUserId);
+
+  // Password change accepted by the server
+  yield call(trackPendoEvent, 'password_changed', {
+    userId: id,
+    isCurrentUser: id === currentUserId,
+    accessTokenRotated: !!accessToken,
+  });
+
   yield put(actions.updateUserPassword.success(user, accessToken));
 }
 
@@ -426,6 +442,12 @@ export function* enableUserTotp(id, data) {
     yield put(actions.enableUserTotp.failure(id, error));
     return;
   }
+
+  // Two-factor authentication enabled after a valid code
+  yield call(trackPendoEvent, 'two_factor_enabled', {
+    userId: id,
+    recoveryCodesCount: recoveryCodes ? recoveryCodes.length : 0,
+  });
 
   yield put(actions.enableUserTotp.success(user, recoveryCodes));
 }
