@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 
 import selectors from '../../../selectors';
 import { UserRoles } from '../../../constants/Enums';
+import { trackPendoEvent } from '../../../utils/pendo';
 
 import styles from './PromoBanner.module.scss';
 
@@ -121,6 +122,19 @@ const PromoBanner = React.memo(() => {
     [userId],
   );
 
+  // Pendo: records which rotating message was showing when the link was followed
+  const handleLinkClick = useCallback(() => {
+    const displayedTextKey = texts[textIndex];
+
+    trackPendoEvent('pro_banner_cta_clicked', {
+      displayedTextKey,
+      isHeadline: !FEATURES.includes(displayedTextKey),
+      featureOffset,
+      destination: isAdmin ? 'trial' : 'pro_overview',
+      isAdmin,
+    });
+  }, [featureOffset, isAdmin, textIndex, texts]);
+
   if (dismissed) return null;
 
   return (
@@ -130,6 +144,7 @@ const PromoBanner = React.memo(() => {
         target="_blank"
         rel="noopener noreferrer"
         className={`${styles.textLink} ${visible ? styles.textVisible : styles.textHidden}`}
+        onClick={handleLinkClick}
       >
         {t(`common.${texts[textIndex]}`)}
         <span className={styles.externalIcon}>↗</span>
