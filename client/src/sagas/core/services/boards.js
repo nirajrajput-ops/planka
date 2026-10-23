@@ -13,6 +13,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
 import { rememberBoardView } from '../../../utils/board-view-memory';
+import { trackPendoEvent } from '../../../utils/pendo';
 import ActionTypes from '../../../constants/ActionTypes';
 import ModalTypes from '../../../constants/ModalTypes';
 
@@ -61,6 +62,15 @@ export function* createBoard(projectId, { import: boardImport, ...data }) {
     yield put(actions.createBoard.failure(localId, error));
     return;
   }
+
+  // Pendo: the board (or the import) was confirmed by the server
+  yield call(trackPendoEvent, 'board_created', {
+    boardId: board.id,
+    projectId,
+    isImport: !!boardImport,
+    importType: boardImport ? boardImport.type : 'none',
+    boardMembershipsCount: boardMemberships.length,
+  });
 
   yield put(actions.createBoard.success(localId, board, boardMemberships));
 
@@ -218,11 +228,49 @@ export function* updateViewInCurrentBoard(value) {
   yield call(updateBoardView, boardId, value);
 }
 
-export function* searchInCurrentBoard(value) {
+export function* searchInCurrentBoard(value, isFromSearchField = false) {
   const { boardId } = yield select(selectors.selectPath);
   const currentListId = yield select(selectors.selectCurrentListId);
 
   yield put(actions.searchInBoard(boardId, value, currentListId));
+
+  // Pendo: only queries typed into the search field, never the raw text
+  if (isFromSearchField && value) {
+    const board = yield select(selectors.selectCurrentBoard);
+    const filterUserIds = yield select(selectors.selectFilterUserIdsForCurrentBoard);
+    const filterLabelIds = yield select(selectors.selectFilterLabelIdsForCurrentBoard);
+
+    const filterExcludedLabelIds = yield select(
+      selectors.selectFilterExcludedLabelIdsForCurrentBoard,
+    );
+
+    const filterListIds = yield select(selectors.selectFilterListIdsForCurrentBoard);
+
+    const properties = {
+      boardId,
+      boardView: board.view,
+      queryLength: value.length,
+      isRegexSearch: value.startsWith('/'),
+      hasOtherFiltersActive:
+        filterUserIds.length > 0 ||
+        filterLabelIds.length > 0 ||
+        filterExcludedLabelIds.length > 0 ||
+        filterListIds.length > 0 ||
+        !!board.filterNoMember,
+    };
+
+    // Results are only known locally in the board context — archive and trash
+    // lists refetch their cards from the server after a search.
+    if (!currentListId) {
+      const filteredCardIds = yield select(selectors.selectFilteredCardIdsForCurrentBoard);
+      const cards = yield select(selectors.selectCardsExceptCurrentForCurrentBoard);
+
+      properties.resultsCount = filteredCardIds.length;
+      properties.totalCardsCount = cards.length;
+    }
+
+    yield call(trackPendoEvent, 'board_cards_searched', properties);
+  }
 }
 
 export function* deleteBoard(id) {
