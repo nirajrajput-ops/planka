@@ -16,6 +16,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import i18n from '../../../i18n';
 import { createLocalId } from '../../../utils/local-id';
+import trackPendoEvent from '../../../utils/pendo';
 import { isListArchiveOrTrash, isListFinite } from '../../../utils/record-helpers';
 import ActionTypes from '../../../constants/ActionTypes';
 import ClipboardTypes from '../../../constants/ClipboardTypes';
@@ -112,6 +113,27 @@ export function* fetchCards(listId) {
       customFieldValues,
     ),
   );
+
+  // Only the first page of a filtered query is tracked, so pagination doesn't over-fire
+  const trimmedSearch = (search && search.trim()) || '';
+
+  if (
+    !lastCard &&
+    (trimmedSearch ||
+      filterUserIds.length > 0 ||
+      filterLabelIds.length > 0 ||
+      filterExcludedLabelIds.length > 0)
+  ) {
+    yield call(trackPendoEvent, 'board_cards_filtered', {
+      board_id: boardId,
+      list_id: listId,
+      search_length: trimmedSearch.length,
+      filter_user_count: filterUserIds.length,
+      filter_label_count: filterLabelIds.length,
+      filter_excluded_label_count: filterExcludedLabelIds.length,
+      results_count: cards.length,
+    });
+  }
 }
 
 export function* fetchCardsInCurrentList() {
@@ -176,6 +198,17 @@ export function* createCard(listId, data, index, autoOpen) {
   // Inherit active board filters so the new card stays visible in the filtered view
   const filterUserIds = yield select(selectors.selectFilterUserIdsForCurrentBoard);
   const filterLabelIds = yield select(selectors.selectFilterLabelIdsForCurrentBoard);
+
+  yield call(trackPendoEvent, 'card_created', {
+    card_id: card.id,
+    board_id: card.boardId,
+    list_id: listId,
+    list_type: list.type,
+    card_type: card.type || null,
+    auto_open: !!autoOpen,
+    inherited_member_count: filterUserIds.length,
+    inherited_label_count: filterLabelIds.length,
+  });
 
   yield all([
     ...filterUserIds.map((userId) => call(addUserToCard, userId, card.id)),
@@ -248,12 +281,22 @@ export function* handleCardCreate(card) {
 export function* updateCard(id, data) {
   let prevListId;
   let isClosed;
+  let moveTracking;
 
   if (data.listId) {
     const list = yield select(selectors.selectListById, data.listId);
 
     const card = yield select(selectors.selectCardById, id);
     const prevList = yield select(selectors.selectListById, card.listId);
+
+    if (prevList.id !== list.id) {
+      moveTracking = {
+        board_id: card.boardId,
+        from_list_type: prevList.type,
+        to_list_type: list.type,
+        prev_list_id: prevList.id,
+      };
+    }
 
     if (prevList.type === ListTypes.TRASH) {
       prevListId = null;
@@ -295,6 +338,15 @@ export function* updateCard(id, data) {
   }
 
   yield put(actions.updateCard.success(card));
+
+  // Fires only when the card actually landed in a different list (drag-and-drop or move popup)
+  if (moveTracking) {
+    yield call(trackPendoEvent, 'card_moved', {
+      card_id: id,
+      ...moveTracking,
+      is_closed: !!card.isClosed,
+    });
+  }
 }
 
 export function* updateCurrentCard(data) {
@@ -429,6 +481,8 @@ export function* transferCard(id, boardId, listId, index) {
   }
 
   const list = yield select(selectors.selectListById, listId);
+  const sourceCard = yield select(selectors.selectCardById, id);
+  const sourceBoardId = sourceCard ? sourceCard.boardId : null;
 
   const data = {
     listId,
@@ -508,6 +562,16 @@ export function* transferCard(id, boardId, listId, index) {
       type: ToastTypes.SOURCE_CARD_NOT_MOVABLE,
     });
 
+    if (sourceBoardId !== boardId) {
+      yield call(trackPendoEvent, 'card_transferred_to_board', {
+        card_id: id,
+        source_board_id: sourceBoardId,
+        target_board_id: boardId,
+        target_list_type: list.type,
+        success: false,
+      });
+    }
+
     return;
   }
 
@@ -525,6 +589,16 @@ export function* transferCard(id, boardId, listId, index) {
       customFieldValues,
     ),
   );
+
+  if (sourceBoardId !== boardId) {
+    yield call(trackPendoEvent, 'card_transferred_to_board', {
+      card_id: id,
+      source_board_id: sourceBoardId,
+      target_board_id: boardId,
+      target_list_type: list.type,
+      success: true,
+    });
+  }
 }
 
 export function* transferCurrentCard(boardId, listId, index) {
@@ -633,6 +707,16 @@ export function* duplicateCard(id, data) {
       customFieldValues,
     ),
   );
+
+  yield call(trackPendoEvent, 'card_duplicated', {
+    source_card_id: id,
+    card_id: card.id,
+    board_id: card.boardId,
+    is_cross_board: !sourceCard || card.boardId !== sourceCard.boardId,
+    task_count: tasks ? tasks.length : 0,
+    attachment_count: attachments ? attachments.length : 0,
+    label_count: cardLabels ? cardLabels.length : 0,
+  });
 }
 
 export function* duplicateCurrentCard(data) {
