@@ -13,10 +13,11 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import trackPendoEvent from '../../../utils/pendo';
 import { AttachmentTypes } from '../../../constants/Enums';
 import ToastTypes from '../../../constants/ToastTypes';
 
-export function* createAttachment(cardId, data) {
+export function* createAttachment(cardId, { uploadMethod, ...data }) {
   const localId = yield call(createLocalId);
   const currentUserId = yield select(selectors.selectCurrentUserId);
 
@@ -36,6 +37,14 @@ export function* createAttachment(cardId, data) {
     }),
   );
 
+  const trackingProperties = {
+    cardId,
+    attachmentType: nextData.type,
+    fileType: (nextData.file && nextData.file.type) || null,
+    fileSize: nextData.file ? nextData.file.size : null,
+    uploadMethod: uploadMethod || null,
+  };
+
   let attachment;
   try {
     ({ item: attachment } = yield nextData.type === AttachmentTypes.FILE
@@ -53,6 +62,14 @@ export function* createAttachment(cardId, data) {
       }
 
       if (toastType) {
+        // Upload rejected because of the upload size or storage limit
+        yield call(trackPendoEvent, 'attachment_uploaded', {
+          ...trackingProperties,
+          success: false,
+          failureReason:
+            toastType === ToastTypes.FILE_IS_TOO_BIG ? 'upload_limit' : 'storage_limit',
+        });
+
         yield call(toast, {
           type: toastType,
         });
@@ -61,6 +78,13 @@ export function* createAttachment(cardId, data) {
 
     return;
   }
+
+  // Attachment (file or link) stored on the server
+  yield call(trackPendoEvent, 'attachment_uploaded', {
+    ...trackingProperties,
+    success: true,
+    failureReason: null,
+  });
 
   yield put(actions.createAttachment.success(localId, attachment));
 }
