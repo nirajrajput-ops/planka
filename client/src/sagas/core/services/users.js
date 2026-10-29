@@ -13,6 +13,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import { setAccessToken } from '../../../utils/access-token-storage';
 import mergeRecords from '../../../utils/merge-records';
+import { trackPendoEvent } from '../../../utils/pendo';
 import { isUserAdminOrProjectOwner } from '../../../utils/record-helpers';
 import { UserRoles } from '../../../constants/Enums';
 
@@ -35,10 +36,24 @@ export function* createUser(data) {
     ({ item: user } = yield call(request, api.createUser, data));
   } catch (error) {
     yield put(actions.createUser.failure(error));
+
+    // User creation was rejected by the server (e.g. duplicate email or username)
+    yield call(trackPendoEvent, 'user_created', {
+      role: data.role || null,
+      success: false,
+      errorCode: (error && error.code) || null,
+    });
+
     return;
   }
 
   yield put(actions.createUser.success(user));
+
+  // User creation confirmed by the server
+  yield call(trackPendoEvent, 'user_created', {
+    role: user.role,
+    success: true,
+  });
 }
 
 export function* handleUserCreate(user) {
@@ -366,6 +381,14 @@ export function* createUserApiKey(id) {
   }
 
   yield put(actions.createUserApiKey.success(user, apiKey));
+
+  const currentUserId = yield select(selectors.selectCurrentUserId);
+
+  // API key issued by the server
+  yield call(trackPendoEvent, 'api_key_created', {
+    userId: id,
+    isForSelf: id === currentUserId,
+  });
 }
 
 export function* deleteUserApiKey(id) {
@@ -428,6 +451,12 @@ export function* enableUserTotp(id, data) {
   }
 
   yield put(actions.enableUserTotp.success(user, recoveryCodes));
+
+  // Two-factor authentication enabled after the code was verified
+  yield call(trackPendoEvent, 'two_factor_enabled', {
+    userId: id,
+    recoveryCodeCount: recoveryCodes ? recoveryCodes.length : 0,
+  });
 }
 
 export function* enableCurrentUserTotp(data) {
