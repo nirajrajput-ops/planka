@@ -10,6 +10,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import i18n from '../../../i18n';
 import { setAccessToken } from '../../../utils/access-token-storage';
+import { trackPendoEvent, truncatePendoValue } from '../../../utils/pendo';
 import AccessTokenSteps from '../../../constants/AccessTokenSteps';
 
 export function* initializeLogin() {
@@ -25,6 +26,13 @@ export function* authenticate(data) {
   try {
     ({ item: accessToken } = yield call(api.createAccessToken, data));
   } catch (error) {
+    // Rejected credentials, blocked user, or a terms/TOTP challenge as the next step
+    yield call(trackPendoEvent, 'login_failed', {
+      errorStep: error.step || null,
+      errorMessage: truncatePendoValue(error.message) || null,
+      stage: 'credentials',
+    });
+
     let terms;
     if (error.step === AccessTokenSteps.ACCEPT_TERMS) {
       ({ item: terms } = yield call(api.getTerms, i18n.resolvedLanguage));
@@ -36,6 +44,13 @@ export function* authenticate(data) {
 
   yield call(setAccessToken, accessToken);
   yield put(actions.authenticate.success(accessToken));
+
+  yield call(trackPendoEvent, 'login_completed', {
+    completedStep: 'credentials',
+    requiredTotp: false,
+    requiredTermsAcceptance: false,
+    language: i18n.resolvedLanguage || null,
+  });
 }
 
 export function* clearAuthenticateError() {
@@ -61,6 +76,13 @@ export function* acceptTerms(signature) {
 
   yield call(setAccessToken, accessToken);
   yield put(actions.acceptTerms.success(accessToken));
+
+  yield call(trackPendoEvent, 'login_completed', {
+    completedStep: 'terms',
+    requiredTotp: false,
+    requiredTermsAcceptance: true,
+    language: i18n.resolvedLanguage || null,
+  });
 }
 
 export function* cancelTerms() {
@@ -106,12 +128,26 @@ export function* verifyTotp(data) {
       pendingToken,
     }));
   } catch (error) {
+    yield call(trackPendoEvent, 'login_failed', {
+      errorStep: error.step || null,
+      errorMessage: truncatePendoValue(error.message) || null,
+      stage: 'totp',
+    });
+
     yield put(actions.verifyTotp.failure(error));
     return;
   }
 
   yield call(setAccessToken, accessToken);
   yield put(actions.verifyTotp.success(accessToken));
+
+  yield call(trackPendoEvent, 'login_completed', {
+    completedStep: 'totp',
+    requiredTotp: true,
+    requiredTermsAcceptance: false,
+    rememberDevice: !!data.trustDevice,
+    language: i18n.resolvedLanguage || null,
+  });
 }
 
 export function* cancelTotpChallenge() {

@@ -13,6 +13,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import { trackPendoEvent, truncatePendoValue } from '../../../utils/pendo';
 import { AttachmentTypes } from '../../../constants/Enums';
 import ToastTypes from '../../../constants/ToastTypes';
 
@@ -35,6 +36,13 @@ export function* createAttachment(cardId, data) {
       creatorUserId: currentUserId,
     }),
   );
+
+  const trackingProperties = {
+    cardId,
+    type: nextData.type,
+    fileSize: nextData.file ? nextData.file.size : null,
+    mimeType: nextData.file ? truncatePendoValue(nextData.file.type) || null : null,
+  };
 
   let attachment;
   try {
@@ -59,10 +67,30 @@ export function* createAttachment(cardId, data) {
       }
     }
 
+    let failureReason = 'other';
+    if (error.code === 'E_UNPROCESSABLE_ENTITY' && error.message) {
+      if (error.message.startsWith('Upload limit')) {
+        failureReason = 'upload_limit';
+      } else if (error.message === 'Storage limit reached') {
+        failureReason = 'storage_limit';
+      }
+    }
+
+    yield call(trackPendoEvent, 'attachment_uploaded', {
+      ...trackingProperties,
+      success: false,
+      failureReason,
+    });
+
     return;
   }
 
   yield put(actions.createAttachment.success(localId, attachment));
+
+  yield call(trackPendoEvent, 'attachment_uploaded', {
+    ...trackingProperties,
+    success: true,
+  });
 }
 
 export function* createAttachmentInCurrentCard(data) {
