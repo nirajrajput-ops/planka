@@ -13,6 +13,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import mergeRecords from '../../../utils/merge-records';
+import trackEvent from '../../../utils/track-event';
 import { UserRoles } from '../../../constants/Enums';
 
 export function* searchProjects(value) {
@@ -54,6 +55,13 @@ export function* createProject(data) {
   }
 
   yield put(actions.createProject.success(project, projectManagers));
+
+  yield call(trackEvent, 'project_created', {
+    projectId: project.id,
+    projectType: data.type,
+    projectManagersCount: projectManagers ? projectManagers.length : 0,
+  });
+
   yield call(goToProject, project.id);
 }
 
