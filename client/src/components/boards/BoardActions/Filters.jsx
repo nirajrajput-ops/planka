@@ -17,6 +17,7 @@ import { Input, Tooltip } from '../../../lib/custom-ui';
 import selectors from '../../../selectors';
 import entryActions from '../../../entry-actions';
 import { useNestedRef } from '../../../hooks';
+import pendoTrack from '../../../utils/pendo-track';
 import { BoardViews, LabelFilterModes } from '../../../constants/Enums';
 import UserAvatar from '../../users/UserAvatar';
 import BoardMembershipsStep from '../../board-memberships/BoardMembershipsStep';
@@ -38,6 +39,17 @@ import styles from './Filters.module.scss';
 
 // Membership comparison — order carries no meaning for a filter selection.
 const sameIds = (a, b) => a.length === b.length && a.every((id) => b.includes(id));
+
+// What a stored filter contains, as counts and flags for analytics. The
+// search text itself is never sent.
+const buildFilterTrackProperties = (filter) => ({
+  user_id_count: (filter.userIds || []).length,
+  label_id_count: (filter.labelIds || []).length,
+  excluded_label_id_count: (filter.excludedLabelIds || []).length,
+  list_id_count: (filter.listIds || []).length,
+  no_member: !!filter.noMember,
+  has_search: !!filter.search,
+});
 
 const FilterListChip = React.memo(({ id, onClick }) => {
   const selectListById = useMemo(() => selectors.makeSelectListById(), []);
@@ -375,8 +387,15 @@ const Filters = React.memo(() => {
   const handleRestoreClick = useCallback(() => {
     if (lastFilter) {
       applyFilter(lastFilter);
+
+      pendoTrack('board_filter_applied', {
+        board_id: board.id,
+        source: 'restore',
+        action: 'apply',
+        ...buildFilterTrackProperties(lastFilter),
+      });
     }
-  }, [applyFilter, lastFilter]);
+  }, [applyFilter, board.id, lastFilter]);
 
   // Saved filters replace rather than merge. Picking the one already on the
   // board turns it off instead, so the same row toggles both ways.
@@ -384,11 +403,20 @@ const Filters = React.memo(() => {
     (item) => {
       clearCurrentFilter();
 
-      if (item.id !== activeSavedFilterId) {
+      const isActive = item.id === activeSavedFilterId;
+
+      if (!isActive) {
         applyFilter(item);
       }
+
+      pendoTrack('board_filter_applied', {
+        board_id: board.id,
+        source: 'saved',
+        action: isActive ? 'deactivate' : 'apply',
+        ...buildFilterTrackProperties(item),
+      });
     },
-    [activeSavedFilterId, applyFilter, clearCurrentFilter],
+    [activeSavedFilterId, applyFilter, board.id, clearCurrentFilter],
   );
 
   const handleSavedFilterRemove = useCallback(
@@ -401,10 +429,22 @@ const Filters = React.memo(() => {
 
   const handleSaveFilter = useCallback(
     (name) => {
-      addSavedFilter(currentUserId, board.id, {
+      const prevSavedFilters = readSavedFilters(currentUserId, board.id);
+
+      const entry = addSavedFilter(currentUserId, board.id, {
         name,
         ...currentFilter,
       });
+
+      // addSavedFilter returns null when nothing was stored (empty name or filter).
+      if (entry) {
+        pendoTrack('board_filter_saved', {
+          board_id: board.id,
+          ...buildFilterTrackProperties(entry),
+          overwrote_existing: prevSavedFilters.some((item) => item.name === entry.name),
+          saved_filter_count: readSavedFilters(currentUserId, board.id).length,
+        });
+      }
 
       setStorageRev((prevStorageRev) => prevStorageRev + 1);
     },
