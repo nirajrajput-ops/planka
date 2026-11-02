@@ -13,6 +13,8 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import getFilenameAndExtension from '../../../utils/get-filename-and-extension';
+import pendoTrack from '../../../utils/pendo-track';
 import { AttachmentTypes } from '../../../constants/Enums';
 import ToastTypes from '../../../constants/ToastTypes';
 
@@ -53,6 +55,18 @@ export function* createAttachment(cardId, data) {
       }
 
       if (toastType) {
+        yield call(pendoTrack, 'attachment_uploaded', {
+          card_id: cardId,
+          attachment_type: nextData.type,
+          ...(nextData.file && {
+            file_size: nextData.file.size,
+            file_extension: getFilenameAndExtension(nextData.file.name).extension,
+          }),
+          success: false,
+          failure_reason:
+            toastType === ToastTypes.FILE_IS_TOO_BIG ? 'upload_limit' : 'storage_limit',
+        });
+
         yield call(toast, {
           type: toastType,
         });
@@ -61,6 +75,16 @@ export function* createAttachment(cardId, data) {
 
     return;
   }
+
+  yield call(pendoTrack, 'attachment_uploaded', {
+    card_id: cardId,
+    attachment_type: nextData.type,
+    ...(nextData.file && {
+      file_size: nextData.file.size,
+      file_extension: getFilenameAndExtension(nextData.file.name).extension,
+    }),
+    success: true,
+  });
 
   yield put(actions.createAttachment.success(localId, attachment));
 }

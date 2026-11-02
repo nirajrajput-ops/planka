@@ -12,6 +12,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import pendoTrack from '../../../utils/pendo-track';
 import ToastTypes from '../../../constants/ToastTypes';
 
 export function* createList(boardId, data) {
@@ -198,6 +199,15 @@ export function* moveListCards(id, nextId) {
     yield put(actions.moveListCards.failure(id, error));
     return;
   }
+
+  const targetList = yield select(selectors.selectListById, nextId);
+
+  yield call(pendoTrack, 'list_cards_moved_bulk', {
+    source_list_id: id,
+    target_list_id: nextId,
+    target_list_type: targetList && targetList.type,
+    card_count: cards ? cards.length : cardIds.length,
+  });
 
   yield put(actions.moveListCards.success(list, cards, activities));
 }
