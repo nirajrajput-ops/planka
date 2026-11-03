@@ -200,6 +200,14 @@ export function* moveListCards(id, nextId) {
   }
 
   yield put(actions.moveListCards.success(list, cards, activities));
+
+  // Pendo Track Event: all cards in a list were bulk archived/moved
+  if (typeof window.pendo !== 'undefined') {
+    window.pendo.track('list_cards_bulk_archived', {
+      card_count: cardIds.length,
+      source_list_id: String(id),
+    });
+  }
 }
 
 export function* moveListCardsToArchiveList(id) {

@@ -525,6 +525,14 @@ export function* transferCard(id, boardId, listId, index) {
       customFieldValues,
     ),
   );
+
+  // Pendo Track Event: card successfully transferred to another board
+  if (typeof window.pendo !== 'undefined') {
+    window.pendo.track('card_transferred', {
+      target_board_id: String(boardId),
+      target_list_id: String(listId),
+    });
+  }
 }
 
 export function* transferCurrentCard(boardId, listId, index) {
@@ -633,6 +641,15 @@ export function* duplicateCard(id, data) {
       customFieldValues,
     ),
   );
+
+  // Pendo Track Event: card successfully duplicated
+  if (typeof window.pendo !== 'undefined') {
+    window.pendo.track('card_duplicated', {
+      is_cross_board: boardId !== sourceCard.boardId,
+      target_board_id: String(boardId),
+      target_list_id: String(listId),
+    });
+  }
 }
 
 export function* duplicateCurrentCard(data) {

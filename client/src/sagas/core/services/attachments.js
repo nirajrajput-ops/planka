@@ -63,6 +63,14 @@ export function* createAttachment(cardId, data) {
   }
 
   yield put(actions.createAttachment.success(localId, attachment));
+
+  // Pendo Track Event: attachment successfully added to a card
+  if (typeof window.pendo !== 'undefined') {
+    window.pendo.track('attachment_created', {
+      attachment_type: nextData.type || '',
+      file_name: nextData.name || '',
+    });
+  }
 }
 
 export function* createAttachmentInCurrentCard(data) {

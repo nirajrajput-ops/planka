@@ -36,6 +36,15 @@ export function* authenticate(data) {
 
   yield call(setAccessToken, accessToken);
   yield put(actions.authenticate.success(accessToken));
+
+  // Pendo Track Event: successful authentication
+  if (typeof window.pendo !== 'undefined') {
+    window.pendo.track('login_completed', {
+      auth_method: data.oidc ? 'oidc' : 'local',
+      totp_required: false,
+      terms_accepted: false,
+    });
+  }
 }
 
 export function* clearAuthenticateError() {
@@ -61,6 +70,15 @@ export function* acceptTerms(signature) {
 
   yield call(setAccessToken, accessToken);
   yield put(actions.acceptTerms.success(accessToken));
+
+  // Pendo Track Event: successful authentication after accepting terms
+  if (typeof window.pendo !== 'undefined') {
+    window.pendo.track('login_completed', {
+      auth_method: 'local',
+      totp_required: false,
+      terms_accepted: true,
+    });
+  }
 }
 
 export function* cancelTerms() {
@@ -112,6 +130,15 @@ export function* verifyTotp(data) {
 
   yield call(setAccessToken, accessToken);
   yield put(actions.verifyTotp.success(accessToken));
+
+  // Pendo Track Event: successful authentication after TOTP verification
+  if (typeof window.pendo !== 'undefined') {
+    window.pendo.track('login_completed', {
+      auth_method: 'local',
+      totp_required: true,
+      terms_accepted: false,
+    });
+  }
 }
 
 export function* cancelTotpChallenge() {
