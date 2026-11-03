@@ -39,6 +39,13 @@ export function* createUser(data) {
   }
 
   yield put(actions.createUser.success(user));
+
+  // Pendo Track Event: new user account successfully created
+  if (typeof window.pendo !== 'undefined') {
+    window.pendo.track('user_created', {
+      user_role: data.role || '',
+    });
+  }
 }
 
 export function* handleUserCreate(user) {
@@ -428,6 +435,11 @@ export function* enableUserTotp(id, data) {
   }
 
   yield put(actions.enableUserTotp.success(user, recoveryCodes));
+
+  // Pendo Track Event: TOTP two-factor authentication successfully enabled
+  if (typeof window.pendo !== 'undefined') {
+    window.pendo.track('totp_enabled');
+  }
 }
 
 export function* enableCurrentUserTotp(data) {

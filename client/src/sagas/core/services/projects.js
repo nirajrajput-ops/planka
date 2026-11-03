@@ -54,6 +54,14 @@ export function* createProject(data) {
   }
 
   yield put(actions.createProject.success(project, projectManagers));
+
+  // Pendo Track Event: project successfully created
+  if (typeof window.pendo !== 'undefined') {
+    window.pendo.track('project_created', {
+      project_type: data.type || 'shared',
+    });
+  }
+
   yield call(goToProject, project.id);
 }
 

@@ -34,6 +34,13 @@ export function* createBoardMembership(boardId, data) {
   }
 
   yield put(actions.createBoardMembership.success(localId, boardMembership));
+
+  // Pendo Track Event: member successfully added to a board
+  if (typeof window.pendo !== 'undefined') {
+    window.pendo.track('board_member_added', {
+      member_role: data.role || '',
+    });
+  }
 }
 
 export function* createMembershipInCurrentBoard(data) {

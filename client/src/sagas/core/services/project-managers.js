@@ -33,6 +33,13 @@ export function* createProjectManager(projectId, data) {
   }
 
   yield put(actions.createProjectManager.success(localId, projectManager));
+
+  // Pendo Track Event: user successfully added as a project manager
+  if (typeof window.pendo !== 'undefined') {
+    window.pendo.track('project_manager_added', {
+      project_id: String(projectId),
+    });
+  }
 }
 
 export function* createManagerInCurrentProject(data) {

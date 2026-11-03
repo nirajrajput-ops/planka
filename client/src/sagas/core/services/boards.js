@@ -64,6 +64,14 @@ export function* createBoard(projectId, { import: boardImport, ...data }) {
 
   yield put(actions.createBoard.success(localId, board, boardMemberships));
 
+  // Pendo Track Event: board successfully created
+  if (typeof window.pendo !== 'undefined') {
+    window.pendo.track('board_created', {
+      has_import: !!boardImport,
+      import_type: boardImport ? boardImport.type : '',
+    });
+  }
+
   if (watchForCreateBoardActionTask.isRunning()) {
     yield call(goToBoard, board.id);
     yield call(openModal, ModalTypes.BOARD_SETTINGS, {
