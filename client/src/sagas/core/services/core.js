@@ -77,6 +77,31 @@ export function* initializeCore() {
       notificationServices,
     ),
   );
+
+  window.pendo.identify({
+    visitor: {
+      id: user.id,
+      email: user.email,
+      full_name: user.name,
+      role: user.role,
+      username: user.username,
+      phone: user.phone,
+      organization: user.organization,
+      language: user.language,
+      subscribeToOwnCards: user.subscribeToOwnCards,
+      subscribeToCardWhenCommenting: user.subscribeToCardWhenCommenting,
+      enableFavoritesByDefault: user.enableFavoritesByDefault,
+      defaultEditorMode: user.defaultEditorMode,
+      defaultHomeView: user.defaultHomeView,
+      defaultProjectsOrder: user.defaultProjectsOrder,
+      autoLogoutMode: user.autoLogoutMode,
+      isDeactivated: user.isDeactivated,
+      isTotpEnabled: user.isTotpEnabled,
+      turnOffRecentCardHighlighting: user.turnOffRecentCardHighlighting,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    },
+  });
 }
 
 export function* changeCoreLanguage(language) {
@@ -117,6 +142,10 @@ export function* updateHomeView(value) {
 }
 
 export function* logout(revokeAccessToken) {
+  if (window.pendo && window.pendo.clearSession) {
+    window.pendo.clearSession();
+  }
+
   yield call(removeAccessToken);
   // Everything this window was holding about the boards it had open. None of it
   // belongs to the next person to sign in here.
