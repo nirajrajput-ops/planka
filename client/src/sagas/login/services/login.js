@@ -10,7 +10,28 @@ import actions from '../../../actions';
 import api from '../../../api';
 import i18n from '../../../i18n';
 import { setAccessToken } from '../../../utils/access-token-storage';
+import trackPendoEvent from '../../../utils/pendo';
 import AccessTokenSteps from '../../../constants/AccessTokenSteps';
+
+const PASSWORD_STEP = 'password';
+
+// Pendo: an access token was issued and saved at the given login step
+function* trackSignInSuccess(completionStep) {
+  yield call(trackPendoEvent, 'user_signed_in', {
+    completionStep,
+    requiredTotp: completionStep === AccessTokenSteps.VERIFY_TOTP,
+    requiredTermsAcceptance: completionStep === AccessTokenSteps.ACCEPT_TERMS,
+    success: true,
+  });
+}
+
+// Pendo: sign-in failed at the given login step
+function* trackSignInFailure(failureStep) {
+  yield call(trackPendoEvent, 'user_signed_in', {
+    success: false,
+    failureStep,
+  });
+}
 
 export function* initializeLogin() {
   const { item: bootstrap } = yield call(api.getBootstrap); // TODO: handle error
@@ -31,10 +52,18 @@ export function* authenticate(data) {
     }
 
     yield put(actions.authenticate.failure(error, terms));
+
+    // A pending step (TOTP or terms) is not a failure: sign-in continues at that step
+    if (!error.step) {
+      yield call(trackSignInFailure, PASSWORD_STEP);
+    }
+
     return;
   }
 
   yield call(setAccessToken, accessToken);
+  // Tracked before the success action: it ends the login saga and cancels this task
+  yield call(trackSignInSuccess, PASSWORD_STEP);
   yield put(actions.authenticate.success(accessToken));
 }
 
@@ -56,10 +85,13 @@ export function* acceptTerms(signature) {
     }));
   } catch (error) {
     yield put(actions.acceptTerms.failure(error));
+    yield call(trackSignInFailure, AccessTokenSteps.ACCEPT_TERMS);
     return;
   }
 
   yield call(setAccessToken, accessToken);
+  // Tracked before the success action: it ends the login saga and cancels this task
+  yield call(trackSignInSuccess, AccessTokenSteps.ACCEPT_TERMS);
   yield put(actions.acceptTerms.success(accessToken));
 }
 
@@ -107,10 +139,13 @@ export function* verifyTotp(data) {
     }));
   } catch (error) {
     yield put(actions.verifyTotp.failure(error));
+    yield call(trackSignInFailure, AccessTokenSteps.VERIFY_TOTP);
     return;
   }
 
   yield call(setAccessToken, accessToken);
+  // Tracked before the success action: it ends the login saga and cancels this task
+  yield call(trackSignInSuccess, AccessTokenSteps.VERIFY_TOTP);
   yield put(actions.verifyTotp.success(accessToken));
 }
 
