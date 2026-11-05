@@ -12,6 +12,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import trackPendoEvent from '../../../utils/pendo-track';
 import ToastTypes from '../../../constants/ToastTypes';
 
 export function* createList(boardId, data) {
@@ -181,6 +182,9 @@ export function* moveListCards(id, nextId) {
     return;
   }
 
+  const sourceList = yield select(selectors.selectListById, id);
+  const targetList = yield select(selectors.selectListById, nextId);
+
   yield put(actions.moveListCards(id, nextId, cardIds));
 
   let list;
@@ -200,6 +204,14 @@ export function* moveListCards(id, nextId) {
   }
 
   yield put(actions.moveListCards.success(list, cards, activities));
+
+  // Bulk move of all cards in a list (e.g. archive all cards)
+  yield call(trackPendoEvent, 'list_cards_bulk_moved', {
+    cardCount: cards ? cards.length : cardIds.length,
+    sourceListType: sourceList ? sourceList.type : null,
+    targetListType: targetList ? targetList.type : null,
+    boardId: sourceList ? sourceList.boardId : null,
+  });
 }
 
 export function* moveListCardsToArchiveList(id) {
@@ -210,6 +222,9 @@ export function* moveListCardsToArchiveList(id) {
 
 export function* clearTrashListInCurrentBoard() {
   const trashListId = yield select(selectors.selectTrashListIdForCurrentBoard);
+  const { boardId } = yield select(selectors.selectPath);
+  // Cards loaded in the trash list before it is emptied
+  const deletedCardCount = yield select(selectors.selectCardCountByListId, trashListId);
 
   yield put(actions.clearList(trashListId));
 
@@ -225,10 +240,25 @@ export function* clearTrashListInCurrentBoard() {
     ({ item: list } = yield call(request, api.clearList, trashListId));
   } catch (error) {
     yield put(actions.clearList.failure(trashListId, error));
+
+    // Failed trash emptying
+    yield call(trackPendoEvent, 'trash_emptied', {
+      deletedCardCount: 0,
+      boardId,
+      success: false,
+    });
+
     return;
   }
 
   yield put(actions.clearList.success(list));
+
+  // Trash list permanently emptied
+  yield call(trackPendoEvent, 'trash_emptied', {
+    deletedCardCount: deletedCardCount || 0,
+    boardId,
+    success: true,
+  });
 }
 
 export function* handleListClear(list) {

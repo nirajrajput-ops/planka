@@ -10,7 +10,23 @@ import actions from '../../../actions';
 import api from '../../../api';
 import i18n from '../../../i18n';
 import { setAccessToken } from '../../../utils/access-token-storage';
+import trackPendoEvent from '../../../utils/pendo-track';
 import AccessTokenSteps from '../../../constants/AccessTokenSteps';
+
+const LoginSteps = {
+  AUTHENTICATE: 'authenticate',
+  ...AccessTokenSteps,
+};
+
+// Login flow outcome: the step that completed or failed, and whether terms or TOTP were involved
+const trackLogin = (step, success) =>
+  trackPendoEvent('user_logged_in', {
+    completionStep: success ? step : null,
+    usedTotp: step === LoginSteps.VERIFY_TOTP,
+    acceptedTerms: step === LoginSteps.ACCEPT_TERMS,
+    success,
+    errorStep: success ? null : step,
+  });
 
 export function* initializeLogin() {
   const { item: bootstrap } = yield call(api.getBootstrap); // TODO: handle error
@@ -31,10 +47,18 @@ export function* authenticate(data) {
     }
 
     yield put(actions.authenticate.failure(error, terms));
+
+    // A pending step (terms or TOTP) is not a failure, the flow continues there
+    if (!error.step) {
+      yield call(trackLogin, LoginSteps.AUTHENTICATE, false);
+    }
+
     return;
   }
 
   yield call(setAccessToken, accessToken);
+  // Tracked before the success action, which ends the login saga
+  yield call(trackLogin, LoginSteps.AUTHENTICATE, true);
   yield put(actions.authenticate.success(accessToken));
 }
 
@@ -56,10 +80,13 @@ export function* acceptTerms(signature) {
     }));
   } catch (error) {
     yield put(actions.acceptTerms.failure(error));
+    yield call(trackLogin, LoginSteps.ACCEPT_TERMS, false);
     return;
   }
 
   yield call(setAccessToken, accessToken);
+  // Tracked before the success action, which ends the login saga
+  yield call(trackLogin, LoginSteps.ACCEPT_TERMS, true);
   yield put(actions.acceptTerms.success(accessToken));
 }
 
@@ -107,10 +134,13 @@ export function* verifyTotp(data) {
     }));
   } catch (error) {
     yield put(actions.verifyTotp.failure(error));
+    yield call(trackLogin, LoginSteps.VERIFY_TOTP, false);
     return;
   }
 
   yield call(setAccessToken, accessToken);
+  // Tracked before the success action, which ends the login saga
+  yield call(trackLogin, LoginSteps.VERIFY_TOTP, true);
   yield put(actions.verifyTotp.success(accessToken));
 }
 
