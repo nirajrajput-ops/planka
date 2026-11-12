@@ -10,6 +10,8 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import { countMentions } from '../../../utils/mentions';
+import { trackPendoEvent } from '../../../utils/pendo';
 
 export function* fetchComments(cardId) {
   const { lastCommentId } = yield select(selectors.selectCardById, cardId);
@@ -60,6 +62,15 @@ export function* createComment(cardId, data) {
     yield put(actions.createComment.failure(localId, error));
     return;
   }
+
+  const card = yield select(selectors.selectCardById, cardId);
+
+  trackPendoEvent('comment_posted', {
+    card_id: cardId,
+    board_id: card ? card.boardId : null,
+    text_length: comment.text ? comment.text.length : 0,
+    mention_count: comment.text ? countMentions(comment.text) : 0,
+  });
 
   yield put(actions.createComment.success(localId, comment));
 }
