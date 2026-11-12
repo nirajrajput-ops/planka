@@ -10,6 +10,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import i18n from '../../../i18n';
 import { setAccessToken } from '../../../utils/access-token-storage';
+import pendoTrack from '../../../utils/pendo-track';
 import AccessTokenSteps from '../../../constants/AccessTokenSteps';
 
 export function* initializeLogin() {
@@ -36,6 +37,13 @@ export function* authenticate(data) {
 
   yield call(setAccessToken, accessToken);
   yield put(actions.authenticate.success(accessToken));
+
+  // Pendo: the access token was issued right after the password step.
+  yield call(pendoTrack, 'user_signed_in', {
+    completionStep: 'password',
+    withTotp: false,
+    withTermsAcceptance: false,
+  });
 }
 
 export function* clearAuthenticateError() {
@@ -61,6 +69,13 @@ export function* acceptTerms(signature) {
 
   yield call(setAccessToken, accessToken);
   yield put(actions.acceptTerms.success(accessToken));
+
+  // Pendo: the access token was issued after the terms were accepted.
+  yield call(pendoTrack, 'user_signed_in', {
+    completionStep: 'terms',
+    withTotp: false,
+    withTermsAcceptance: true,
+  });
 }
 
 export function* cancelTerms() {
@@ -112,6 +127,13 @@ export function* verifyTotp(data) {
 
   yield call(setAccessToken, accessToken);
   yield put(actions.verifyTotp.success(accessToken));
+
+  // Pendo: the access token was issued after the two-factor check.
+  yield call(pendoTrack, 'user_signed_in', {
+    completionStep: 'totp',
+    withTotp: true,
+    withTermsAcceptance: false,
+  });
 }
 
 export function* cancelTotpChallenge() {

@@ -12,6 +12,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import pendoTrack from '../../../utils/pendo-track';
 import ToastTypes from '../../../constants/ToastTypes';
 
 export function* createList(boardId, data) {
@@ -183,6 +184,15 @@ export function* moveListCards(id, nextId) {
 
   yield put(actions.moveListCards(id, nextId, cardIds));
 
+  const archiveListId = yield select(selectors.selectArchiveListIdForCurrentBoard);
+
+  // Pendo: properties shared by the success and failure outcomes.
+  const trackProperties = {
+    listId: id,
+    nextListId: nextId,
+    isToArchive: nextId === archiveListId,
+  };
+
   let list;
   let cards;
   let activities;
@@ -196,10 +206,25 @@ export function* moveListCards(id, nextId) {
     }));
   } catch (error) {
     yield put(actions.moveListCards.failure(id, error));
+
+    // Pendo: the bulk move of the list's cards failed.
+    yield call(pendoTrack, 'list_cards_moved', {
+      ...trackProperties,
+      cardsCount: cardIds.length,
+      success: false,
+    });
+
     return;
   }
 
   yield put(actions.moveListCards.success(list, cards, activities));
+
+  // Pendo: the server confirmed the bulk move of the list's cards.
+  yield call(pendoTrack, 'list_cards_moved', {
+    ...trackProperties,
+    cardsCount: cards ? cards.length : cardIds.length,
+    success: true,
+  });
 }
 
 export function* moveListCardsToArchiveList(id) {
