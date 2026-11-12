@@ -12,6 +12,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import { trackPendoEvent } from '../../../utils/pendo';
 import ToastTypes from '../../../constants/ToastTypes';
 
 export function* createList(boardId, data) {
@@ -199,6 +200,15 @@ export function* moveListCards(id, nextId) {
     return;
   }
 
+  const targetList = yield select(selectors.selectListById, nextId);
+
+  trackPendoEvent('list_cards_moved', {
+    source_list_id: id,
+    target_list_id: nextId,
+    target_list_type: targetList ? targetList.type : null,
+    card_count: cards ? cards.length : cardIds.length,
+  });
+
   yield put(actions.moveListCards.success(list, cards, activities));
 }
 
@@ -210,6 +220,8 @@ export function* moveListCardsToArchiveList(id) {
 
 export function* clearTrashListInCurrentBoard() {
   const trashListId = yield select(selectors.selectTrashListIdForCurrentBoard);
+  const { boardId } = yield select(selectors.selectPath);
+  const trashCardIds = yield select(selectors.selectCardIdsByListId, trashListId);
 
   yield put(actions.clearList(trashListId));
 
@@ -227,6 +239,11 @@ export function* clearTrashListInCurrentBoard() {
     yield put(actions.clearList.failure(trashListId, error));
     return;
   }
+
+  trackPendoEvent('trash_emptied', {
+    board_id: boardId,
+    deleted_card_count: trashCardIds ? trashCardIds.length : 0,
+  });
 
   yield put(actions.clearList.success(list));
 }

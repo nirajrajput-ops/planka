@@ -15,6 +15,7 @@ import {
   postStayLoggedIn as broadcastStayLoggedIn,
   subscribe as subscribeToChannel,
 } from '../../../utils/auto-logout-channel';
+import { trackPendoEvent } from '../../../utils/pendo';
 import { AutoLogoutModes } from '../../../constants/Enums';
 import ActionTypes from '../../../constants/ActionTypes';
 import EntryActionTypes from '../../../constants/EntryActionTypes';
@@ -100,7 +101,20 @@ function* maybeBroadcastActivity() {
   yield call(broadcastActivity);
 }
 
-function* triggerLogout({ broadcast = true } = {}) {
+const AutoLogoutTriggers = {
+  INACTIVITY: 'inactivity',
+  REMOTE_LOGOUT: 'remote_logout',
+};
+
+function* triggerLogout({ broadcast = true, trigger, warningShown = false } = {}) {
+  const mode = yield select(selectCurrentUserAutoLogoutMode);
+
+  trackPendoEvent('session_auto_logged_out', {
+    auto_logout_mode: mode || AutoLogoutModes.NEVER,
+    trigger,
+    warning_shown: warningShown,
+  });
+
   if (broadcast) {
     yield call(broadcastLogout);
   }
@@ -121,7 +135,7 @@ function* runIdleMode(channel) {
   // For NEVER mode: only react to remote logout broadcasts so a logout in another tab
   // also signs out this tab.
   yield call(waitForRelevantEvent, channel, (e) => e.type === EventTypes.REMOTE_LOGOUT);
-  yield call(triggerLogout, { broadcast: false });
+  yield call(triggerLogout, { broadcast: false, trigger: AutoLogoutTriggers.REMOTE_LOGOUT });
 }
 
 function* runTimerMode(channel, mode) {
@@ -139,7 +153,7 @@ function* runTimerMode(channel, mode) {
     if (idleResult.event) {
       const { type } = idleResult.event;
       if (type === EventTypes.REMOTE_LOGOUT) {
-        yield call(triggerLogout, { broadcast: false });
+        yield call(triggerLogout, { broadcast: false, trigger: AutoLogoutTriggers.REMOTE_LOGOUT });
         return;
       }
       if (type === EventTypes.LOCAL_ACTIVITY) {
@@ -167,14 +181,18 @@ function* runTimerMode(channel, mode) {
     });
 
     if (warningResult.channel && warningResult.channel.type === EventTypes.REMOTE_LOGOUT) {
-      yield call(triggerLogout, { broadcast: false });
+      yield call(triggerLogout, {
+        broadcast: false,
+        trigger: AutoLogoutTriggers.REMOTE_LOGOUT,
+        warningShown: true,
+      });
       return;
     }
 
     yield put(actions.dismissAutoLogoutWarning());
 
     if (warningResult.timeout) {
-      yield call(triggerLogout);
+      yield call(triggerLogout, { trigger: AutoLogoutTriggers.INACTIVITY, warningShown: true });
       return;
     }
 

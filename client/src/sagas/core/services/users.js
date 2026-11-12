@@ -14,6 +14,7 @@ import api from '../../../api';
 import { setAccessToken } from '../../../utils/access-token-storage';
 import mergeRecords from '../../../utils/merge-records';
 import { isUserAdminOrProjectOwner } from '../../../utils/record-helpers';
+import { trackPendoEvent } from '../../../utils/pendo';
 import { UserRoles } from '../../../constants/Enums';
 
 export function* handleUsersReset() {
@@ -37,6 +38,12 @@ export function* createUser(data) {
     yield put(actions.createUser.failure(error));
     return;
   }
+
+  trackPendoEvent('user_created', {
+    user_role: user.role,
+    has_username: !!user.username,
+    language: user.language || null,
+  });
 
   yield put(actions.createUser.success(user));
 }
@@ -426,6 +433,13 @@ export function* enableUserTotp(id, data) {
     yield put(actions.enableUserTotp.failure(id, error));
     return;
   }
+
+  const currentUserId = yield select(selectors.selectCurrentUserId);
+
+  trackPendoEvent('two_factor_enabled', {
+    recovery_codes_count: recoveryCodes ? recoveryCodes.length : 0,
+    is_current_user: id === currentUserId,
+  });
 
   yield put(actions.enableUserTotp.success(user, recoveryCodes));
 }

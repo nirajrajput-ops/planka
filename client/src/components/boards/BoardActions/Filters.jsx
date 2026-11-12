@@ -17,6 +17,7 @@ import { Input, Tooltip } from '../../../lib/custom-ui';
 import selectors from '../../../selectors';
 import entryActions from '../../../entry-actions';
 import { useNestedRef } from '../../../hooks';
+import { trackPendoEvent } from '../../../utils/pendo';
 import { BoardViews, LabelFilterModes } from '../../../constants/Enums';
 import UserAvatar from '../../users/UserAvatar';
 import BoardMembershipsStep from '../../board-memberships/BoardMembershipsStep';
@@ -401,10 +402,27 @@ const Filters = React.memo(() => {
 
   const handleSaveFilter = useCallback(
     (name) => {
-      addSavedFilter(currentUserId, board.id, {
+      const previousSavedFilters = readSavedFilters(currentUserId, board.id);
+
+      const savedFilter = addSavedFilter(currentUserId, board.id, {
         name,
         ...currentFilter,
       });
+
+      // addSavedFilter returns null when nothing was written (blank name or empty filter)
+      if (savedFilter) {
+        trackPendoEvent('board_filter_saved', {
+          board_id: board.id,
+          user_filter_count: (savedFilter.userIds || []).length,
+          label_filter_count: (savedFilter.labelIds || []).length,
+          excluded_label_filter_count: (savedFilter.excludedLabelIds || []).length,
+          list_filter_count: (savedFilter.listIds || []).length,
+          no_member: !!savedFilter.noMember,
+          has_search: !!savedFilter.search,
+          replaced_existing: previousSavedFilters.some((item) => item.name === savedFilter.name),
+          saved_filter_count: readSavedFilters(currentUserId, board.id).length,
+        });
+      }
 
       setStorageRev((prevStorageRev) => prevStorageRev + 1);
     },
