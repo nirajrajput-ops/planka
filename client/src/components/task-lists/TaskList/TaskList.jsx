@@ -111,6 +111,7 @@ const TaskList = React.memo(({ id, isCompletedVisible }) => {
             type="button"
             disabled={!taskList.isPersisted}
             className={styles.taskButton}
+            data-testid="task-add-open"
             onClick={handleAddClick}
           >
             <span className={styles.taskButtonText}>

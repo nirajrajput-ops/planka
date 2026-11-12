@@ -109,7 +109,11 @@ const MoreActionsStep = React.memo(({ onClose }) => {
       <Popup.Content>
         <Menu secondary vertical className={styles.menu}>
           {!board.limitCardTypesToDefaultOne && canEditType && (
-            <Menu.Item className={styles.menuItem} onClick={handleEditTypeClick}>
+            <Menu.Item
+              className={styles.menuItem}
+              data-testid="card-more-change-type"
+              onClick={handleEditTypeClick}
+            >
               <Icon name="map outline" className={styles.menuItemIcon} />
               {t('action.editType', {
                 context: 'title',
@@ -117,7 +121,11 @@ const MoreActionsStep = React.memo(({ onClose }) => {
             </Menu.Item>
           )}
           {canDuplicate && (
-            <Menu.Item className={styles.menuItem} onClick={handleDuplicateClick}>
+            <Menu.Item
+              className={styles.menuItem}
+              data-testid="card-more-duplicate"
+              onClick={handleDuplicateClick}
+            >
               <Icon name="copy outline" className={styles.menuItemIcon} />
               {t('action.duplicateCard', {
                 context: 'title',
@@ -125,7 +133,11 @@ const MoreActionsStep = React.memo(({ onClose }) => {
             </Menu.Item>
           )}
           {canMove && (
-            <Menu.Item className={styles.menuItem} onClick={handleMoveClick}>
+            <Menu.Item
+              className={styles.menuItem}
+              data-testid="card-more-move"
+              onClick={handleMoveClick}
+            >
               <Icon name="share square outline" className={styles.menuItemIcon} />
               {t('action.moveCard', {
                 context: 'title',

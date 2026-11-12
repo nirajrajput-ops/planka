@@ -48,6 +48,7 @@ const RecoveryCodesView = React.memo(({ codes, className }) => {
           size="small"
           icon="copy"
           content={t('action.copyAll')}
+          data-testid="security-recovery-codes-copy"
           onClick={handleCopyClick}
         />
         <Button
@@ -55,6 +56,7 @@ const RecoveryCodesView = React.memo(({ codes, className }) => {
           size="small"
           icon="download"
           content={t('action.download')}
+          data-testid="security-recovery-codes-download"
           onClick={handleDownloadClick}
         />
       </div>

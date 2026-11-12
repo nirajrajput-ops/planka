@@ -61,7 +61,11 @@ const BoardMemberships = React.memo(() => {
       {canAdd && (
         <AddPopup>
           <Tooltip content={t('action.addMember')}>
-            <Button icon="add user" className={classNames(styles.segment, styles.addButton)} />
+            <Button
+              data-testid="board-member-add-open"
+              icon="add user"
+              className={classNames(styles.segment, styles.addButton)}
+            />
           </Tooltip>
         </AddPopup>
       )}

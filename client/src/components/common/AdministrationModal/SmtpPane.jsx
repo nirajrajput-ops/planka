@@ -207,13 +207,19 @@ const SmtpPane = React.memo(() => {
           onChange={handleFieldChange}
         />
         <div className={styles.controls}>
-          <Button positive disabled={!isModified} content={t('action.save')} />
+          <Button
+            data-testid="smtp-save"
+            positive
+            disabled={!isModified}
+            content={t('action.save')}
+          />
           {config.smtpHost && !isModified && (
             <Button
               type="button"
               content={t('action.sendTestEmail')}
               loading={smtpTestState.isLoading}
               disabled={smtpTestState.isLoading}
+              data-testid="smtp-send-test-email"
               onClick={handleTestClick}
             />
           )}

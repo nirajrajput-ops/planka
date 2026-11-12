@@ -36,6 +36,7 @@ const Item = React.memo(({ id, isActive, onUserSelect, onUserDeselect }) => {
       active={isActive}
       disabled={!boardMembership.isPersisted}
       className={classNames(styles.menuItem, isActive && styles.menuItemActive)}
+      data-testid="board-member-toggle"
       onClick={handleToggleClick}
     >
       <span className={styles.user}>

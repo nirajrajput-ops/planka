@@ -41,7 +41,9 @@ const Group = React.memo(({ items, role, groupsTotal }) => {
       ))}
       {hiddenTotal > 0 && (
         <GroupItemsPopup items={items} title={`common.${role}s`}>
-          <Button className={styles.othersButton}>+{hiddenTotal < 99 ? hiddenTotal : 99}</Button>
+          <Button data-testid="board-member-show-more" className={styles.othersButton}>
+            +{hiddenTotal < 99 ? hiddenTotal : 99}
+          </Button>
         </GroupItemsPopup>
       )}
     </div>

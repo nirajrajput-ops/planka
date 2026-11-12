@@ -52,6 +52,7 @@ const Editor = React.memo(({ data, onFieldChange }) => {
               color === data.color && styles.colorButtonActive,
               globalStyles[`background${upperFirst(camelCase(color))}`],
             )}
+            data-testid="label-select-color"
             onClick={onFieldChange}
           />
         ))}

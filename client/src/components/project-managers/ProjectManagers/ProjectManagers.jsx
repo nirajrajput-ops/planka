@@ -51,7 +51,11 @@ const ProjectManagers = React.memo(() => {
       {canAdd && (
         <AddPopup>
           <Tooltip content={t('action.addMember')}>
-            <Button icon="add user" className={styles.addButton} />
+            <Button
+              data-testid="project-manager-add-open"
+              icon="add user"
+              className={styles.addButton}
+            />
           </Tooltip>
         </AddPopup>
       )}

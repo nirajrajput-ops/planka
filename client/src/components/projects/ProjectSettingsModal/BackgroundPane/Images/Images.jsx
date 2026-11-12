@@ -49,6 +49,7 @@ const Images = React.memo(() => {
         <div className={styles.action}>
           <FilePicker accept="image/*" onSelect={handleFileSelect}>
             <Button
+              data-testid="project-background-upload-image"
               ref={fieldRef}
               content={t('action.uploadNewImage', {
                 context: 'title',

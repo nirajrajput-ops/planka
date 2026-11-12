@@ -117,6 +117,7 @@ const ActionsStep = React.memo(({ listId, onNameEdit, onCardAdd, onClose }) => {
           <ConfirmationStep
             title="common.deleteList"
             content="common.areYouSureYouWantToDeleteThisList"
+            confirmTestId="list-delete-confirm"
             buttonContent="action.deleteList"
             onConfirm={handleDeleteConfirm}
             onBack={handleBack}
@@ -135,51 +136,83 @@ const ActionsStep = React.memo(({ listId, onNameEdit, onCardAdd, onClose }) => {
       </Popup.Header>
       <Popup.Content>
         <Menu secondary vertical className={styles.menu}>
-          <Menu.Item className={styles.menuItem} onClick={handleEditNameClick}>
+          <Menu.Item
+            className={styles.menuItem}
+            data-testid="list-edit-name"
+            onClick={handleEditNameClick}
+          >
             <Icon name="edit outline" className={styles.menuItemIcon} />
             {t('action.editTitle', {
               context: 'title',
             })}
           </Menu.Item>
-          <Menu.Item className={styles.menuItem} onClick={handleEditTypeClick}>
+          <Menu.Item
+            className={styles.menuItem}
+            data-testid="list-edit-type"
+            onClick={handleEditTypeClick}
+          >
             <Icon name="map outline" className={styles.menuItemIcon} />
             {t('action.editType', {
               context: 'title',
             })}
           </Menu.Item>
-          <Menu.Item className={styles.menuItem} onClick={handleEditColorClick}>
+          <Menu.Item
+            className={styles.menuItem}
+            data-testid="list-edit-color"
+            onClick={handleEditColorClick}
+          >
             <Icon name="dot circle outline" className={styles.menuItemIcon} />
             {t('action.editColor', {
               context: 'title',
             })}
           </Menu.Item>
-          <Menu.Item className={styles.menuItem} onClick={handleAddCardClick}>
+          <Menu.Item
+            className={styles.menuItem}
+            data-testid="card-add-open-from-list-menu"
+            onClick={handleAddCardClick}
+          >
             <Icon name="list alternate outline" className={styles.menuItemIcon} />
             {t('action.addCard', {
               context: 'title',
             })}
           </Menu.Item>
-          <Menu.Item className={styles.menuItem} onClick={handleSortClick}>
+          <Menu.Item
+            className={styles.menuItem}
+            data-testid="list-sort-open"
+            onClick={handleSortClick}
+          >
             <Icon name="sort amount down" className={styles.menuItemIcon} />
             {t('action.sortList', {
               context: 'title',
             })}
           </Menu.Item>
-          <Menu.Item className={styles.menuItem} onClick={handleMoveClick}>
+          <Menu.Item
+            className={styles.menuItem}
+            data-testid="list-move-open"
+            onClick={handleMoveClick}
+          >
             <Icon name="share square outline" className={styles.menuItemIcon} />
             {t('action.moveList', {
               context: 'title',
             })}
           </Menu.Item>
           {list.type === ListTypes.CLOSED && (
-            <Menu.Item className={styles.menuItem} onClick={handleArchiveCardsClick}>
+            <Menu.Item
+              className={styles.menuItem}
+              data-testid="list-archive-cards-open"
+              onClick={handleArchiveCardsClick}
+            >
               <Icon name="folder open outline" className={styles.menuItemIcon} />
               {t('action.archiveCards', {
                 context: 'title',
               })}
             </Menu.Item>
           )}
-          <Menu.Item className={styles.menuItem} onClick={handleDeleteClick}>
+          <Menu.Item
+            className={styles.menuItem}
+            data-testid="list-delete"
+            onClick={handleDeleteClick}
+          >
             <Icon name="trash alternate outline" className={styles.menuItemIcon} />
             {t('action.deleteList', {
               context: 'title',

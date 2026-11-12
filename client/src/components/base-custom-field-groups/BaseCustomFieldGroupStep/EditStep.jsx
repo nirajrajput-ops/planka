@@ -87,7 +87,11 @@ const EditStep = React.memo(({ baseCustomFieldGroupId, onBack, onClose }) => {
             className={styles.field}
             onChange={handleFieldChange}
           />
-          <Button positive content={t('action.save')} />
+          <Button
+            data-testid="base-custom-field-group-edit-save"
+            positive
+            content={t('action.save')}
+          />
         </Form>
       </Popup.Content>
     </>

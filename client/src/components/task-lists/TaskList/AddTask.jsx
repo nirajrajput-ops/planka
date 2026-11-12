@@ -182,10 +182,12 @@ const AddTask = React.memo(({ children, taskListId, isOpened, onClose }) => {
           {...clickAwayProps} // eslint-disable-line react/jsx-props-no-spreading
           positive
           ref={handleSubmitButtonRef}
+          data-testid="task-add-submit"
           content={t('action.addTask')}
         />
         <Button
           {...clickAwayProps} // eslint-disable-line react/jsx-props-no-spreading
+          data-testid="task-add-toggle-linking"
           ref={handleToggleLinkingButtonRef}
           type="button"
           className={styles.toggleLinkingButton}

@@ -65,6 +65,7 @@ const SavedFiltersStep = React.memo(({ items, activeId, onApply, onRemove, onBac
         title="common.deleteFilter"
         content="common.areYouSureYouWantToDeleteThisFilter"
         buttonContent="action.delete"
+        confirmTestId="board-saved-filter-delete-confirm"
         onConfirm={handleRemoveConfirm}
         onBack={handleBack}
       />
@@ -93,6 +94,7 @@ const SavedFiltersStep = React.memo(({ items, activeId, onApply, onRemove, onBac
                     data-id={item.id}
                     title={isActive ? t('common.deactivateFilter') : t('common.applyFilter')}
                     className={classNames(styles.itemButton, isActive && styles.itemButtonActive)}
+                    data-testid="board-saved-filter-apply"
                     onClick={handleApplyClick}
                   >
                     <Icon fitted name={isActive ? 'check' : 'filter'} className={styles.itemIcon} />
@@ -105,6 +107,7 @@ const SavedFiltersStep = React.memo(({ items, activeId, onApply, onRemove, onBac
                       context: 'title',
                     })}
                     className={styles.itemRemoveButton}
+                    data-testid="board-saved-filter-delete"
                     onClick={handleRemoveClick}
                   >
                     <Icon fitted name="trash alternate outline" />

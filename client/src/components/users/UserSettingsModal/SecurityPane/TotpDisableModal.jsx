@@ -85,6 +85,7 @@ const TotpDisableModal = React.memo(({ onClose }) => {
           content={t('action.disable2fa')}
           loading={isDisabling}
           disabled={isDisabling || !password || !code}
+          data-testid="security-disable-2fa-confirm"
           onClick={handleSubmit}
         />
       </Modal.Actions>

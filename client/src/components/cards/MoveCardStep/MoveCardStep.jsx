@@ -160,6 +160,7 @@ const MoveCardStep = React.memo(({ id, onBack, onClose }) => {
           )}
           <Button
             positive
+            data-testid="card-move-submit"
             content={t('action.move')}
             disabled={(selectedBoard && selectedBoard.isFetching !== false) || !selectedList}
           />

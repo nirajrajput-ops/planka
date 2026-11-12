@@ -75,6 +75,7 @@ const ValueField = React.memo(({ defaultValue, onUpdate, ...props }) => {
       fluid
       ref={handleFieldRef}
       value={value}
+      data-testid="card-custom-field-value-edit"
       maxLength={512}
       className={styles.field}
       onFocus={handleFocus}

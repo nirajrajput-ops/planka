@@ -258,7 +258,7 @@ const List = React.memo(({ id, index }) => {
                 (canEdit ? (
                   <ActionsPopup listId={id} onNameEdit={handleNameEdit} onCardAdd={handleCardAdd}>
                     <Tooltip content={t('common.openListActions')}>
-                      <Button className={styles.headerButton}>
+                      <Button data-testid="list-open-actions" className={styles.headerButton}>
                         <Icon fitted name="pencil" size="small" />
                       </Button>
                     </Tooltip>
@@ -267,7 +267,10 @@ const List = React.memo(({ id, index }) => {
                   canArchiveCards && (
                     <ArchiveCardsPopup listId={id}>
                       <Tooltip content={t('action.archiveCards')}>
-                        <Button className={styles.headerButton}>
+                        <Button
+                          data-testid="list-archive-cards-open"
+                          className={styles.headerButton}
+                        >
                           <Icon fitted name="archive" size="small" />
                         </Button>
                       </Tooltip>
@@ -288,6 +291,7 @@ const List = React.memo(({ id, index }) => {
                     list.color &&
                       globalStyles[`background${upperFirst(camelCase(list.color))}Soft`],
                   )}
+                  data-testid="card-add-open"
                   onClick={handleAddCardClick}
                 >
                   {cardCountNode}
@@ -302,6 +306,7 @@ const List = React.memo(({ id, index }) => {
                       type="button"
                       disabled={!list.isPersisted}
                       className={classNames(styles.addCardButton, styles.paste)}
+                      data-testid="card-paste"
                       onClick={handlePasteCardClick}
                     >
                       <Icon name="paste" />

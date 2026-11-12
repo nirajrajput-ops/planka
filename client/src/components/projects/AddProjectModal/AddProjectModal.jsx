@@ -137,12 +137,17 @@ const AddProjectModal = React.memo(() => {
             inverted
             color="green"
             icon="checkmark"
+            data-testid="project-create-submit"
             content={t('action.createProject')}
             loading={isSubmitting}
             disabled={isSubmitting}
           />
           <SelectTypePopup value={data.type} onSelect={handleTypeSelect}>
-            <Button type="button" className={styles.selectTypeButton}>
+            <Button
+              data-testid="project-create-select-type"
+              type="button"
+              className={styles.selectTypeButton}
+            >
               <Icon name={ProjectTypeIcons[data.type]} className={styles.selectTypeButtonIcon} />
               {t(`common.${data.type}`)}
             </Button>

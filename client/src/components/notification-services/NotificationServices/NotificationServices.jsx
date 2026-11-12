@@ -121,7 +121,7 @@ const NotificationServices = React.memo(({ ids, onCreate }) => {
             onBlur={handleUrlBlur}
           />
           <Tooltip content={t('common.addNotificationService', { context: 'title' })}>
-            <Button positive className={styles.button}>
+            <Button data-testid="notification-service-add" positive className={styles.button}>
               <Icon fitted name="plus" />
             </Button>
           </Tooltip>

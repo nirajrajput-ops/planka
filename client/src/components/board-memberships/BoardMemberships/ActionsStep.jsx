@@ -92,6 +92,7 @@ const ActionsStep = React.memo(({ boardMembershipId, title, onBack, onClose }) =
                 : `common.areYouSureYouWantToRemoveThisMemberFromBoard`
             }
             buttonContent={isCurrentUser ? `action.leaveBoard` : 'action.removeMember'}
+            confirmTestId="board-member-remove-confirm"
             onConfirm={handleDeleteConfirm}
             onBack={handleBack}
           />
@@ -130,6 +131,7 @@ const ActionsStep = React.memo(({ boardMembershipId, title, onBack, onClose }) =
         content={t('action.showCardsWithThisUser')}
         icon="filter"
         size="tiny"
+        data-testid="board-member-filter-cards"
         onClick={handleFilterClick}
       />
       {(isCurrentUser || canEdit) && (
@@ -140,6 +142,7 @@ const ActionsStep = React.memo(({ boardMembershipId, title, onBack, onClose }) =
               fluid
               content={t('action.editPermissions')}
               className={styles.button}
+              data-testid="board-member-edit-permissions"
               onClick={handleEditPermissionsClick}
             />
           )}
@@ -148,6 +151,7 @@ const ActionsStep = React.memo(({ boardMembershipId, title, onBack, onClose }) =
               fluid
               content={t(`action.leaveBoard`)}
               className={styles.button}
+              data-testid="board-member-remove"
               onClick={handleDeleteClick}
             />
           ) : (
@@ -155,6 +159,7 @@ const ActionsStep = React.memo(({ boardMembershipId, title, onBack, onClose }) =
               fluid
               content={t(`action.removeFromBoard`)}
               className={styles.button}
+              data-testid="board-member-remove"
               onClick={handleDeleteClick}
             />
           )}

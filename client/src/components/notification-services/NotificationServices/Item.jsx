@@ -192,6 +192,7 @@ const Item = React.memo(({ id }) => {
           loading={notificationService.isTesting}
           disabled={!notificationService.isPersisted || notificationService.isTesting}
           className={styles.button}
+          data-testid="notification-service-test"
           onClick={handleTestClick}
         >
           <Icon fitted name="paper plane outline" />
@@ -201,11 +202,13 @@ const Item = React.memo(({ id }) => {
         title="common.deleteNotificationService"
         content="common.areYouSureYouWantToDeleteThisNotificationService"
         buttonContent="action.deleteNotificationService"
+        confirmTestId="notification-service-delete-confirm"
         onConfirm={handleDeleteConfirm}
       >
         <Tooltip content={t('action.deleteNotificationService')}>
           <Button
             type="button"
+            data-testid="notification-service-delete"
             disabled={!notificationService.isPersisted}
             className={styles.button}
           >

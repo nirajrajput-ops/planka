@@ -91,6 +91,7 @@ const EditName = React.memo(({ taskId, onClose }) => {
       <div className={styles.controls}>
         <Button
           {...clickAwayProps} // eslint-disable-line react/jsx-props-no-spreading
+          data-testid="task-edit-name-save"
           ref={handleButtonRef}
           positive
           content={t('action.save')}

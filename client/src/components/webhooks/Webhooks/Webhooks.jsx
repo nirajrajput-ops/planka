@@ -93,7 +93,9 @@ const Webhooks = React.memo(({ ids, projects, boards, users, onCreate }) => {
               users={users}
               onFieldChange={handleFieldChange}
             />
-            <Button positive>{t('action.addWebhook')}</Button>
+            <Button data-testid="webhook-create-submit" positive>
+              {t('action.addWebhook')}
+            </Button>
           </Form>
         </Segment>
       )}

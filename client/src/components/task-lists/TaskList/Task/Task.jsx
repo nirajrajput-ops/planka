@@ -136,6 +136,7 @@ const Task = React.memo(({ id, index }) => {
           >
             <span className={styles.checkboxWrapper}>
               <Checkbox
+                data-testid="task-toggle-complete"
                 checked={task.isCompleted}
                 disabled={!!task.linkedCardId || !task.isPersisted || !canToggle}
                 className={styles.checkbox}
@@ -171,6 +172,7 @@ const Task = React.memo(({ id, index }) => {
                         >
                           <Link
                             to={Paths.CARDS.replace(':id', task.linkedCardId)}
+                            data-testid="task-open-linked-card"
                             onClick={handleLinkClick}
                           >
                             {linkedCard ? linkedCard.name : task.name}
@@ -206,8 +208,12 @@ const Task = React.memo(({ id, index }) => {
                                 className={styles.assigneeUserAvatar}
                               />
                             ) : (
-                              <Tooltip content={t('common.selectAssignee', { context: 'title' })}>
-                                <Button className={styles.button}>
+                              <Tooltip
+                                content={t('common.selectAssignee', {
+                                  context: 'title',
+                                })}
+                              >
+                                <Button data-testid="task-assign-open" className={styles.button}>
                                   <Icon fitted name="add user" size="small" />
                                 </Button>
                               </Tooltip>
@@ -215,8 +221,12 @@ const Task = React.memo(({ id, index }) => {
                           </SelectAssigneePopup>
                         )}
                         <ActionsPopup taskId={id} onNameEdit={handleNameEdit}>
-                          <Tooltip content={t('common.taskActions', { context: 'title' })}>
-                            <Button className={styles.button}>
+                          <Tooltip
+                            content={t('common.taskActions', {
+                              context: 'title',
+                            })}
+                          >
+                            <Button data-testid="task-open-actions" className={styles.button}>
                               <Icon fitted name="pencil" size="small" />
                             </Button>
                           </Tooltip>

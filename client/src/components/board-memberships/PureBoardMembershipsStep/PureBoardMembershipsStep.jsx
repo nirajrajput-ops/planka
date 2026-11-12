@@ -86,6 +86,7 @@ const PureBoardMembershipsStep = React.memo(
               fluid
               content={t(clearButtonContent)}
               className={styles.clearButton}
+              data-testid="board-member-clear"
               onClick={onClear}
             />
           )}

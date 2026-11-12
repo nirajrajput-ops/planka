@@ -376,6 +376,7 @@ const ProjectContent = React.memo(() => {
                     >
                       <Tooltip content={t('action.addMember')}>
                         <button
+                          data-testid="card-add-member-inline"
                           type="button"
                           className={classNames(styles.attachment, styles.dueDate)}
                         >
@@ -418,6 +419,7 @@ const ProjectContent = React.memo(() => {
                     >
                       <Tooltip content={t('action.addLabel')}>
                         <button
+                          data-testid="card-add-label-inline"
                           type="button"
                           className={classNames(styles.attachment, styles.dueDate)}
                         >
@@ -440,6 +442,7 @@ const ProjectContent = React.memo(() => {
                       <>
                         {!card.isClosed && (
                           <Checkbox
+                            data-testid="card-toggle-due-completed"
                             checked={card.isDueCompleted}
                             disabled={!canEditDueDate}
                             onChange={handleDueCompletionChange}
@@ -486,6 +489,7 @@ const ProjectContent = React.memo(() => {
                       <button
                         type="button"
                         className={classNames(styles.attachment, styles.dueDate)}
+                        data-testid="card-toggle-stopwatch"
                         onClick={handleToggleStopwatchClick}
                       >
                         <Icon
@@ -526,8 +530,15 @@ const ProjectContent = React.memo(() => {
                         /* eslint-disable-next-line jsx-a11y/click-events-have-key-events,
                                                     jsx-a11y/no-static-element-interactions */
                         <div className={styles.cursorPointer} onClick={handleEditDescriptionClick}>
-                          <Tooltip content={t('action.editDescription', { context: 'title' })}>
-                            <Button className={styles.editButton}>
+                          <Tooltip
+                            content={t('action.editDescription', {
+                              context: 'title',
+                            })}
+                          >
+                            <Button
+                              data-testid="card-edit-description"
+                              className={styles.editButton}
+                            >
                               <Icon fitted name="pencil" size="small" />
                             </Button>
                           </Tooltip>
@@ -576,7 +587,11 @@ const ProjectContent = React.memo(() => {
                 {canUseLists ? (
                   <ListsPopup currentId={list.id} onSelect={handleListSelect}>
                     <Tooltip content={t('common.selectList')}>
-                      <button type="button" className={styles.listButton}>
+                      <button
+                        data-testid="card-move-list-open"
+                        type="button"
+                        className={styles.listButton}
+                      >
                         <span className={classNames(styles.list, styles.listHoverable)}>
                           <Icon name="columns" size="small" className={styles.listIcon} />
                           <span className={styles.hidable}>
@@ -609,7 +624,11 @@ const ProjectContent = React.memo(() => {
                     onUserSelect={handleUserSelect}
                     onUserDeselect={handleUserDeselect}
                   >
-                    <Button fluid className={classNames(styles.actionButton, styles.hidable)}>
+                    <Button
+                      data-testid="card-add-members"
+                      fluid
+                      className={classNames(styles.actionButton, styles.hidable)}
+                    >
                       <Icon name="user outline" className={styles.actionIcon} />
                       {t('common.members')}
                     </Button>
@@ -622,7 +641,11 @@ const ProjectContent = React.memo(() => {
                     onSelect={handleLabelSelect}
                     onDeselect={handleLabelDeselect}
                   >
-                    <Button fluid className={classNames(styles.actionButton, styles.hidable)}>
+                    <Button
+                      data-testid="card-add-labels"
+                      fluid
+                      className={classNames(styles.actionButton, styles.hidable)}
+                    >
                       <Icon name="bookmark outline" className={styles.actionIcon} />
                       {t('common.labels')}
                     </Button>
@@ -630,7 +653,11 @@ const ProjectContent = React.memo(() => {
                 )}
                 {canEditDueDate && (
                   <EditDueDatePopup cardId={card.id}>
-                    <Button fluid className={classNames(styles.actionButton, styles.hidable)}>
+                    <Button
+                      data-testid="card-set-due-date"
+                      fluid
+                      className={classNames(styles.actionButton, styles.hidable)}
+                    >
                       <Icon name="calendar check outline" className={styles.actionIcon} />
                       {t('common.dueDate', {
                         context: 'title',
@@ -640,7 +667,11 @@ const ProjectContent = React.memo(() => {
                 )}
                 {canEditStopwatch && (
                   <EditStopwatchPopup cardId={card.id}>
-                    <Button fluid className={classNames(styles.actionButton, styles.hidable)}>
+                    <Button
+                      data-testid="card-open-stopwatch"
+                      fluid
+                      className={classNames(styles.actionButton, styles.hidable)}
+                    >
                       <Icon name="clock outline" className={styles.actionIcon} />
                       {t('common.stopwatch')}
                     </Button>
@@ -648,7 +679,11 @@ const ProjectContent = React.memo(() => {
                 )}
                 {canAddTaskList && (
                   <AddTaskListPopup>
-                    <Button fluid className={classNames(styles.actionButton, styles.hidable)}>
+                    <Button
+                      data-testid="card-add-task-list"
+                      fluid
+                      className={classNames(styles.actionButton, styles.hidable)}
+                    >
                       <Icon name="check square outline" className={styles.actionIcon} />
                       {t('common.taskList', {
                         context: 'title',
@@ -658,7 +693,11 @@ const ProjectContent = React.memo(() => {
                 )}
                 {canAddAttachment && (
                   <AddAttachmentPopup>
-                    <Button fluid className={classNames(styles.actionButton, styles.hidable)}>
+                    <Button
+                      data-testid="card-add-attachment"
+                      fluid
+                      className={classNames(styles.actionButton, styles.hidable)}
+                    >
                       <Icon name="attach" className={styles.actionIcon} />
                       {t('common.attachment')}
                     </Button>
@@ -666,7 +705,11 @@ const ProjectContent = React.memo(() => {
                 )}
                 {canAddCustomFieldGroup && (
                   <AddCustomFieldGroupPopup onCreate={handleCustomFieldGroupCreate}>
-                    <Button fluid className={classNames(styles.actionButton, styles.hidable)}>
+                    <Button
+                      data-testid="card-add-custom-fields"
+                      fluid
+                      className={classNames(styles.actionButton, styles.hidable)}
+                    >
                       <Icon name="sticky note outline" className={styles.actionIcon} />
                       {t('common.customField', {
                         context: 'title',
@@ -690,6 +733,7 @@ const ProjectContent = React.memo(() => {
                   <Button
                     fluid
                     className={classNames(styles.actionButton, styles.hidable)}
+                    data-testid="card-toggle-join"
                     onClick={handleToggleJointClick}
                   >
                     <Icon
@@ -704,6 +748,7 @@ const ProjectContent = React.memo(() => {
                     fluid
                     disabled={board.isSubscribed}
                     className={classNames(styles.actionButton, styles.hidable)}
+                    data-testid="card-toggle-subscription"
                     onClick={handleToggleSubscriptionClick}
                   >
                     {board.isSubscribed ? (
@@ -727,6 +772,7 @@ const ProjectContent = React.memo(() => {
                     fluid
                     disabled={!prevList}
                     className={classNames(styles.actionButton, styles.hidable)}
+                    data-testid="card-restore"
                     onClick={handleRestoreClick}
                   >
                     <Icon name="undo alternate" className={styles.actionIcon} />
@@ -742,9 +788,14 @@ const ProjectContent = React.memo(() => {
                     title="common.archiveCard"
                     content="common.areYouSureYouWantToArchiveThisCard"
                     buttonContent="action.archiveCard"
+                    confirmTestId="card-archive-confirm"
                     onConfirm={handleArchiveConfirm}
                   >
-                    <Button fluid className={classNames(styles.actionButton, styles.hidable)}>
+                    <Button
+                      data-testid="card-archive"
+                      fluid
+                      className={classNames(styles.actionButton, styles.hidable)}
+                    >
                       <Icon name="folder open outline" className={styles.actionIcon} />
                       {t('action.archive')}
                     </Button>
@@ -759,9 +810,14 @@ const ProjectContent = React.memo(() => {
                         : 'common.areYouSureYouWantToDeleteThisCard'
                     }
                     buttonContent={isInTrashList ? 'action.deleteCardForever' : 'action.deleteCard'}
+                    confirmTestId="card-delete-confirm"
                     onConfirm={handleDeleteConfirm}
                   >
-                    <Button fluid className={classNames(styles.actionButton, styles.hidable)}>
+                    <Button
+                      data-testid="card-delete"
+                      fluid
+                      className={classNames(styles.actionButton, styles.hidable)}
+                    >
                       <Icon name="trash alternate outline" className={styles.actionIcon} />
                       {isInTrashList
                         ? t('action.deleteForever', {
@@ -775,7 +831,11 @@ const ProjectContent = React.memo(() => {
                   canDuplicate ||
                   canMove) && (
                   <MoreActionsPopup>
-                    <Button fluid className={classNames(styles.moreActionsButton, styles.hidable)}>
+                    <Button
+                      data-testid="card-more-actions"
+                      fluid
+                      className={classNames(styles.moreActionsButton, styles.hidable)}
+                    >
                       <Icon name="ellipsis horizontal" className={styles.moreActionsButtonIcon} />
                       {t('common.moreActions')}
                     </Button>

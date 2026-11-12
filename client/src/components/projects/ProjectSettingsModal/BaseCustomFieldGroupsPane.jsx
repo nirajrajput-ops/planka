@@ -37,6 +37,7 @@ const BaseCustomFieldGroupsPane = React.memo(() => {
         <AddBaseCustomFieldGroupPopup>
           <button
             type="button"
+            data-testid="project-base-custom-field-group-add"
             className={classNames(styles.attachment, styles.addAttachmentButton)}
           >
             <Icon name="plus" size="small" className={styles.addAttachmentButtonIcon} />

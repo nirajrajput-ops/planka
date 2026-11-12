@@ -84,6 +84,7 @@ const EditStep = React.memo(({ attachmentId, onClose }) => {
         title="common.deleteAttachment"
         content="common.areYouSureYouWantToDeleteThisAttachment"
         buttonContent="action.deleteAttachment"
+        confirmTestId="attachment-delete-confirm"
         onConfirm={handleDeleteConfirm}
         onBack={handleBack}
       />
@@ -109,11 +110,12 @@ const EditStep = React.memo(({ attachmentId, onClose }) => {
             className={styles.field}
             onChange={handleFieldChange}
           />
-          <Button positive content={t('action.save')} />
+          <Button data-testid="attachment-edit-save" positive content={t('action.save')} />
         </Form>
         <Button
           content={t('action.delete')}
           className={styles.deleteButton}
+          data-testid="attachment-delete"
           onClick={handleDeleteClick}
         />
       </Popup.Content>

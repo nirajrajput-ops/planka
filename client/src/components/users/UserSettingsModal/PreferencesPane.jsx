@@ -76,6 +76,7 @@ const PreferencesPane = React.memo(() => {
     <Tab.Pane attached={false} className={styles.wrapper}>
       <Radio
         toggle
+        data-testid="preferences-toggle-subscribe-own-cards"
         name="subscribeToOwnCards"
         checked={user.subscribeToOwnCards}
         label={t('common.subscribeToMyOwnCardsByDefault')}
@@ -84,6 +85,7 @@ const PreferencesPane = React.memo(() => {
       />
       <Radio
         toggle
+        data-testid="preferences-toggle-subscribe-on-comment"
         name="subscribeToCardWhenCommenting"
         checked={user.subscribeToCardWhenCommenting}
         label={t('common.subscribeToCardWhenCommenting')}
@@ -92,6 +94,7 @@ const PreferencesPane = React.memo(() => {
       />
       <Radio
         toggle
+        data-testid="preferences-toggle-recent-highlighting"
         name="turnOffRecentCardHighlighting"
         checked={user.turnOffRecentCardHighlighting}
         label={t('common.turnOffRecentCardHighlighting')}
@@ -106,6 +109,7 @@ const PreferencesPane = React.memo(() => {
           className={styles.dropdown}
           options={autoLogoutOptions}
           value={autoLogoutValue}
+          data-testid="preferences-change-auto-logout"
           onChange={handleAutoLogoutChange}
         />
       </div>

@@ -241,6 +241,7 @@ const Content = React.memo(() => {
                   />
                 </div>
                 <Form.Button
+                  data-testid="login-submit"
                   fluid
                   primary
                   icon="right arrow"

@@ -64,6 +64,7 @@ const SelectRoleStep = React.memo(
                   value={role}
                   active={role === value}
                   className={styles.menuItem}
+                  data-testid="admin-user-role-select"
                   onClick={handleSelectClick}
                 >
                   <Icon name={UserRoleIcons[role]} className={styles.menuItemIcon} />

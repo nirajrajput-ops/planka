@@ -166,6 +166,7 @@ const EditUserPasswordStep = React.memo(({ id, onBack, onClose }) => {
           )}
           <Button
             positive
+            data-testid="account-password-save"
             content={t('action.save')}
             loading={isSubmitting}
             disabled={isSubmitting}

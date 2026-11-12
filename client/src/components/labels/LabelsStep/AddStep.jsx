@@ -50,7 +50,7 @@ const AddStep = React.memo(({ cardId, defaultData, onBack }) => {
       <Popup.Content>
         <Form onSubmit={handleSubmit}>
           <Editor data={data} onFieldChange={handleFieldChange} />
-          <Button positive content={t('action.createLabel')} />
+          <Button data-testid="label-create-submit" positive content={t('action.createLabel')} />
         </Form>
       </Popup.Content>
     </>
