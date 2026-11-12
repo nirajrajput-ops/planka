@@ -107,6 +107,16 @@ module.exports = {
       user: inputs.actorUser,
     });
 
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'User created',
+      visitorId: inputs.actorUser.id,
+      properties: {
+        created_user_id: user.id,
+        created_user_role: user.role,
+        actor_role: inputs.actorUser.role,
+      },
+    });
+
     return user;
   },
 };

@@ -193,6 +193,7 @@ const buildEmail = (board, card, notification, actorUser, notifiableUser, t) => 
     html,
     to: notifiableUser.email,
     subject: buildTitle(notification, t),
+    userId: notifiableUser.id,
   };
 };
 

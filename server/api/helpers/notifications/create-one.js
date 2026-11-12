@@ -202,6 +202,7 @@ const buildAndSendEmail = async (
     html,
     to: notifiableUser.email,
     subject: buildTitle(notification, t),
+    userId: notifiableUser.id,
   });
 
   transporter.close();
@@ -316,6 +317,18 @@ module.exports = {
         }
       }
     }
+
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Notification delivered',
+      visitorId: notification.userId,
+      properties: {
+        notification_type: notification.type,
+        project_id: inputs.project.id,
+        board_id: notification.boardId,
+        card_id: notification.cardId,
+        actor_user_id: notification.creatorUserId,
+      },
+    });
 
     return notification;
   },
