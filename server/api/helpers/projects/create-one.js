@@ -55,6 +55,18 @@ module.exports = {
       user: inputs.actorUser,
     });
 
+    // Pendo Track Event: the project was persisted and its creator became manager
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Project created',
+      visitorId: inputs.actorUser.id,
+      properties: {
+        project_id: project.id,
+        project_type: values.type,
+        has_description: !!project.description,
+        creator_role: inputs.actorUser.role,
+      },
+    });
+
     return {
       project,
       projectManager,

@@ -301,11 +301,18 @@ module.exports = {
       withDeactivated: false,
     });
 
+    const notifiableUserIdsSet = new Set(sails.helpers.utils.mapRecords(notifiableUsers));
+    let isEmailEnabled = false;
+    let notificationServiceCountByUserId = {};
+
     if (notifiableUsers.length > 0) {
       const notifiableUserIds = sails.helpers.utils.mapRecords(notifiableUsers);
 
       const notificationServices = await NotificationService.qm.getByUserIds(notifiableUserIds);
       const { transporter } = await sails.helpers.utils.makeSmtpTransporter();
+
+      isEmailEnabled = !!transporter;
+      notificationServiceCountByUserId = _.countBy(notificationServices, 'userId');
 
       if (notificationServices.length > 0 || transporter) {
         const notificationServicesByUserId = _.groupBy(notificationServices, 'userId');
@@ -351,6 +358,27 @@ module.exports = {
         });
       }
     }
+
+    // Pendo Track Event: one per created notification (comments and mentions), sent to its recipient
+    notifications.forEach((notification) => {
+      const isRecipientActive = notifiableUserIdsSet.has(notification.userId);
+
+      sails.helpers.utils.sendPendoTrackEvent.with({
+        event: 'Notification delivered',
+        visitorId: notification.userId,
+        properties: {
+          notification_id: notification.id,
+          notification_type: notification.type,
+          card_id: notification.cardId,
+          board_id: notification.boardId,
+          project_id: inputs.project.id,
+          is_email_sent: isRecipientActive && isEmailEnabled,
+          apprise_service_count: isRecipientActive
+            ? notificationServiceCountByUserId[notification.userId] || 0
+            : 0,
+        },
+      });
+    });
 
     return notifications;
   },

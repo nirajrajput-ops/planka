@@ -144,6 +144,20 @@ module.exports = {
       list: inputs.list,
     });
 
+    // Pendo Track Event: the comment was saved and subscribers / mentioned users were notified
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Comment posted',
+      visitorId: values.user.id,
+      properties: {
+        comment_id: comment.id,
+        card_id: comment.cardId,
+        board_id: inputs.board.id,
+        project_id: inputs.project.id,
+        mention_count: mentionUserIds.length,
+        notified_user_count: notifiableUserIds.length,
+      },
+    });
+
     if (values.user.subscribeToCardWhenCommenting) {
       let cardSubscription;
       try {
