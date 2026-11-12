@@ -125,12 +125,14 @@ const AddList = React.memo(({ onClose }) => {
           {...clickAwayProps} // eslint-disable-line react/jsx-props-no-spreading
           positive
           ref={handleSubmitButtonRef}
+          data-testid="list-add-submit"
           content={t('action.addList')}
           className={styles.button}
         />
         <SelectListTypePopup defaultValue={data.type} onSelect={handleTypeSelect}>
           <Button
             {...clickAwayProps} // eslint-disable-line react/jsx-props-no-spreading
+            data-testid="list-add-select-type"
             ref={handleSelectTypeButtonRef}
             type="button"
             className={classNames(styles.button, styles.selectTypeButton)}

@@ -107,6 +107,7 @@ const TrustedDevicesSection = React.memo(() => {
                     content={t('action.revoke')}
                     loading={isDeleting}
                     disabled={isDeleting}
+                    data-testid="security-revoke-trusted-device"
                     onClick={() => handleRevokeClick(device.id)}
                   />
                 </List.Content>

@@ -133,6 +133,7 @@ const TermsModal = React.memo(() => {
           loading={isCancelling}
           disabled={isSubmitting || isCancelling}
           className={styles.cancelButton}
+          data-testid="terms-cancel"
           onClick={handleCancelClick}
         />
         <Button
@@ -140,6 +141,7 @@ const TermsModal = React.memo(() => {
           content={t('action.continue')}
           loading={isSubmitting}
           disabled={!isAllConfirmationsAccepted || isSubmitting || isCancelling}
+          data-testid="terms-continue"
           onClick={handleContinueClick}
         />
       </Modal.Actions>

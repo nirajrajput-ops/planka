@@ -96,6 +96,7 @@ const ActionsStep = React.memo(({ onClose }) => {
           <ConfirmationStep
             title="common.emptyTrash"
             content="common.areYouSureYouWantToEmptyTrash"
+            confirmTestId="board-empty-trash-confirm"
             buttonContent="action.emptyTrash"
             onConfirm={handleEmptyTrashConfirm}
             onBack={handleBack}
@@ -115,7 +116,11 @@ const ActionsStep = React.memo(({ onClose }) => {
       <Popup.Content>
         <Menu secondary vertical className={styles.menu}>
           {withSubscribe && (
-            <Menu.Item className={styles.menuItem} onClick={handleToggleSubscriptionClick}>
+            <Menu.Item
+              className={styles.menuItem}
+              data-testid="board-toggle-subscription"
+              onClick={handleToggleSubscriptionClick}
+            >
               <Icon
                 name={board.isSubscribed ? 'bell slash outline' : 'bell outline'}
                 className={styles.menuItemIcon}
@@ -126,14 +131,22 @@ const ActionsStep = React.memo(({ onClose }) => {
             </Menu.Item>
           )}
           {withCustomFieldGroups && (
-            <Menu.Item className={styles.menuItem} onClick={handleCustomFieldsClick}>
+            <Menu.Item
+              className={styles.menuItem}
+              data-testid="board-open-custom-fields"
+              onClick={handleCustomFieldsClick}
+            >
               <Icon name="sticky note outline" className={styles.menuItemIcon} />
               {t('common.customFields', {
                 context: 'title',
               })}
             </Menu.Item>
           )}
-          <Menu.Item className={styles.menuItem} onClick={handleActivitiesClick}>
+          <Menu.Item
+            className={styles.menuItem}
+            data-testid="board-open-activity"
+            onClick={handleActivitiesClick}
+          >
             <Icon name="list ul" className={styles.menuItemIcon} />
             {t('common.actions', {
               context: 'title',
@@ -142,7 +155,11 @@ const ActionsStep = React.memo(({ onClose }) => {
           {withTrashEmptier && (
             <>
               <hr className={styles.divider} />
-              <Menu.Item className={styles.menuItem} onClick={handleEmptyTrashClick}>
+              <Menu.Item
+                className={styles.menuItem}
+                data-testid="board-empty-trash"
+                onClick={handleEmptyTrashClick}
+              >
                 <Icon name="trash alternate outline" className={styles.menuItemIcon} />
                 {t('action.emptyTrash', {
                   context: 'title',
@@ -158,6 +175,7 @@ const ActionsStep = React.memo(({ onClose }) => {
                 value={context}
                 active={context === board.context}
                 className={styles.menuItem}
+                data-testid="board-switch-context"
                 onClick={handleSelectContextClick}
               >
                 <Icon name={BoardContextIcons[context]} className={styles.menuItemIcon} />

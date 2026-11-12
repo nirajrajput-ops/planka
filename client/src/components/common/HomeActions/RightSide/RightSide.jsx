@@ -61,6 +61,7 @@ const RightSide = React.memo(() => {
           <button
             type="button"
             className={classNames(styles.button)}
+            data-testid="home-toggle-hidden-projects"
             onClick={handleToggleHiddenClick}
           >
             <Icon fitted name={isHiddenVisible ? 'eye slash' : 'eye'} />
@@ -70,7 +71,7 @@ const RightSide = React.memo(() => {
       <div className={styles.action}>
         <SelectOrderPopup value={currentOrder} onSelect={handleOrderSelect}>
           <Tooltip content={t('common.selectOrder', { context: 'title' })}>
-            <button type="button" className={styles.button}>
+            <button data-testid="home-change-project-order" type="button" className={styles.button}>
               <Icon fitted name={ProjectOrderIcons[currentOrder]} />
             </button>
           </Tooltip>
@@ -85,6 +86,7 @@ const RightSide = React.memo(() => {
                 value={view}
                 disabled={view === currentView}
                 className={styles.button}
+                data-testid="home-switch-view"
                 onClick={handleSelectViewClick}
               >
                 <Icon fitted name={HomeViewIcons[view]} />

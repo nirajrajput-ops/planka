@@ -80,7 +80,9 @@ const SecurityPane = React.memo(() => {
                 <Icon name="warning sign" />
                 {user.totpRecoveryCodesRemaining === 0
                   ? t('common.recoveryCodesExhausted')
-                  : t('common.recoveryCodesLow', { count: user.totpRecoveryCodesRemaining })}
+                  : t('common.recoveryCodesLow', {
+                      count: user.totpRecoveryCodesRemaining,
+                    })}
               </Message>
             )}
           <div className={styles.actionRow}>
@@ -88,12 +90,14 @@ const SecurityPane = React.memo(() => {
               basic
               icon="refresh"
               content={t('action.regenerateRecoveryCodes')}
+              data-testid="security-regenerate-recovery-codes-open"
               onClick={handleRegenerateClick}
             />
             <Button
               negative
               icon="shield alternate"
               content={t('action.disable2fa')}
+              data-testid="security-disable-2fa-open"
               onClick={handleDisableClick}
             />
           </div>
@@ -109,6 +113,7 @@ const SecurityPane = React.memo(() => {
             primary
             icon="shield"
             content={t('action.enable2fa')}
+            data-testid="security-enable-2fa-open"
             onClick={handleEnableClick}
           />
         </>

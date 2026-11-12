@@ -41,6 +41,7 @@ const Item = React.memo(({ id, isActive, onSelect, onDeselect }) => {
                                    jsx-a11y/no-static-element-interactions */}
       <span
         className={classNames(styles.name, isActive && styles.nameActive)}
+        data-testid="board-filter-list-toggle"
         onClick={handleToggleClick}
       >
         {list.type !== ListTypes.ACTIVE && (

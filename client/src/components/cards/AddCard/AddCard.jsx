@@ -180,12 +180,14 @@ const AddCard = React.memo(({ isOpened, className, onCreate, onClose }) => {
           {...clickAwayProps} // eslint-disable-line react/jsx-props-no-spreading
           positive
           ref={handleSubmitButtonRef}
+          data-testid="card-add-submit"
           content={t('action.addCard')}
           className={styles.button}
         />
         <SelectCardTypePopup defaultValue={data.type} onSelect={handleTypeSelect}>
           <Button
             {...clickAwayProps} // eslint-disable-line react/jsx-props-no-spreading
+            data-testid="card-add-select-type"
             ref={handleSelectTypeButtonRef}
             type="button"
             disabled={limitTypesToDefaultOne}

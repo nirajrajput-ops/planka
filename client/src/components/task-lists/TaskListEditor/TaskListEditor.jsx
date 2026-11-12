@@ -50,6 +50,7 @@ const TaskListEditor = React.forwardRef(({ data, onFieldChange }, ref) => {
       />
       <Radio
         toggle
+        data-testid="task-list-toggle-show-on-front"
         name="showOnFrontOfCard"
         checked={data.showOnFrontOfCard}
         label={t('common.showOnFrontOfCard')}
@@ -58,6 +59,7 @@ const TaskListEditor = React.forwardRef(({ data, onFieldChange }, ref) => {
       />
       <Radio
         toggle
+        data-testid="task-list-toggle-hide-completed"
         name="hideCompletedTasks"
         checked={data.hideCompletedTasks}
         label={t('common.hideCompletedTasks')}

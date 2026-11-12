@@ -199,6 +199,7 @@ const EditUserUsernameStep = React.memo(({ id, onBack, onClose }) => {
           )}
           <Button
             positive
+            data-testid="account-username-save"
             content={t('action.save')}
             loading={isSubmitting}
             disabled={isSubmitting}

@@ -365,6 +365,7 @@ const CardActionsStep = React.memo(({ cardId, defaultStep, onNameEdit, onClose }
             title="common.archiveCard"
             content="common.areYouSureYouWantToArchiveThisCard"
             buttonContent="action.archiveCard"
+            confirmTestId="card-archive-confirm"
             onConfirm={handleArchiveConfirm}
             onBack={handleBack}
           />
@@ -379,6 +380,7 @@ const CardActionsStep = React.memo(({ cardId, defaultStep, onNameEdit, onClose }
                 : 'common.areYouSureYouWantToDeleteThisCard'
             }
             buttonContent={isInTrashList ? 'action.deleteCardForever' : 'action.deleteCard'}
+            confirmTestId="card-delete-confirm"
             onConfirm={handleDeleteConfirm}
             onBack={handleBack}
           />
@@ -397,7 +399,11 @@ const CardActionsStep = React.memo(({ cardId, defaultStep, onNameEdit, onClose }
       <Popup.Content>
         <Menu secondary vertical className={styles.menu}>
           {card.type === CardTypes.PROJECT && canUseMembers && (
-            <Menu.Item className={styles.menuItem} onClick={handleMembersClick}>
+            <Menu.Item
+              data-testid="card-menu-members"
+              className={styles.menuItem}
+              onClick={handleMembersClick}
+            >
               <Icon name="user outline" className={styles.menuItemIcon} />
               {t('common.members', {
                 context: 'title',
@@ -405,7 +411,11 @@ const CardActionsStep = React.memo(({ cardId, defaultStep, onNameEdit, onClose }
             </Menu.Item>
           )}
           {canUseLabels && (
-            <Menu.Item className={styles.menuItem} onClick={handleLabelsClick}>
+            <Menu.Item
+              data-testid="card-menu-labels"
+              className={styles.menuItem}
+              onClick={handleLabelsClick}
+            >
               <Icon name="bookmark outline" className={styles.menuItemIcon} />
               {t('common.labels', {
                 context: 'title',
@@ -413,7 +423,11 @@ const CardActionsStep = React.memo(({ cardId, defaultStep, onNameEdit, onClose }
             </Menu.Item>
           )}
           {card.type !== CardTypes.PROJECT && canUseMembers && (
-            <Menu.Item className={styles.menuItem} onClick={handleMembersClick}>
+            <Menu.Item
+              data-testid="card-menu-members"
+              className={styles.menuItem}
+              onClick={handleMembersClick}
+            >
               <Icon name="user outline" className={styles.menuItemIcon} />
               {t('common.members', {
                 context: 'title',
@@ -421,7 +435,11 @@ const CardActionsStep = React.memo(({ cardId, defaultStep, onNameEdit, onClose }
             </Menu.Item>
           )}
           {card.type === CardTypes.PROJECT && canEditDueDate && (
-            <Menu.Item className={styles.menuItem} onClick={handleEditDueDateClick}>
+            <Menu.Item
+              data-testid="card-menu-due-date"
+              className={styles.menuItem}
+              onClick={handleEditDueDateClick}
+            >
               <Icon name="calendar check outline" className={styles.menuItemIcon} />
               {t('action.editDueDate', {
                 context: 'title',
@@ -429,7 +447,11 @@ const CardActionsStep = React.memo(({ cardId, defaultStep, onNameEdit, onClose }
             </Menu.Item>
           )}
           {card.type === CardTypes.PROJECT && canEditStopwatch && (
-            <Menu.Item className={styles.menuItem} onClick={handleEditStopwatchClick}>
+            <Menu.Item
+              data-testid="card-menu-stopwatch"
+              className={styles.menuItem}
+              onClick={handleEditStopwatchClick}
+            >
               <Icon name="clock outline" className={styles.menuItemIcon} />
               {t('action.editStopwatch', {
                 context: 'title',
@@ -437,7 +459,11 @@ const CardActionsStep = React.memo(({ cardId, defaultStep, onNameEdit, onClose }
             </Menu.Item>
           )}
           {canEditName && (
-            <Menu.Item className={styles.menuItem} onClick={handleEditNameClick}>
+            <Menu.Item
+              data-testid="card-menu-edit-name"
+              className={styles.menuItem}
+              onClick={handleEditNameClick}
+            >
               <Icon name="edit outline" className={styles.menuItemIcon} />
               {t('action.editTitle', {
                 context: 'title',
@@ -445,7 +471,11 @@ const CardActionsStep = React.memo(({ cardId, defaultStep, onNameEdit, onClose }
             </Menu.Item>
           )}
           {!board.limitCardTypesToDefaultOne && canEditType && (
-            <Menu.Item className={styles.menuItem} onClick={handleEditTypeClick}>
+            <Menu.Item
+              data-testid="card-menu-change-type"
+              className={styles.menuItem}
+              onClick={handleEditTypeClick}
+            >
               <Icon name="map outline" className={styles.menuItemIcon} />
               {t('action.editType', {
                 context: 'title',
@@ -454,7 +484,11 @@ const CardActionsStep = React.memo(({ cardId, defaultStep, onNameEdit, onClose }
           )}
           {hasTopSection && hasBottomSection && <hr className={styles.divider} />}
           {canCopy && !withActionBar && (
-            <Menu.Item className={styles.menuItem} onClick={handleCopyClick}>
+            <Menu.Item
+              data-testid="card-menu-copy"
+              className={styles.menuItem}
+              onClick={handleCopyClick}
+            >
               <Icon name="copy outline" className={styles.menuItemIcon} />
               {t('action.copyCard', {
                 context: 'title',
@@ -462,7 +496,11 @@ const CardActionsStep = React.memo(({ cardId, defaultStep, onNameEdit, onClose }
             </Menu.Item>
           )}
           {canCut && !withActionBar && (
-            <Menu.Item className={styles.menuItem} onClick={handleCutClick}>
+            <Menu.Item
+              data-testid="card-menu-cut"
+              className={styles.menuItem}
+              onClick={handleCutClick}
+            >
               <Icon name="cut" className={styles.menuItemIcon} />
               {t('action.cutCard', {
                 context: 'title',
@@ -470,7 +508,11 @@ const CardActionsStep = React.memo(({ cardId, defaultStep, onNameEdit, onClose }
             </Menu.Item>
           )}
           {canDuplicate && (
-            <Menu.Item className={styles.menuItem} onClick={handleDuplicateClick}>
+            <Menu.Item
+              data-testid="card-menu-duplicate"
+              className={styles.menuItem}
+              onClick={handleDuplicateClick}
+            >
               <Icon name="copy outline" className={styles.menuItemIcon} />
               {t('action.duplicateCard', {
                 context: 'title',
@@ -478,7 +520,11 @@ const CardActionsStep = React.memo(({ cardId, defaultStep, onNameEdit, onClose }
             </Menu.Item>
           )}
           {canMove && (
-            <Menu.Item className={styles.menuItem} onClick={handleMoveClick}>
+            <Menu.Item
+              data-testid="card-menu-move"
+              className={styles.menuItem}
+              onClick={handleMoveClick}
+            >
               <Icon name="share square outline" className={styles.menuItemIcon} />
               {t('action.moveCard', {
                 context: 'title',
@@ -486,7 +532,11 @@ const CardActionsStep = React.memo(({ cardId, defaultStep, onNameEdit, onClose }
             </Menu.Item>
           )}
           {prevList && canRestore && (
-            <Menu.Item className={styles.menuItem} onClick={handleRestoreClick}>
+            <Menu.Item
+              data-testid="card-menu-restore"
+              className={styles.menuItem}
+              onClick={handleRestoreClick}
+            >
               <Icon name="undo alternate" className={styles.menuItemIcon} />
               {t('action.restoreToList', {
                 context: 'title',
@@ -495,7 +545,11 @@ const CardActionsStep = React.memo(({ cardId, defaultStep, onNameEdit, onClose }
             </Menu.Item>
           )}
           {list.type !== ListTypes.ARCHIVE && canArchive && !withActionBar && (
-            <Menu.Item className={styles.menuItem} onClick={handleArchiveClick}>
+            <Menu.Item
+              data-testid="card-menu-archive"
+              className={styles.menuItem}
+              onClick={handleArchiveClick}
+            >
               <Icon name="folder open outline" className={styles.menuItemIcon} />
               {t('action.archiveCard', {
                 context: 'title',
@@ -503,7 +557,11 @@ const CardActionsStep = React.memo(({ cardId, defaultStep, onNameEdit, onClose }
             </Menu.Item>
           )}
           {canDelete && !withActionBar && (
-            <Menu.Item className={styles.menuItem} onClick={handleDeleteClick}>
+            <Menu.Item
+              data-testid="card-menu-delete"
+              className={styles.menuItem}
+              onClick={handleDeleteClick}
+            >
               <Icon name="trash alternate outline" className={styles.menuItemIcon} />
               {isInTrashList
                 ? t('action.deleteForever', {
@@ -522,7 +580,11 @@ const CardActionsStep = React.memo(({ cardId, defaultStep, onNameEdit, onClose }
                   /* eslint-disable-next-line jsx-a11y/anchor-is-valid,
                                               jsx-a11y/click-events-have-key-events,
                                               jsx-a11y/no-static-element-interactions */
-                  <a className={styles.actionBarItem} onClick={handleCopyClick}>
+                  <a
+                    data-testid="card-action-bar-copy"
+                    className={styles.actionBarItem}
+                    onClick={handleCopyClick}
+                  >
                     <Icon fitted name="copy outline" />
                     <span className={styles.actionBarItemText}>
                       {t('action.copy', {
@@ -535,7 +597,11 @@ const CardActionsStep = React.memo(({ cardId, defaultStep, onNameEdit, onClose }
                   /* eslint-disable-next-line jsx-a11y/anchor-is-valid,
                                               jsx-a11y/click-events-have-key-events,
                                               jsx-a11y/no-static-element-interactions */
-                  <a className={styles.actionBarItem} onClick={handleCutClick}>
+                  <a
+                    data-testid="card-action-bar-cut"
+                    className={styles.actionBarItem}
+                    onClick={handleCutClick}
+                  >
                     <Icon fitted name="cut" />
                     <span className={styles.actionBarItemText}>
                       {t('action.cut', {
@@ -548,7 +614,11 @@ const CardActionsStep = React.memo(({ cardId, defaultStep, onNameEdit, onClose }
                   /* eslint-disable-next-line jsx-a11y/anchor-is-valid,
                                               jsx-a11y/click-events-have-key-events,
                                               jsx-a11y/no-static-element-interactions */
-                  <a className={styles.actionBarItem} onClick={handleArchiveClick}>
+                  <a
+                    data-testid="card-action-bar-archive"
+                    className={styles.actionBarItem}
+                    onClick={handleArchiveClick}
+                  >
                     <Icon fitted name="archive" />
                     <span className={styles.actionBarItemText}>
                       {t('action.archive', {
@@ -561,7 +631,11 @@ const CardActionsStep = React.memo(({ cardId, defaultStep, onNameEdit, onClose }
                   /* eslint-disable-next-line jsx-a11y/anchor-is-valid,
                                               jsx-a11y/click-events-have-key-events,
                                               jsx-a11y/no-static-element-interactions */
-                  <a className={styles.actionBarItem} onClick={handleDeleteClick}>
+                  <a
+                    data-testid="card-action-bar-delete"
+                    className={styles.actionBarItem}
+                    onClick={handleDeleteClick}
+                  >
                     <Icon fitted name="trash alternate outline" />
                     <span className={styles.actionBarItemText}>
                       {isInTrashList

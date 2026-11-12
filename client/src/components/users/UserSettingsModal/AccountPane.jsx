@@ -67,6 +67,7 @@ const AccountPane = React.memo(() => {
           text: locale.name,
         }))}
         value={user.language}
+        data-testid="account-change-language"
         onChange={handleLanguageChange}
       />
       {(isUsernameEditable || isEmailEditable || isPasswordEditable) && (
@@ -81,7 +82,7 @@ const AccountPane = React.memo(() => {
           {isUsernameEditable && (
             <div className={styles.action}>
               <EditUserUsernamePopup id={user.id}>
-                <Button className={styles.actionButton}>
+                <Button data-testid="account-edit-username-open" className={styles.actionButton}>
                   {t('action.editUsername', {
                     context: 'title',
                   })}
@@ -92,7 +93,7 @@ const AccountPane = React.memo(() => {
           {isEmailEditable && (
             <div className={styles.action}>
               <EditUserEmailPopup id={user.id}>
-                <Button className={styles.actionButton}>
+                <Button data-testid="account-edit-email-open" className={styles.actionButton}>
                   {t('action.editEmail', {
                     context: 'title',
                   })}
@@ -103,7 +104,7 @@ const AccountPane = React.memo(() => {
           {isPasswordEditable && (
             <div className={styles.action}>
               <EditUserPasswordPopup id={user.id}>
-                <Button className={styles.actionButton}>
+                <Button data-testid="account-edit-password-open" className={styles.actionButton}>
                   {t('action.editPassword', {
                     context: 'title',
                   })}

@@ -94,7 +94,7 @@ const Item = React.memo(({ id, onEdit }) => {
       <Table.Cell textAlign="right">
         <ActionsPopup userId={id} onEdit={onEdit}>
           <Tooltip content={t('common.userActions', { context: 'title' })}>
-            <Button className={styles.button}>
+            <Button data-testid="admin-user-open-actions" className={styles.button}>
               <Icon fitted name="pencil" />
             </Button>
           </Tooltip>

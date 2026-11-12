@@ -63,6 +63,7 @@ const EditUserAvatarStep = React.memo(({ id, onBack, onClose }) => {
         <div className={styles.action}>
           <FilePicker accept="image/*" onSelect={handleFileSelect}>
             <Button
+              data-testid="account-avatar-upload"
               ref={fieldRef}
               content={t('action.uploadNewAvatar')}
               className={styles.actionButton}
@@ -70,7 +71,12 @@ const EditUserAvatarStep = React.memo(({ id, onBack, onClose }) => {
           </FilePicker>
         </div>
         {avatar && (
-          <Button negative content={t('action.deleteAvatar')} onClick={handleDeleteClick} />
+          <Button
+            negative
+            content={t('action.deleteAvatar')}
+            data-testid="account-avatar-delete"
+            onClick={handleDeleteClick}
+          />
         )}
       </Popup.Content>
     </>

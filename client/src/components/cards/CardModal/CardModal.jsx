@@ -106,7 +106,12 @@ const CardModal = React.memo(() => {
     >
       {prevCardId && (
         <Tooltip content={t('action.goBack')} position="right center">
-          <button type="button" className={styles.prevButton} onClick={handlePrevClick}>
+          <button
+            type="button"
+            className={styles.prevButton}
+            data-testid="card-nav-prev"
+            onClick={handlePrevClick}
+          >
             <Icon fitted name="arrow left" size="large" className={styles.prevButtonIcon} />
           </button>
         </Tooltip>

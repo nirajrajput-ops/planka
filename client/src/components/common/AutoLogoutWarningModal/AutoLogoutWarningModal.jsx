@@ -56,11 +56,14 @@ const AutoLogoutWarningModal = React.memo(() => {
         <p>{t('common.autoLogoutWarning_body', { seconds: remainingSeconds })}</p>
       </Modal.Content>
       <Modal.Actions>
-        <Button onClick={handleLogoutClick}>{t('action.logOutNow')}</Button>
+        <Button data-testid="auto-logout-log-out-now" onClick={handleLogoutClick}>
+          {t('action.logOutNow')}
+        </Button>
         <Button
           positive
           content={t('action.stayLoggedIn')}
           icon="checkmark"
+          data-testid="auto-logout-stay-logged-in"
           onClick={handleStayClick}
         />
       </Modal.Actions>

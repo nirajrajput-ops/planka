@@ -66,7 +66,7 @@ const SaveFilterStep = React.memo(({ defaultName, onSave, onClose }) => {
             className={styles.field}
             onChange={handleChange}
           />
-          <Button positive content={t('action.save')} />
+          <Button data-testid="board-filter-save-submit" positive content={t('action.save')} />
         </Form>
       </Popup.Content>
     </>

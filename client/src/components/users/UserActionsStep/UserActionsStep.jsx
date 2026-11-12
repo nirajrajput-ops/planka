@@ -69,7 +69,11 @@ const UserActionsStep = React.memo(({ onClose }) => {
       </Popup.Header>
       <Popup.Content>
         <Menu secondary vertical className={styles.menu}>
-          <Menu.Item className={styles.menuItem} onClick={handleSettingsClick}>
+          <Menu.Item
+            className={styles.menuItem}
+            data-testid="user-menu-open-settings"
+            onClick={handleSettingsClick}
+          >
             <Icon name="user circle" className={styles.menuItemIcon} />
             {t('common.settings', {
               context: 'title',
@@ -77,7 +81,11 @@ const UserActionsStep = React.memo(({ onClose }) => {
           </Menu.Item>
           {withAdministration && (
             <>
-              <Menu.Item className={styles.menuItem} onClick={handleAdministrationClick}>
+              <Menu.Item
+                className={styles.menuItem}
+                data-testid="user-menu-open-administration"
+                onClick={handleAdministrationClick}
+              >
                 <Icon name="setting" className={styles.menuItemIcon} />
                 {t('common.administration', {
                   context: 'title',
@@ -85,6 +93,7 @@ const UserActionsStep = React.memo(({ onClose }) => {
               </Menu.Item>
               {customerPanelUrl && (
                 <Menu.Item
+                  data-testid="user-menu-open-customer-panel"
                   href={customerPanelUrl}
                   target="_blank"
                   rel="noreferrer"
@@ -98,7 +107,11 @@ const UserActionsStep = React.memo(({ onClose }) => {
               )}
             </>
           )}
-          <Menu.Item className={styles.menuItem} onClick={handleAboutClick}>
+          <Menu.Item
+            className={styles.menuItem}
+            data-testid="user-menu-open-about"
+            onClick={handleAboutClick}
+          >
             <Icon name="info circle" className={styles.menuItemIcon} />
             {t('common.aboutApp', {
               context: 'title',
@@ -112,6 +125,7 @@ const UserActionsStep = React.memo(({ onClose }) => {
             }
             target="_blank"
             rel="noopener noreferrer"
+            data-testid="user-menu-pro-promo"
             className={styles.proMenuItem}
           >
             <Icon name="gem" className={styles.proMenuItemIcon} />
@@ -123,6 +137,7 @@ const UserActionsStep = React.memo(({ onClose }) => {
           <Menu.Item
             {...logoutMenuItemProps} // eslint-disable-line react/jsx-props-no-spreading
             className={styles.menuItem}
+            data-testid="user-menu-log-out"
             onClick={handleLogoutClick}
           >
             <Icon name="log out" className={styles.menuItemIcon} />

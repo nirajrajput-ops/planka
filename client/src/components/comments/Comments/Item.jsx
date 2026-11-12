@@ -132,6 +132,7 @@ const Item = React.memo(({ id, canReply, onReply }) => {
                         defaultValue: 'Reply',
                       })}
                       disabled={!comment.isPersisted}
+                      data-testid="comment-reply"
                       onClick={handleReplyClick}
                     />
                   )}
@@ -140,6 +141,7 @@ const Item = React.memo(({ id, canReply, onReply }) => {
                       as="button"
                       content={t('action.edit')}
                       disabled={!comment.isPersisted}
+                      data-testid="comment-edit-open"
                       onClick={handleEditClick}
                     />
                   )}
@@ -148,10 +150,12 @@ const Item = React.memo(({ id, canReply, onReply }) => {
                       title="common.deleteComment"
                       content="common.areYouSureYouWantToDeleteThisComment"
                       buttonContent="action.deleteComment"
+                      confirmTestId="comment-delete-confirm"
                       onConfirm={handleDeleteConfirm}
                     >
                       <Comment.Action
                         as="button"
+                        data-testid="comment-delete"
                         content={t('action.delete')}
                         disabled={!comment.isPersisted}
                       />

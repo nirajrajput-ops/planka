@@ -94,7 +94,12 @@ const ItemContent = React.forwardRef(({ id, onOpen }, ref) => {
   return (
     /* eslint-disable-next-line jsx-a11y/click-events-have-key-events,
                                 jsx-a11y/no-static-element-interactions */
-    <div ref={ref} className={styles.wrapper} onClick={handleClick}>
+    <div
+      data-testid="attachment-preview-open"
+      ref={ref}
+      className={styles.wrapper}
+      onClick={handleClick}
+    >
       <div
         className={styles.thumbnail}
         style={{
@@ -130,7 +135,12 @@ const ItemContent = React.forwardRef(({ id, onOpen }, ref) => {
         </span>
         {attachment.type === AttachmentTypes.FILE && (
           <span className={styles.options}>
-            <button type="button" className={styles.option} onClick={handleDownloadClick}>
+            <button
+              type="button"
+              className={styles.option}
+              data-testid="attachment-download"
+              onClick={handleDownloadClick}
+            >
               <Icon name="download" size="small" className={styles.optionIcon} />
               <span className={styles.optionText}>
                 {t('action.download', {
@@ -139,7 +149,12 @@ const ItemContent = React.forwardRef(({ id, onOpen }, ref) => {
               </span>
             </button>
             {attachment.data.image && canEdit && (
-              <button type="button" className={styles.option} onClick={handleToggleCoverClick}>
+              <button
+                type="button"
+                className={styles.option}
+                data-testid="attachment-toggle-cover"
+                onClick={handleToggleCoverClick}
+              >
                 <Icon
                   name="window maximize outline"
                   flipped="vertically"
@@ -163,7 +178,7 @@ const ItemContent = React.forwardRef(({ id, onOpen }, ref) => {
       {canEdit && (
         <EditPopup attachmentId={id}>
           <Tooltip content={t('action.editAttachment', { context: 'title' })}>
-            <Button className={styles.editButton}>
+            <Button data-testid="attachment-open-edit" className={styles.editButton}>
               <Icon fitted name="pencil" size="small" />
             </Button>
           </Tooltip>

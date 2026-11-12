@@ -173,6 +173,7 @@ const KanbanContent = React.memo(() => {
                       <button
                         type="button"
                         className={styles.addListButton}
+                        data-testid="list-add-open"
                         onClick={handleAddListClick}
                       >
                         <PlusMathIcon className={styles.addListButtonIcon} />

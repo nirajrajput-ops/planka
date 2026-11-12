@@ -45,6 +45,7 @@ const NotificationsStep = React.memo(({ onClose }) => {
               fluid
               content={t('action.dismissAll')}
               className={styles.deleteAllButton}
+              data-testid="notification-dismiss-all"
               onClick={handleDeleteAllClick}
             />
           </>

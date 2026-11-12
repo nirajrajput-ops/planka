@@ -99,7 +99,11 @@ const CustomField = React.memo(({ id, customFieldGroupId }) => {
         )}
         {customFieldValue && customFieldValue.content && (
           <Tooltip content={t('action.copy')}>
-            <Button className={styles.copyButton} onClick={handleCopyClick}>
+            <Button
+              className={styles.copyButton}
+              data-testid="card-custom-field-copy"
+              onClick={handleCopyClick}
+            >
               <Icon fitted name={isCopied ? 'check' : 'copy'} />
             </Button>
           </Tooltip>

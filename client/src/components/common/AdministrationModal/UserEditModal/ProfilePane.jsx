@@ -23,14 +23,28 @@ import TotpAdminResetModal from './TotpAdminResetModal';
 import styles from './ProfilePane.module.scss';
 
 const ERROR_MESSAGE_BY_KEY = {
-  'Email already in use': { type: 'error', content: 'common.emailAlreadyInUse' },
-  'Username already in use': { type: 'error', content: 'common.usernameAlreadyInUse' },
-  'Invalid current password': { type: 'error', content: 'common.invalidCurrentPassword' },
+  'Email already in use': {
+    type: 'error',
+    content: 'common.emailAlreadyInUse',
+  },
+  'Username already in use': {
+    type: 'error',
+    content: 'common.usernameAlreadyInUse',
+  },
+  'Invalid current password': {
+    type: 'error',
+    content: 'common.invalidCurrentPassword',
+  },
 };
 
 const buildMessage = (error) => {
   if (!error) return null;
-  return ERROR_MESSAGE_BY_KEY[error.message] || { type: 'warning', content: 'common.unknownError' };
+  return (
+    ERROR_MESSAGE_BY_KEY[error.message] || {
+      type: 'warning',
+      content: 'common.unknownError',
+    }
+  );
 };
 
 const ProfilePane = React.memo(({ userId }) => {
@@ -463,6 +477,7 @@ const ProfilePane = React.memo(({ userId }) => {
 
         <Button
           positive
+          data-testid="admin-user-edit-save"
           disabled={!anyChanged || isSubmitting}
           loading={isSubmitting}
           content={t('action.save')}
@@ -481,6 +496,7 @@ const ProfilePane = React.memo(({ userId }) => {
               negative
               icon="shield alternate"
               content={t('action.reset2fa')}
+              data-testid="admin-user-reset-2fa-open"
               onClick={() => setIsTotpResetModalOpen(true)}
             />
           </div>

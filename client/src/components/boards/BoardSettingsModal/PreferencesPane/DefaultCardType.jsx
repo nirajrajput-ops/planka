@@ -51,6 +51,7 @@ const DefaultCardType = React.memo(() => {
       <Segment basic className={styles.settings}>
         <Radio
           toggle
+          data-testid="board-settings-limit-card-types"
           name="limitCardTypesToDefaultOne"
           checked={board.limitCardTypesToDefaultOne}
           label={t('common.limitCardTypesToDefaultOne')}

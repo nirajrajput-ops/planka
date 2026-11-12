@@ -179,21 +179,37 @@ const EditStopwatchStep = React.memo(({ cardId, onBack, onClose }) => {
               type="button"
               icon={isEditing ? 'close' : 'edit'}
               className={styles.iconButton}
+              data-testid="card-stopwatch-toggle-edit"
               onClick={handleToggleEditingClick}
             />
           </div>
-          {isEditing && <Button positive content={t('action.save')} />}
+          {isEditing && (
+            <Button positive data-testid="card-stopwatch-save" content={t('action.save')} />
+          )}
         </Form>
         {!isEditing &&
           (defaultValue && defaultValue.startedAt ? (
-            <Button positive content={t('action.stop')} icon="pause" onClick={handleStopClick} />
+            <Button
+              positive
+              content={t('action.stop')}
+              icon="pause"
+              data-testid="card-stopwatch-stop"
+              onClick={handleStopClick}
+            />
           ) : (
-            <Button positive content={t('action.start')} icon="play" onClick={handleStartClick} />
+            <Button
+              positive
+              content={t('action.start')}
+              icon="play"
+              data-testid="card-stopwatch-start"
+              onClick={handleStartClick}
+            />
           ))}
         <Button
           negative
           content={t('action.remove')}
           className={styles.deleteButton}
+          data-testid="card-stopwatch-remove"
           onClick={handleClearClick}
         />
       </Popup.Content>

@@ -97,12 +97,13 @@ const EditCustomFieldGroupStep = React.memo(({ id, withDeleteButton, onBack, onC
       <Popup.Content>
         <Form onSubmit={handleSubmit}>
           <CustomFieldGroupEditor data={data} onFieldChange={handleFieldChange} />
-          <Button positive content={t('action.save')} />
+          <Button data-testid="custom-field-group-edit-save" positive content={t('action.save')} />
         </Form>
         {withDeleteButton && (
           <Button
             content={t('action.delete')}
             className={styles.deleteButton}
+            data-testid="custom-field-group-edit-delete"
             onClick={handleDeleteClick}
           />
         )}

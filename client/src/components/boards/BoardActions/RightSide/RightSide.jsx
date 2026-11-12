@@ -58,6 +58,7 @@ const RightSide = React.memo(() => {
                 value={view}
                 disabled={view === board.view}
                 className={styles.button}
+                data-testid="board-switch-view"
                 onClick={handleSelectViewClick}
               >
                 <Icon fitted name={BoardViewIcons[view]} />
@@ -69,7 +70,7 @@ const RightSide = React.memo(() => {
       <div className={styles.action}>
         <ActionsPopup>
           <Tooltip content={t('common.openBoardActions')}>
-            <button type="button" className={styles.button}>
+            <button data-testid="board-open-actions-menu" type="button" className={styles.button}>
               <Icon fitted name="ellipsis vertical" />
             </button>
           </Tooltip>

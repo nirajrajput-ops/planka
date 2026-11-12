@@ -86,6 +86,7 @@ const NameField = React.memo(({ defaultValue, size, onUpdate }) => {
       ref={handleFieldRef}
       as={TextareaAutosize}
       value={value}
+      data-testid="card-edit-title"
       maxLength={1024}
       className={classNames(styles.field, styles[`field${upperFirst(size)}`])}
       onFocus={handleFocus}

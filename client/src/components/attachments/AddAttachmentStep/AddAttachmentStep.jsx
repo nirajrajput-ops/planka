@@ -46,7 +46,7 @@ const AddAttachmentStep = React.memo(({ onClose }) => {
       <Popup.Content>
         <Menu secondary vertical className={styles.menu}>
           <FilePicker multiple onSelect={handleFilesSelect}>
-            <Menu.Item className={styles.menuItem}>
+            <Menu.Item data-testid="attachment-add-from-computer" className={styles.menuItem}>
               <Icon name="computer" className={styles.menuItemIcon} />
               {t('common.fromComputer', {
                 context: 'title',

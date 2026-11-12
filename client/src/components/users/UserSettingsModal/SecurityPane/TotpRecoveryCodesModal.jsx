@@ -96,11 +96,17 @@ const TotpRecoveryCodesModal = React.memo(({ onClose }) => {
               content={t('action.regenerate')}
               loading={isRegeneratingRecoveryCodes}
               disabled={isRegeneratingRecoveryCodes || !password || !code}
+              data-testid="security-regenerate-recovery-codes-confirm"
               onClick={handleSubmit}
             />
           </>
         ) : (
-          <Button positive content={t('action.done')} onClick={onClose} />
+          <Button
+            data-testid="security-recovery-codes-done"
+            positive
+            content={t('action.done')}
+            onClick={onClose}
+          />
         )}
       </Modal.Actions>
     </Modal>

@@ -153,6 +153,7 @@ const ProjectCard = React.memo(
               styles.favoriteButton,
               !project.isFavorite && styles.favoriteButtonAppearable,
             )}
+            data-testid="project-toggle-favorite"
             onClick={handleToggleFavoriteClick}
           >
             <Icon

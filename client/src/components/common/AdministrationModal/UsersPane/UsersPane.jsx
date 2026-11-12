@@ -101,12 +101,14 @@ const UsersPane = React.memo(() => {
         <Button
           content={isDeactivatedVisible ? t('action.showActive') : t('action.showDeactivated')}
           className={styles.toggleDeactivatedButton}
+          data-testid="admin-user-toggle-deactivated-list"
           onClick={handleToggleDeactivatedClick}
         />
         <AddPopup>
           <Button
             positive
             disabled={activeUsersLimit !== null && activeUsersTotal >= activeUsersLimit}
+            data-testid="admin-user-add-open"
             className={styles.addButton}
           >
             {t('action.addUser')}

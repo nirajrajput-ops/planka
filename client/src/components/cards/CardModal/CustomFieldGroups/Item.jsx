@@ -55,7 +55,10 @@ const Item = React.memo(({ id, dragHandleProps }) => {
             {customFieldGroup.isPersisted && canEdit && (
               <CustomFieldGroupPopup id={customFieldGroup.id}>
                 <Tooltip content={t('action.editGroup')}>
-                  <Button className={styles.editButton}>
+                  <Button
+                    data-testid="card-custom-field-group-open-edit"
+                    className={styles.editButton}
+                  >
                     <Icon fitted name="pencil" size="small" />
                   </Button>
                 </Tooltip>

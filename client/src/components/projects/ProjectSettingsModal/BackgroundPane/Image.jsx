@@ -35,6 +35,7 @@ const Image = React.memo(({ url, isActive, onSelect, onDeselect, onDelete }) => 
       style={{
         background: `url("${url}") center / cover`,
       }}
+      data-testid="project-background-select-image"
       onClick={handleClick}
     >
       {isActive && (
@@ -57,7 +58,7 @@ const Image = React.memo(({ url, isActive, onSelect, onDeselect, onDelete }) => 
           onConfirm={onDelete}
         >
           <Tooltip content={t('action.deleteBackgroundImage')}>
-            <Button className={styles.deleteButton}>
+            <Button data-testid="project-background-delete-image" className={styles.deleteButton}>
               <Icon fitted name="trash alternate" size="small" />
             </Button>
           </Tooltip>

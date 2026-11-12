@@ -71,6 +71,7 @@ const AddTextFileModal = React.memo(({ content, onCreate, onClose }) => {
             inverted
             color="green"
             icon="checkmark"
+            data-testid="attachment-create-text-file"
             content={t('action.createFile')}
             floated="right"
           />

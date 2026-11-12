@@ -48,6 +48,7 @@ const CustomFieldValueChip = React.memo(({ id, size, onClick }) => {
       type="button"
       disabled={customField.isDisabled}
       className={styles.button}
+      data-testid="card-custom-field-value-open"
       onClick={onClick}
     >
       {contentNode}
