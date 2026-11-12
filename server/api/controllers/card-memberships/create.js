@@ -147,6 +147,19 @@ module.exports = {
       })
       .intercept('userAlreadyCardMember', () => Errors.USER_ALREADY_CARD_MEMBER);
 
+    // Pendo: the card membership is stored and the assignee is notified.
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Card member added',
+      userId: currentUser.id,
+      properties: {
+        card_id: card.id,
+        board_id: board.id,
+        project_id: project.id,
+        is_self_added: user.id === currentUser.id,
+      },
+      request: this.req,
+    });
+
     return {
       item: cardMembership,
     };

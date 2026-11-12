@@ -164,11 +164,12 @@ export const readSavedFilters = (userId, boardId) => {
   }
 };
 
+// Returns whether the write reached localStorage.
 const writeSavedFilters = (userId, boardId, entries) => {
   const key = buildKey(SAVED_KEY_PREFIX, userId, boardId);
 
   if (!key) {
-    return;
+    return false;
   }
 
   try {
@@ -177,8 +178,32 @@ const writeSavedFilters = (userId, boardId, entries) => {
     } else {
       window.localStorage.removeItem(key);
     }
+
+    return true;
   } catch {
     // See writeLastFilter.
+    return false;
+  }
+};
+
+// Pendo: the named filter was written to this person's saved filters for the board.
+// Only filter shape is sent, never the filter name or search text.
+const trackFilterSaved = (boardId, filter, isOverwrite) => {
+  try {
+    if (window.pendo && typeof window.pendo.track === 'function') {
+      window.pendo.track('Filter saved', {
+        board_id: boardId,
+        members_count: filter.userIds.length,
+        labels_count: filter.labelIds.length,
+        excluded_labels_count: filter.excludedLabelIds.length,
+        lists_count: filter.listIds.length,
+        has_search: filter.search.length > 0,
+        no_member: filter.noMember,
+        is_overwrite: isOverwrite,
+      });
+    }
+  } catch {
+    // Tracking must never break saving a filter.
   }
 };
 
@@ -206,10 +231,15 @@ export const addSavedFilter = (userId, boardId, { name, ...filter }) => {
   };
 
   const current = readSavedFilters(userId, boardId);
+  const others = current.filter((item) => item.name !== cleanName);
 
   // Newest first, and re-saving under an existing name overwrites that
   // entry rather than adding a duplicate.
-  writeSavedFilters(userId, boardId, [entry, ...current.filter((item) => item.name !== cleanName)]);
+  const isWritten = writeSavedFilters(userId, boardId, [entry, ...others]);
+
+  if (isWritten) {
+    trackFilterSaved(boardId, cleanFilter, others.length !== current.length);
+  }
 
   return entry;
 };

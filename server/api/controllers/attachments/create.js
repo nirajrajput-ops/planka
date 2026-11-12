@@ -223,6 +223,23 @@ module.exports = {
       request: this.req,
     });
 
+    // Pendo: the file or link is stored on the card.
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Attachment uploaded',
+      userId: currentUser.id,
+      properties: {
+        attachment_id: attachment.id,
+        attachment_type: attachment.type,
+        card_id: card.id,
+        board_id: board.id,
+        project_id: project.id,
+        mime_type: (data && data.mimeType) || null,
+        file_size_bytes: (data && data.size) || null,
+        is_image: !!(data && data.image),
+      },
+      request: this.req,
+    });
+
     return exits.success({
       item: sails.helpers.attachments.presentOne(attachment),
     });

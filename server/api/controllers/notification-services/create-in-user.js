@@ -134,6 +134,18 @@ module.exports = {
       .intercept('schemaNotAllowed', () => Errors.SCHEMA_NOT_ALLOWED)
       .intercept('limitReached', () => Errors.LIMIT_REACHED);
 
+    // Pendo: the notification service is stored for the user.
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Notification service connected',
+      userId: currentUser.id,
+      properties: {
+        scope: 'user',
+        format: notificationService.format,
+        service_schema: notificationService.url.split(':')[0],
+      },
+      request: this.req,
+    });
+
     return {
       item: notificationService,
     };

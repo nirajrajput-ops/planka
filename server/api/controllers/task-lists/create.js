@@ -148,6 +148,20 @@ module.exports = {
       request: this.req,
     });
 
+    // Pendo: the task list is stored on the card.
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Task list created',
+      userId: currentUser.id,
+      properties: {
+        task_list_id: taskList.id,
+        card_id: card.id,
+        board_id: board.id,
+        project_id: project.id,
+        show_on_front_of_card: !!taskList.showOnFrontOfCard,
+      },
+      request: this.req,
+    });
+
     return {
       item: taskList,
     };

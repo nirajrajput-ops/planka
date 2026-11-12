@@ -19,6 +19,9 @@ module.exports = {
       type: 'json',
       required: true,
     },
+    actorUser: {
+      type: 'ref',
+    },
   },
 
   async fn(inputs) {
@@ -129,5 +132,20 @@ module.exports = {
         }),
       ),
     );
+
+    // Pendo: the Trello export was processed into PLANKA lists and cards.
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Trello board imported',
+      userId: inputs.actorUser ? inputs.actorUser.id : null,
+      properties: {
+        board_id: inputs.board.id,
+        project_id: inputs.board.projectId,
+        labels_count: inputs.trelloBoard.labels.length,
+        lists_count: openedTrelloLists.length,
+        cards_count: inputs.trelloBoard.cards.length,
+        task_lists_count: inputs.trelloBoard.checklists.length,
+        comments_count: trelloCommentActions.length,
+      },
+    });
   },
 };
