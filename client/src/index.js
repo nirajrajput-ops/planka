@@ -12,5 +12,22 @@ import Root from './components/common/Root';
 
 import './i18n';
 
+// Boot Novus by Pendo once with an anonymous visitor. The signed-in user is identified in the
+// core initialization saga. In demo mode the login page reads credentials from the URL fragment,
+// and the app doesn't route on the hash, so the fragment is cleared from every recorded URL.
+window.pendo.initialize({
+  visitor: {
+    id: '',
+  },
+  location: {
+    transforms: [
+      {
+        attr: 'hash',
+        action: 'Clear',
+      },
+    ],
+  },
+});
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(React.createElement(Root, { store, history }));
