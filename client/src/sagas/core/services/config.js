@@ -8,6 +8,7 @@ import { call, put } from 'redux-saga/effects';
 import request from '../request';
 import actions from '../../../actions';
 import api from '../../../api';
+import pendoTrack from '../../../utils/pendo-track';
 
 export function* updateConfig(data) {
   yield put(actions.updateConfig(data));
@@ -31,15 +32,23 @@ export function* testSmtpConfig() {
   yield put(actions.testSmtpConfig());
 
   let logs;
+  let isSuccessful = true;
   try {
     ({
       included: { logs },
     } = yield call(request, api.testSmtpConfig));
   } catch (error) {
+    isSuccessful = false;
     yield put(actions.testSmtpConfig.failure(error));
   }
 
   yield put(actions.testSmtpConfig.success(logs));
+
+  // Pendo: the admin SMTP test finished.
+  yield call(pendoTrack, 'smtp_config_tested', {
+    success: isSuccessful,
+    logsCount: logs ? logs.length : 0,
+  });
 }
 
 export default {

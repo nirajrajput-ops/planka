@@ -16,6 +16,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import i18n from '../../../i18n';
 import { createLocalId } from '../../../utils/local-id';
+import pendoTrack from '../../../utils/pendo-track';
 import { isListArchiveOrTrash, isListFinite } from '../../../utils/record-helpers';
 import ActionTypes from '../../../constants/ActionTypes';
 import ClipboardTypes from '../../../constants/ClipboardTypes';
@@ -420,8 +421,10 @@ export function* moveCurrentCardToTrash() {
   yield call(moveCurrentCard, trashListId, undefined, true);
 }
 
-export function* transferCard(id, boardId, listId, index) {
+export function* transferCard(id, boardId, listId, index, source = 'move') {
   const { cardId: currentCardId, boardId: currentBoardId } = yield select(selectors.selectPath);
+  const sourceCard = yield select(selectors.selectCardById, id);
+  const fromBoardId = sourceCard ? sourceCard.boardId : null;
 
   // TODO: hack?
   if (id === currentCardId) {
@@ -455,6 +458,18 @@ export function* transferCard(id, boardId, listId, index) {
     ({ item: card } = yield call(request, api.updateCard, id, data));
   } catch (error) {
     updateError = error;
+  }
+
+  // Pendo: the server answered a card move to another board.
+  if (fromBoardId !== boardId) {
+    yield call(pendoTrack, 'card_transferred_to_board', {
+      cardId: id,
+      fromBoardId,
+      toBoardId: boardId,
+      listId,
+      source,
+      success: !updateError,
+    });
   }
 
   let users;
@@ -533,7 +548,7 @@ export function* transferCurrentCard(boardId, listId, index) {
   yield call(transferCard, cardId, boardId, listId, index);
 }
 
-export function* duplicateCard(id, data) {
+export function* duplicateCard(id, data, source = 'duplicate') {
   const localId = yield call(createLocalId);
   const { cardId: currentCardId } = yield select(selectors.selectPath);
   const sourceCard = yield select(selectors.selectCardById, id);
@@ -633,6 +648,17 @@ export function* duplicateCard(id, data) {
       customFieldValues,
     ),
   );
+
+  // Pendo: the server confirmed the card copy.
+  yield call(pendoTrack, 'card_duplicated', {
+    sourceCardId: id,
+    cardId: card.id,
+    boardId,
+    isCrossBoard: !sourceCard || sourceCard.boardId !== boardId,
+    source,
+    taskListsCount: taskLists ? taskLists.length : 0,
+    attachmentsCount: attachments ? attachments.length : 0,
+  });
 }
 
 export function* duplicateCurrentCard(data) {
@@ -667,13 +693,13 @@ export function* pasteCard(listId) {
       data.position = yield select(selectors.selectNextCardPosition, listId);
     }
 
-    yield call(duplicateCard, clipboard.cardId, data);
+    yield call(duplicateCard, clipboard.cardId, data, 'paste');
   } else if (clipboard.type === ClipboardTypes.CUT) {
     if (sourceCard && listId === sourceCard.listId) {
       return;
     }
 
-    yield call(transferCard, clipboard.cardId, list.boardId, list.id);
+    yield call(transferCard, clipboard.cardId, list.boardId, list.id, undefined, 'paste');
   }
 }
 

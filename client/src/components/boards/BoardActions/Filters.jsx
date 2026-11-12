@@ -4,7 +4,7 @@
  */
 
 import debounce from 'lodash/debounce';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
@@ -18,6 +18,7 @@ import selectors from '../../../selectors';
 import entryActions from '../../../entry-actions';
 import { useNestedRef } from '../../../hooks';
 import { BoardViews, LabelFilterModes } from '../../../constants/Enums';
+import pendoTrack from '../../../utils/pendo-track';
 import UserAvatar from '../../users/UserAvatar';
 import BoardMembershipsStep from '../../board-memberships/BoardMembershipsStep';
 import LabelChip from '../../labels/LabelChip';
@@ -86,10 +87,30 @@ const Filters = React.memo(() => {
   // arrives uninvited.
   const [storageRev, setStorageRev] = useState(0);
 
+  // Latest board and filter state for the debounced search callback, which is
+  // created once and would otherwise read stale values.
+  const searchContextRef = useRef();
+  searchContextRef.current = {
+    boardId: board.id,
+    boardView: board.view,
+    hasMemberFilter: userIds.length > 0,
+    hasLabelFilter: labelIds.length > 0 || excludedLabelIds.length > 0,
+    hasListFilter: listIds.length > 0,
+    noMember: !!board.filterNoMember,
+  };
+
   const debouncedSearch = useMemo(
     () =>
       debounce((nextSearch) => {
         dispatch(entryActions.searchInCurrentBoard(nextSearch));
+
+        // Pendo: the debounced card search ran with a non-empty query.
+        if (nextSearch) {
+          pendoTrack('board_cards_searched', {
+            ...searchContextRef.current,
+            searchLength: nextSearch.length,
+          });
+        }
       }, 400),
     [dispatch],
   );
@@ -384,11 +405,34 @@ const Filters = React.memo(() => {
     (item) => {
       clearCurrentFilter();
 
-      if (item.id !== activeSavedFilterId) {
+      const isApply = item.id !== activeSavedFilterId;
+
+      if (isApply) {
         applyFilter(item);
       }
+
+      // Pendo: the saved filter row either filtered the board or turned it off.
+      pendoTrack('saved_board_filter_toggled', {
+        boardId: board.id,
+        action: isApply ? 'apply' : 'deactivate',
+        userIdsCount: (item.userIds || []).length,
+        labelIdsCount: (item.labelIds || []).length,
+        excludedLabelIdsCount: (item.excludedLabelIds || []).length,
+        listIdsCount: (item.listIds || []).length,
+        noMember: !!item.noMember,
+        hasSearch: !!item.search,
+        savedFiltersCount: savedFilters.length,
+        boardView: board.view,
+      });
     },
-    [activeSavedFilterId, applyFilter, clearCurrentFilter],
+    [
+      activeSavedFilterId,
+      applyFilter,
+      board.id,
+      board.view,
+      clearCurrentFilter,
+      savedFilters.length,
+    ],
   );
 
   const handleSavedFilterRemove = useCallback(
@@ -401,14 +445,31 @@ const Filters = React.memo(() => {
 
   const handleSaveFilter = useCallback(
     (name) => {
-      addSavedFilter(currentUserId, board.id, {
+      const isOverwrite = savedFilters.some((item) => item.name === name.trim());
+
+      const savedFilter = addSavedFilter(currentUserId, board.id, {
         name,
         ...currentFilter,
       });
 
       setStorageRev((prevStorageRev) => prevStorageRev + 1);
+
+      // Pendo: the named filter was written to storage.
+      if (savedFilter) {
+        pendoTrack('board_filter_saved', {
+          boardId: board.id,
+          userIdsCount: savedFilter.userIds.length,
+          labelIdsCount: savedFilter.labelIds.length,
+          excludedLabelIdsCount: savedFilter.excludedLabelIds.length,
+          listIdsCount: savedFilter.listIds.length,
+          noMember: savedFilter.noMember,
+          hasSearch: savedFilter.search.length > 0,
+          isOverwrite,
+          savedFiltersCount: isOverwrite ? savedFilters.length : savedFilters.length + 1,
+        });
+      }
     },
-    [board.id, currentFilter, currentUserId],
+    [board.id, currentFilter, currentUserId, savedFilters],
   );
 
   useDidUpdate(() => {

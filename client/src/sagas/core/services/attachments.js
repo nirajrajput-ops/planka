@@ -13,6 +13,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import pendoTrack from '../../../utils/pendo-track';
 import { AttachmentTypes } from '../../../constants/Enums';
 import ToastTypes from '../../../constants/ToastTypes';
 
@@ -36,6 +37,14 @@ export function* createAttachment(cardId, data) {
     }),
   );
 
+  // Pendo: properties shared by the success and failure outcomes.
+  const trackProperties = {
+    cardId,
+    attachmentType: nextData.type,
+    mimeType: (nextData.file && nextData.file.type) || null,
+    fileSize: nextData.file ? nextData.file.size : null,
+  };
+
   let attachment;
   try {
     ({ item: attachment } = yield nextData.type === AttachmentTypes.FILE
@@ -44,12 +53,15 @@ export function* createAttachment(cardId, data) {
   } catch (error) {
     yield put(actions.createAttachment.failure(localId, error));
 
+    let failureReason = 'other';
     if (error.code === 'E_UNPROCESSABLE_ENTITY') {
       let toastType;
       if (error.message.startsWith('Upload limit')) {
         toastType = ToastTypes.FILE_IS_TOO_BIG;
+        failureReason = 'upload_limit';
       } else if (error.message === 'Storage limit reached') {
         toastType = ToastTypes.NOT_ENOUGH_STORAGE;
+        failureReason = 'storage_limit';
       }
 
       if (toastType) {
@@ -59,10 +71,26 @@ export function* createAttachment(cardId, data) {
       }
     }
 
+    // Pendo: the attachment upload or link failed.
+    yield call(pendoTrack, 'card_attachment_added', {
+      ...trackProperties,
+      success: false,
+      failureReason,
+    });
+
     return;
   }
 
   yield put(actions.createAttachment.success(localId, attachment));
+
+  // Pendo: the attachment upload or link finished.
+  yield call(pendoTrack, 'card_attachment_added', {
+    ...trackProperties,
+    mimeType: (attachment.data && attachment.data.mimeType) || trackProperties.mimeType,
+    fileSize: (attachment.data && attachment.data.size) || trackProperties.fileSize,
+    success: true,
+    failureReason: null,
+  });
 }
 
 export function* createAttachmentInCurrentCard(data) {
