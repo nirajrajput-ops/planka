@@ -319,6 +319,8 @@ module.exports = {
       'isSubscribed',
     ]);
 
+    const prevListId = card.listId;
+
     card = await sails.helpers.cards.updateOne
       .with({
         project,
@@ -344,6 +346,23 @@ module.exports = {
 
     if (!card) {
       throw Errors.CARD_NOT_FOUND;
+    }
+
+    // Pendo: fires only when the card's list actually changed on the server.
+    if (card.listId !== prevListId) {
+      sails.helpers.utils.sendPendoTrackEvent.with({
+        event: 'Card moved',
+        userId: currentUser.id,
+        properties: {
+          card_id: card.id,
+          board_id: card.boardId,
+          project_id: (nextProject || project).id,
+          from_list_type: list.type,
+          to_list_type: nextList ? nextList.type : null,
+          is_other_board: card.boardId !== board.id,
+        },
+        request: this.req,
+      });
     }
 
     return {

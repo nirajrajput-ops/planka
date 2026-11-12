@@ -216,6 +216,19 @@ module.exports = {
       request: this.req,
     });
 
+    // Pendo: the new board is stored in the project.
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Board created',
+      userId: currentUser.id,
+      properties: {
+        board_id: board.id,
+        project_id: project.id,
+        import_type: boardImport ? boardImport.type : 'none',
+        user_role: currentUser.role,
+      },
+      request: this.req,
+    });
+
     return exits.success({
       item: board,
       included: {

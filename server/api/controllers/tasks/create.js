@@ -195,6 +195,22 @@ module.exports = {
         () => Errors.LINKED_CARD_OR_NAME_MUST_BE_PRESENT,
       );
 
+    // Pendo: the new task is stored in the task list.
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Task created',
+      userId: currentUser.id,
+      properties: {
+        task_id: task.id,
+        task_list_id: taskList.id,
+        card_id: card.id,
+        board_id: board.id,
+        project_id: project.id,
+        is_linked_card: !!task.linkedCardId,
+        is_completed: !!task.isCompleted,
+      },
+      request: this.req,
+    });
+
     return {
       item: task,
     };

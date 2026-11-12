@@ -156,6 +156,20 @@ module.exports = {
         () => Errors.USER_MUST_BE_ADMIN_OR_PROJECT_OWNER,
       );
 
+    // Pendo: a new manager is stored, so the project is shared across a team.
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Project manager added',
+      userId: currentUser.id,
+      properties: {
+        project_id: project.id,
+        project_type: project.type,
+        added_user_role: user.role,
+        is_self_added: user.id === currentUser.id,
+        user_role: currentUser.role,
+      },
+      request: this.req,
+    });
+
     return {
       item: projectManager,
     };

@@ -79,6 +79,18 @@ module.exports = {
       }
 
       logs.push('', '🎉 Your configuration is working correctly.');
+
+      // Pendo: the SMTP test email was sent successfully.
+      sails.helpers.utils.sendPendoTrackEvent.with({
+        event: 'Test email sent',
+        userId: currentUser.id,
+        properties: {
+          smtp_port: config.smtpPort ? Number(config.smtpPort) : null,
+          smtp_secure: !!config.smtpSecure,
+          user_role: currentUser.role,
+        },
+        request: this.req,
+      });
     } catch (error) {
       logs.push('❌ Failed to send email.', '');
 
