@@ -281,9 +281,15 @@ module.exports = {
       withDeactivated: false,
     });
 
+    let appriseServicesCount = 0;
+    let isEmailAttempted = false;
+
     if (notifiableUser) {
       const notificationServices = await NotificationService.qm.getByUserId(notification.userId);
       const { transporter } = await sails.helpers.utils.makeSmtpTransporter();
+
+      appriseServicesCount = notificationServices.length;
+      isEmailAttempted = !!transporter;
 
       if (notificationServices.length > 0 || transporter) {
         const t = sails.helpers.utils.makeTranslator(notifiableUser.language);
@@ -316,6 +322,21 @@ module.exports = {
         }
       }
     }
+
+    // Pendo: notification created for the recipient and fanned out to e-mail / Apprise
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Notification delivered',
+      user: { id: notification.userId },
+      project: inputs.project,
+      properties: {
+        notification_type: notification.type,
+        card_id: notification.cardId,
+        board_id: notification.boardId,
+        project_id: inputs.project.id,
+        email_attempted: isEmailAttempted,
+        apprise_services_count: appriseServicesCount,
+      },
+    });
 
     return notification;
   },
