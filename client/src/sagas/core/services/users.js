@@ -13,6 +13,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import { setAccessToken } from '../../../utils/access-token-storage';
 import mergeRecords from '../../../utils/merge-records';
+import pendo from '../../../utils/pendo';
 import { isUserAdminOrProjectOwner } from '../../../utils/record-helpers';
 import { UserRoles } from '../../../constants/Enums';
 
@@ -39,6 +40,12 @@ export function* createUser(data) {
   }
 
   yield put(actions.createUser.success(user));
+
+  // Role and a flag only: never the email, name or password
+  pendo.track('user_created', {
+    role: user.role,
+    hasUsername: !!data.username,
+  });
 }
 
 export function* handleUserCreate(user) {
@@ -428,6 +435,11 @@ export function* enableUserTotp(id, data) {
   }
 
   yield put(actions.enableUserTotp.success(user, recoveryCodes));
+
+  pendo.track('two_factor_enabled', {
+    recoveryCodesCount: recoveryCodes.length,
+    role: user.role,
+  });
 }
 
 export function* enableCurrentUserTotp(data) {
@@ -436,6 +448,10 @@ export function* enableCurrentUserTotp(data) {
 }
 
 export function* disableUserTotp(id, data) {
+  // Read before the request: once 2FA is off, no recovery codes are left to count
+  const prevUser = yield select(selectors.selectUserById, id);
+  const currentUserId = yield select(selectors.selectCurrentUserId);
+
   yield put(actions.disableUserTotp(id));
 
   let user;
@@ -447,6 +463,14 @@ export function* disableUserTotp(id, data) {
   }
 
   yield put(actions.disableUserTotp.success(user));
+
+  pendo.track('two_factor_disabled', {
+    // An admin resetting someone else's 2FA confirms with their own password and sends no code
+    usedRecoveryCode: !!data.code && data.code.includes('-'),
+    totpRecoveryCodesRemaining: prevUser ? prevUser.totpRecoveryCodesRemaining : null,
+    role: user.role,
+    isAdminReset: id !== currentUserId,
+  });
 }
 
 export function* disableCurrentUserTotp(data) {

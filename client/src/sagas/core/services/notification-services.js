@@ -10,6 +10,16 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import pendo from '../../../utils/pendo';
+
+const URL_SCHEME_REGEX = /^([a-z][a-z0-9+.-]*):\/\//i;
+
+// Apprise URLs carry their tokens, so only the scheme (slack, tgram, mailto, ...) is ever tracked
+const getUrlScheme = (url) => {
+  const match = URL_SCHEME_REGEX.exec(url);
+
+  return match ? match[1].toLowerCase() : null;
+};
 
 export function* createNotificationServiceInCurrentUser(data) {
   const localId = yield call(createLocalId);
@@ -37,6 +47,12 @@ export function* createNotificationServiceInCurrentUser(data) {
   }
 
   yield put(actions.createNotificationService.success(localId, notificationService));
+
+  pendo.track('notification_service_added', {
+    scope: 'user',
+    serviceScheme: getUrlScheme(data.url),
+    format: data.format,
+  });
 }
 
 export function* createNotificationServiceInBoard(boardId, data) {
@@ -64,6 +80,13 @@ export function* createNotificationServiceInBoard(boardId, data) {
   }
 
   yield put(actions.createNotificationService.success(localId, notificationService));
+
+  pendo.track('notification_service_added', {
+    scope: 'board',
+    boardId,
+    serviceScheme: getUrlScheme(data.url),
+    format: data.format,
+  });
 }
 
 export function* handleNotificationServiceCreate(notificationService) {

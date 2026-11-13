@@ -10,6 +10,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import pendo from '../../../utils/pendo';
 
 export function* createCustomFieldGroupInBoard(boardId, data) {
   const localId = yield call(createLocalId);
@@ -41,6 +42,12 @@ export function* createCustomFieldGroupInBoard(boardId, data) {
   }
 
   yield put(actions.createCustomFieldGroup.success(localId, customFieldGroup));
+
+  pendo.track('custom_field_group_added', {
+    scope: 'board',
+    boardId,
+    usesBaseGroup: !!data.baseCustomFieldGroupId,
+  });
 }
 
 export function* createCustomFieldGroupInCurrentBoard(data) {
@@ -79,6 +86,12 @@ export function* createCustomFieldGroupInCard(cardId, data) {
   }
 
   yield put(actions.createCustomFieldGroup.success(localId, customFieldGroup));
+
+  pendo.track('custom_field_group_added', {
+    scope: 'card',
+    cardId,
+    usesBaseGroup: !!data.baseCustomFieldGroupId,
+  });
 }
 
 export function* createCustomFieldGroupInCurrentCard(data) {
