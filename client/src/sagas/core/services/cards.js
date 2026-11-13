@@ -16,6 +16,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import i18n from '../../../i18n';
 import { createLocalId } from '../../../utils/local-id';
+import { trackPendoEvent } from '../../../utils/pendo';
 import { isListArchiveOrTrash, isListFinite } from '../../../utils/record-helpers';
 import ActionTypes from '../../../constants/ActionTypes';
 import ClipboardTypes from '../../../constants/ClipboardTypes';
@@ -176,6 +177,18 @@ export function* createCard(listId, data, index, autoOpen) {
   // Inherit active board filters so the new card stays visible in the filtered view
   const filterUserIds = yield select(selectors.selectFilterUserIdsForCurrentBoard);
   const filterLabelIds = yield select(selectors.selectFilterLabelIdsForCurrentBoard);
+
+  // Pendo: the card was confirmed by the server
+  yield call(trackPendoEvent, 'card_created', {
+    cardId: card.id,
+    boardId: list.boardId,
+    listId,
+    listType: list.type,
+    cardType: card.type,
+    autoOpen: !!autoOpen,
+    inheritedFilterUserCount: filterUserIds.length,
+    inheritedFilterLabelCount: filterLabelIds.length,
+  });
 
   yield all([
     ...filterUserIds.map((userId) => call(addUserToCard, userId, card.id)),
@@ -429,10 +442,19 @@ export function* transferCard(id, boardId, listId, index) {
   }
 
   const list = yield select(selectors.selectListById, listId);
+  const sourceCard = yield select(selectors.selectCardById, id);
 
   const data = {
     listId,
     boardId,
+  };
+
+  // Pendo: captured before the transfer, while the card still has its source board
+  const transferTrackProperties = {
+    cardId: id,
+    sourceBoardId: sourceCard ? sourceCard.boardId : null,
+    targetBoardId: boardId,
+    targetListType: list.type,
   };
 
   if (isListFinite(list)) {
@@ -504,12 +526,22 @@ export function* transferCard(id, boardId, listId, index) {
       ),
     );
 
+    yield call(trackPendoEvent, 'card_transferred_to_board', {
+      ...transferTrackProperties,
+      outcome: 'failure',
+    });
+
     yield call(toast, {
       type: ToastTypes.SOURCE_CARD_NOT_MOVABLE,
     });
 
     return;
   }
+
+  yield call(trackPendoEvent, 'card_transferred_to_board', {
+    ...transferTrackProperties,
+    outcome: 'success',
+  });
 
   yield put(
     actions.transferCard.success(

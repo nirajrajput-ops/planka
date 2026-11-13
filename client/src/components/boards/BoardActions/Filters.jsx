@@ -17,6 +17,7 @@ import { Input, Tooltip } from '../../../lib/custom-ui';
 import selectors from '../../../selectors';
 import entryActions from '../../../entry-actions';
 import { useNestedRef } from '../../../hooks';
+import { trackPendoEvent } from '../../../utils/pendo';
 import { BoardViews, LabelFilterModes } from '../../../constants/Enums';
 import UserAvatar from '../../users/UserAvatar';
 import BoardMembershipsStep from '../../board-memberships/BoardMembershipsStep';
@@ -38,6 +39,17 @@ import styles from './Filters.module.scss';
 
 // Membership comparison — order carries no meaning for a filter selection.
 const sameIds = (a, b) => a.length === b.length && a.every((id) => b.includes(id));
+
+// Shape of a stored filter as Pendo track event properties — counts and flags
+// only, never the ids or the raw search text.
+const buildFilterTrackProperties = (filter) => ({
+  userFilterCount: (filter.userIds || []).length,
+  labelFilterCount: (filter.labelIds || []).length,
+  excludedLabelFilterCount: (filter.excludedLabelIds || []).length,
+  listFilterCount: (filter.listIds || []).length,
+  noMember: !!filter.noMember,
+  hasSearch: !!filter.search,
+});
 
 const FilterListChip = React.memo(({ id, onClick }) => {
   const selectListById = useMemo(() => selectors.makeSelectListById(), []);
@@ -89,7 +101,7 @@ const Filters = React.memo(() => {
   const debouncedSearch = useMemo(
     () =>
       debounce((nextSearch) => {
-        dispatch(entryActions.searchInCurrentBoard(nextSearch));
+        dispatch(entryActions.searchInCurrentBoard(nextSearch, true));
       }, 400),
     [dispatch],
   );
@@ -375,8 +387,16 @@ const Filters = React.memo(() => {
   const handleRestoreClick = useCallback(() => {
     if (lastFilter) {
       applyFilter(lastFilter);
+
+      // Pendo: the last-cleared snapshot was put back on the board
+      trackPendoEvent('board_filter_recalled', {
+        boardId: board.id,
+        source: 'last_filter',
+        ...buildFilterTrackProperties(lastFilter),
+        savedFiltersCount: savedFilters.length,
+      });
     }
-  }, [applyFilter, lastFilter]);
+  }, [applyFilter, board.id, lastFilter, savedFilters.length]);
 
   // Saved filters replace rather than merge. Picking the one already on the
   // board turns it off instead, so the same row toggles both ways.
@@ -386,9 +406,17 @@ const Filters = React.memo(() => {
 
       if (item.id !== activeSavedFilterId) {
         applyFilter(item);
+
+        // Pendo: a saved filter was applied (not toggled off)
+        trackPendoEvent('board_filter_recalled', {
+          boardId: board.id,
+          source: 'saved_filter',
+          ...buildFilterTrackProperties(item),
+          savedFiltersCount: savedFilters.length,
+        });
       }
     },
-    [activeSavedFilterId, applyFilter, clearCurrentFilter],
+    [activeSavedFilterId, applyFilter, board.id, clearCurrentFilter, savedFilters.length],
   );
 
   const handleSavedFilterRemove = useCallback(
@@ -401,10 +429,30 @@ const Filters = React.memo(() => {
 
   const handleSaveFilter = useCallback(
     (name) => {
-      addSavedFilter(currentUserId, board.id, {
+      const overwroteExisting = readSavedFilters(currentUserId, board.id).some(
+        (item) => item.name === name.trim(),
+      );
+
+      const entry = addSavedFilter(currentUserId, board.id, {
         name,
         ...currentFilter,
       });
+
+      if (entry) {
+        const nextSavedFilters = readSavedFilters(currentUserId, board.id);
+
+        // Pendo: only once the entry is actually readable back from storage,
+        // since storage write failures are swallowed by the helper.
+        if (nextSavedFilters.some((item) => item.id === entry.id)) {
+          trackPendoEvent('board_filter_saved', {
+            boardId: board.id,
+            ...buildFilterTrackProperties(entry),
+            isRegexSearch: entry.search.startsWith('/'),
+            overwroteExisting,
+            savedFiltersCount: nextSavedFilters.length,
+          });
+        }
+      }
 
       setStorageRev((prevStorageRev) => prevStorageRev + 1);
     },

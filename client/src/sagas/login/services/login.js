@@ -10,7 +10,17 @@ import actions from '../../../actions';
 import api from '../../../api';
 import i18n from '../../../i18n';
 import { setAccessToken } from '../../../utils/access-token-storage';
+import { trackPendoEvent } from '../../../utils/pendo';
 import AccessTokenSteps from '../../../constants/AccessTokenSteps';
+
+// Pendo: fired once the access token is stored, whichever step finished the login
+function* trackUserLoggedIn(completionStep) {
+  yield call(trackPendoEvent, 'user_logged_in', {
+    completionStep,
+    termsAccepted: completionStep === AccessTokenSteps.ACCEPT_TERMS,
+    totpRequired: completionStep === AccessTokenSteps.VERIFY_TOTP,
+  });
+}
 
 export function* initializeLogin() {
   const { item: bootstrap } = yield call(api.getBootstrap); // TODO: handle error
@@ -35,6 +45,7 @@ export function* authenticate(data) {
   }
 
   yield call(setAccessToken, accessToken);
+  yield call(trackUserLoggedIn, 'password');
   yield put(actions.authenticate.success(accessToken));
 }
 
@@ -60,6 +71,7 @@ export function* acceptTerms(signature) {
   }
 
   yield call(setAccessToken, accessToken);
+  yield call(trackUserLoggedIn, AccessTokenSteps.ACCEPT_TERMS);
   yield put(actions.acceptTerms.success(accessToken));
 }
 
@@ -111,6 +123,7 @@ export function* verifyTotp(data) {
   }
 
   yield call(setAccessToken, accessToken);
+  yield call(trackUserLoggedIn, AccessTokenSteps.VERIFY_TOTP);
   yield put(actions.verifyTotp.success(accessToken));
 }
 
