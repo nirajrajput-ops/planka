@@ -12,7 +12,9 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import trackPendoEvent from '../../../utils/pendo';
 import ToastTypes from '../../../constants/ToastTypes';
+import { SortOrders } from '../../../constants/Enums';
 
 export function* createList(boardId, data) {
   const localId = yield call(createLocalId);
@@ -172,6 +174,13 @@ export function* sortList(id, data) {
   }
 
   yield put(actions.sortList.success(list, cards));
+
+  yield call(trackPendoEvent, 'list_sorted', {
+    list_id: id,
+    field_name: data.fieldName || null,
+    order: data.order || SortOrders.ASC,
+    card_count: cards ? cards.length : 0,
+  });
 }
 
 export function* moveListCards(id, nextId) {
@@ -200,6 +209,15 @@ export function* moveListCards(id, nextId) {
   }
 
   yield put(actions.moveListCards.success(list, cards, activities));
+
+  const nextList = yield select(selectors.selectListById, nextId);
+
+  yield call(trackPendoEvent, 'list_cards_bulk_moved', {
+    source_list_id: id,
+    destination_list_id: nextId,
+    destination_list_type: nextList ? nextList.type : null,
+    card_count: cards ? cards.length : cardIds.length,
+  });
 }
 
 export function* moveListCardsToArchiveList(id) {
@@ -210,6 +228,7 @@ export function* moveListCardsToArchiveList(id) {
 
 export function* clearTrashListInCurrentBoard() {
   const trashListId = yield select(selectors.selectTrashListIdForCurrentBoard);
+  const trashCardIds = yield select(selectors.selectCardIdsByListId, trashListId);
 
   yield put(actions.clearList(trashListId));
 
@@ -229,6 +248,12 @@ export function* clearTrashListInCurrentBoard() {
   }
 
   yield put(actions.clearList.success(list));
+
+  yield call(trackPendoEvent, 'trash_emptied', {
+    board_id: list.boardId,
+    list_id: trashListId,
+    card_count: trashCardIds ? trashCardIds.length : 0,
+  });
 }
 
 export function* handleListClear(list) {

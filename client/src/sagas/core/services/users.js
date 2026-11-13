@@ -13,6 +13,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import { setAccessToken } from '../../../utils/access-token-storage';
 import mergeRecords from '../../../utils/merge-records';
+import trackPendoEvent from '../../../utils/pendo';
 import { isUserAdminOrProjectOwner } from '../../../utils/record-helpers';
 import { UserRoles } from '../../../constants/Enums';
 
@@ -39,6 +40,12 @@ export function* createUser(data) {
   }
 
   yield put(actions.createUser.success(user));
+
+  // No PII (email, name, username) is sent
+  yield call(trackPendoEvent, 'user_created', {
+    user_id: user.id,
+    role: user.role,
+  });
 }
 
 export function* handleUserCreate(user) {
@@ -366,6 +373,14 @@ export function* createUserApiKey(id) {
   }
 
   yield put(actions.createUserApiKey.success(user, apiKey));
+
+  // The API key value itself must never be sent
+  const currentUserId = yield select(selectors.selectCurrentUserId);
+
+  yield call(trackPendoEvent, 'api_key_created', {
+    user_id: id,
+    is_current_user: id === currentUserId,
+  });
 }
 
 export function* deleteUserApiKey(id) {
@@ -428,6 +443,13 @@ export function* enableUserTotp(id, data) {
   }
 
   yield put(actions.enableUserTotp.success(user, recoveryCodes));
+
+  const currentUserId = yield select(selectors.selectCurrentUserId);
+
+  yield call(trackPendoEvent, 'two_factor_enabled', {
+    recovery_code_count: recoveryCodes ? recoveryCodes.length : 0,
+    is_current_user: id === currentUserId,
+  });
 }
 
 export function* enableCurrentUserTotp(data) {
