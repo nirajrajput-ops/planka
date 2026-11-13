@@ -165,6 +165,19 @@ module.exports = {
       request: this.req,
     });
 
+    // Pendo: custom background image stored for the project
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Background image uploaded',
+      visitorId: currentUser.id,
+      properties: {
+        project_id: project.id,
+        background_image_id: backgroundImage.id,
+        file_extension: values.extension || null,
+        size_bytes: _.isNil(values.size) ? null : Number(values.size),
+      },
+      request: this.req,
+    });
+
     return exits.success({
       item: sails.helpers.backgroundImages.presentOne(backgroundImage),
     });

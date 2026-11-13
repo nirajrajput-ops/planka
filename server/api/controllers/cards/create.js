@@ -214,6 +214,22 @@ module.exports = {
       })
       .intercept('positionMustBeInValues', () => Errors.POSITION_MUST_BE_PRESENT);
 
+    // Pendo: card saved
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Card created',
+      visitorId: currentUser.id,
+      properties: {
+        project_id: project.id,
+        board_id: board.id,
+        card_id: card.id,
+        card_type: card.type,
+        list_type: list.type,
+        has_description: !!card.description,
+        has_due_date: !!card.dueDate,
+      },
+      request: this.req,
+    });
+
     return {
       item: card,
     };

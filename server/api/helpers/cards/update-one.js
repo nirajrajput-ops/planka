@@ -240,6 +240,26 @@ module.exports = {
         return card;
       }
 
+      // Pendo: card reached a closed list or its due date was marked complete (transitions only)
+      const isClosedByList = values.isClosed === true;
+      const isDueMarkedCompleted = values.isDueCompleted === true && !inputs.record.isDueCompleted;
+
+      if (isClosedByList || isDueMarkedCompleted) {
+        sails.helpers.utils.sendPendoTrackEvent.with({
+          event: 'Card closed',
+          visitorId: inputs.actorUser.id,
+          properties: {
+            project_id: project.id,
+            board_id: card.boardId,
+            card_id: card.id,
+            card_type: card.type,
+            is_closed_by_list: isClosedByList,
+            is_due_completed: isDueMarkedCompleted,
+          },
+          request: inputs.request,
+        });
+      }
+
       if (values.board) {
         const labels = await Label.qm.getByBoardId(card.boardId);
         const labelByName = _.keyBy(labels, 'name');

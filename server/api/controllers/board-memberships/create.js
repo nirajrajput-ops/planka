@@ -163,6 +163,20 @@ module.exports = {
       })
       .intercept('userAlreadyBoardMember', () => Errors.USER_ALREADY_BOARD_MEMBER);
 
+    // Pendo: board membership created and the user gains access
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Board member added',
+      visitorId: currentUser.id,
+      properties: {
+        project_id: project.id,
+        board_id: board.id,
+        member_role: boardMembership.role,
+        can_comment: !!boardMembership.canComment,
+        is_self_added: user.id === currentUser.id,
+      },
+      request: this.req,
+    });
+
     return {
       item: boardMembership,
     };
