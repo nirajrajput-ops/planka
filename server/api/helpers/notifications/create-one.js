@@ -281,15 +281,9 @@ module.exports = {
       withDeactivated: false,
     });
 
-    let notificationServicesTotal = 0;
-    let isEmailSent = false;
-
     if (notifiableUser) {
       const notificationServices = await NotificationService.qm.getByUserId(notification.userId);
       const { transporter } = await sails.helpers.utils.makeSmtpTransporter();
-
-      notificationServicesTotal = notificationServices.length;
-      isEmailSent = !!transporter;
 
       if (notificationServices.length > 0 || transporter) {
         const t = sails.helpers.utils.makeTranslator(notifiableUser.language);
@@ -322,23 +316,6 @@ module.exports = {
         }
       }
     }
-
-    // Pendo: a notification was created for a user and handed to its delivery channels
-    sails.helpers.utils.sendPendoTrackEvent.with({
-      event: 'Notification sent',
-      visitorId: notification.userId,
-      properties: {
-        notification_id: notification.id,
-        notification_type: notification.type,
-        creator_user_id: notification.creatorUserId,
-        card_id: notification.cardId,
-        board_id: notification.boardId,
-        project_id: inputs.project.id,
-        is_recipient_active: !!notifiableUser,
-        is_email_sent: isEmailSent,
-        notification_services_total: notificationServicesTotal,
-      },
-    });
 
     return notification;
   },

@@ -223,24 +223,6 @@ module.exports = {
       request: this.req,
     });
 
-    // Pendo: the file or link was stored and thumbnails were built
-    sails.helpers.utils.sendPendoTrackEvent.with({
-      event: 'Attachment uploaded',
-      visitorId: currentUser.id,
-      properties: {
-        attachment_id: attachment.id,
-        attachment_type: attachment.type,
-        mime_type: (data && data.mimeType) || undefined,
-        size_in_bytes: data && data.size ? Number(data.size) : undefined,
-        is_image: !!(data && data.image),
-        card_id: card.id,
-        board_id: board.id,
-        project_id: project.id,
-        user_role: currentUser.role,
-      },
-      request: this.req,
-    });
-
     return exits.success({
       item: sails.helpers.attachments.presentOne(attachment),
     });

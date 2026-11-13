@@ -279,26 +279,6 @@ module.exports = {
       .intercept('positionMustBeInValues', () => Errors.POSITION_MUST_BE_PRESENT)
       .intercept('listMustBeInValues', () => Errors.LIST_MUST_BE_PRESENT);
 
-    // Pendo: the card copy was created with its tasks, labels, and custom fields
-    sails.helpers.utils.sendPendoTrackEvent.with({
-      event: 'Card duplicated',
-      visitorId: currentUser.id,
-      properties: {
-        source_card_id: card.id,
-        card_id: nextCard.id,
-        card_type: nextCard.type,
-        board_id: nextCard.boardId,
-        project_id: (nextProject || project).id,
-        is_cross_board: nextCard.boardId !== board.id,
-        task_count: tasks ? tasks.length : 0,
-        label_count: cardLabels ? cardLabels.length : 0,
-        attachment_count: attachments ? attachments.length : 0,
-        custom_field_count: customFields ? customFields.length : 0,
-        user_role: currentUser.role,
-      },
-      request: this.req,
-    });
-
     return {
       item: nextCard,
       included: {
