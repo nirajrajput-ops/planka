@@ -227,6 +227,16 @@ module.exports = {
       );
     }
 
+    // Pendo: terms acceptance recorded and access token issued
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      user,
+      event: 'Terms accepted',
+      properties: {
+        user_role: user.role,
+        terms_type: sails.config.custom.termsType,
+      },
+    });
+
     return {
       item: accessToken,
     };

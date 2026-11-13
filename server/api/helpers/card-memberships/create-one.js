@@ -124,6 +124,19 @@ module.exports = {
       list: inputs.list,
     });
 
+    // Pendo: card membership created and 'addMemberToCard' activity logged
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Card member added',
+      user: inputs.actorUser,
+      project: inputs.project,
+      properties: {
+        card_id: cardMembership.cardId,
+        board_id: inputs.board.id,
+        project_id: inputs.project.id,
+        is_self: cardMembership.userId === inputs.actorUser.id,
+      },
+    });
+
     return cardMembership;
   },
 };

@@ -73,6 +73,15 @@ module.exports = {
       /* eslint-enable no-underscore-dangle */
       logs.push('✅ Email sent successfully.', '');
 
+      // Pendo: SMTP test email sent successfully
+      sails.helpers.utils.sendPendoTrackEvent.with({
+        event: 'Test email sent',
+        user: currentUser,
+        properties: {
+          user_role: currentUser.role,
+        },
+      });
+
       logs.push(`📬 Message ID: ${info.messageId}`);
       if (info.response) {
         logs.push(`📤 Server response: ${info.response.trim()}`);
