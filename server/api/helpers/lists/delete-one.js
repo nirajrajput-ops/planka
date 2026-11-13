@@ -71,6 +71,19 @@ module.exports = {
         }),
         user: inputs.actorUser,
       });
+
+      // Pendo: the list is removed from the board
+      sails.helpers.utils.sendPendoTrackEvent.with({
+        event: 'List deleted',
+        user: inputs.actorUser,
+        properties: {
+          project_id: inputs.project.id,
+          board_id: list.boardId,
+          list_id: list.id,
+          list_type: list.type,
+          moved_cards_count: cards.length,
+        },
+      });
     }
 
     return { list, cards };

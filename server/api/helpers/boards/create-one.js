@@ -85,7 +85,12 @@ module.exports = {
     );
 
     if (inputs.import && inputs.import.type === Board.ImportTypes.TRELLO) {
-      await sails.helpers.boards.importFromTrello(board, lists, inputs.import.board);
+      await sails.helpers.boards.importFromTrello(
+        board,
+        lists,
+        inputs.import.board,
+        inputs.actorUser,
+      );
     }
 
     scoper.board = board;
@@ -121,6 +126,17 @@ module.exports = {
         },
       }),
       user: inputs.actorUser,
+    });
+
+    // Pendo: a board is saved, including Trello imports
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Board created',
+      user: inputs.actorUser,
+      properties: {
+        project_id: values.project.id,
+        board_id: board.id,
+        import_type: inputs.import ? inputs.import.type : 'none',
+      },
     });
 
     return {

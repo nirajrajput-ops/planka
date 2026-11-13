@@ -119,6 +119,20 @@ module.exports = {
       user: inputs.actorUser,
     });
 
+    // Pendo: a task is saved in a task list
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Task created',
+      user: inputs.actorUser,
+      properties: {
+        project_id: inputs.project.id,
+        board_id: inputs.board.id,
+        card_id: inputs.card.id,
+        task_list_id: task.taskListId,
+        is_linked_card: !!task.linkedCardId,
+        is_completed: !!task.isCompleted,
+      },
+    });
+
     return task;
   },
 };

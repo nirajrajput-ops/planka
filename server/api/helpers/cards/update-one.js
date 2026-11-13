@@ -333,6 +333,36 @@ module.exports = {
         }
       }
 
+      if (values.list) {
+        // Pendo: the card changes list or board
+        sails.helpers.utils.sendPendoTrackEvent.with({
+          event: 'Card moved',
+          user: inputs.actorUser,
+          properties: {
+            project_id: project.id,
+            board_id: card.boardId,
+            card_id: card.id,
+            from_list_type: inputs.list.type,
+            to_list_type: values.list.type,
+            to_other_board: !!values.board,
+          },
+        });
+      }
+
+      if (!inputs.record.isClosed && card.isClosed) {
+        // Pendo: the card lands in a Closed list and is marked done
+        sails.helpers.utils.sendPendoTrackEvent.with({
+          event: 'Card closed',
+          user: inputs.actorUser,
+          properties: {
+            project_id: project.id,
+            board_id: card.boardId,
+            card_id: card.id,
+            list_type: list.type,
+          },
+        });
+      }
+
       if (tasks) {
         const taskListIds = sails.helpers.utils.mapRecords(tasks, 'taskListId', true);
         const taskLists = await TaskList.qm.getByIds(taskListIds);

@@ -224,7 +224,7 @@ module.exports = {
         : Errors.INVALID_CREDENTIALS;
     }
 
-    return sails.helpers.accessTokens.handleSteps
+    const result = await sails.helpers.accessTokens.handleSteps
       .with({
         user,
         remoteAddress,
@@ -241,5 +241,18 @@ module.exports = {
       .intercept('totpVerificationRequired', (error) => ({
         totpVerificationRequired: error.raw,
       }));
+
+    // Pendo: the server issues an access token after valid credentials, 2FA, and terms are complete
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      user,
+      event: 'Session started',
+      properties: {
+        login_method: 'password',
+        with_http_only_token: !!inputs.withHttpOnlyToken,
+        is_socket: !!this.req.isSocket,
+      },
+    });
+
+    return result;
   },
 };

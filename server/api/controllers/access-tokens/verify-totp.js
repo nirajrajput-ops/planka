@@ -228,6 +228,16 @@ module.exports = {
       setTrustDeviceCookie(this.res, plainToken);
     }
 
+    // Pendo: the server verifies the TOTP or recovery code and completes login
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      user,
+      event: 'Two-factor challenge passed',
+      properties: {
+        method: consumedRecoveryIndex >= 0 ? 'recovery_code' : 'totp',
+        trust_device: !!inputs.trustDevice,
+      },
+    });
+
     return {
       item: accessToken,
     };
