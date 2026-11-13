@@ -46,6 +46,32 @@ export function* initializeCore() {
     notificationServices,
   } = yield call(requests.fetchCore); // TODO: handle error
 
+  yield call([window.pendo, window.pendo.identify], {
+    visitor: {
+      id: user.id,
+      email: user.email,
+      full_name: user.name,
+      role: user.role,
+      username: user.username,
+      organization: user.organization,
+      language: user.language,
+      isDeactivated: user.isDeactivated,
+      isTotpEnabled: user.isTotpEnabled,
+      totpEnabledAt: user.totpEnabledAt,
+      isDefaultAdmin: user.isDefaultAdmin,
+      subscribeToOwnCards: user.subscribeToOwnCards,
+      subscribeToCardWhenCommenting: user.subscribeToCardWhenCommenting,
+      turnOffRecentCardHighlighting: user.turnOffRecentCardHighlighting,
+      enableFavoritesByDefault: user.enableFavoritesByDefault,
+      defaultEditorMode: user.defaultEditorMode,
+      defaultHomeView: user.defaultHomeView,
+      defaultProjectsOrder: user.defaultProjectsOrder,
+      autoLogoutMode: user.autoLogoutMode,
+      termsAcceptedAt: user.termsAcceptedAt,
+      createdAt: user.createdAt,
+    },
+  });
+
   yield call(i18n.changeLanguage, user.language);
   yield call(i18n.loadCoreLocale);
 
@@ -118,6 +144,11 @@ export function* updateHomeView(value) {
 
 export function* logout(revokeAccessToken) {
   yield call(removeAccessToken);
+  // Start a fresh anonymous Pendo visitor so the next person is not tracked as this one.
+  // clearSession is not stubbed by the install snippet, so skip it if the agent has not loaded.
+  if (window.pendo && typeof window.pendo.clearSession === 'function') {
+    yield call([window.pendo, window.pendo.clearSession]);
+  }
   // Everything this window was holding about the boards it had open. None of it
   // belongs to the next person to sign in here.
   yield call(forgetBoardViews);
