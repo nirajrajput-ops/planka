@@ -10,6 +10,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import trackPendoEvent from '../../../utils/pendo';
 
 export function* createNotificationServiceInCurrentUser(data) {
   const localId = yield call(createLocalId);
@@ -35,6 +36,14 @@ export function* createNotificationServiceInCurrentUser(data) {
     yield put(actions.createNotificationService.failure(localId, error));
     return;
   }
+
+  // Personal notification channel connected
+  yield call(trackPendoEvent, 'notification_service_connected', {
+    notificationServiceId: notificationService.id,
+    scope: 'user',
+    boardId: null,
+    format: notificationService.format || null,
+  });
 
   yield put(actions.createNotificationService.success(localId, notificationService));
 }
@@ -63,6 +72,14 @@ export function* createNotificationServiceInBoard(boardId, data) {
     return;
   }
 
+  // Board notification channel connected
+  yield call(trackPendoEvent, 'notification_service_connected', {
+    notificationServiceId: notificationService.id,
+    scope: 'board',
+    boardId,
+    format: notificationService.format || null,
+  });
+
   yield put(actions.createNotificationService.success(localId, notificationService));
 }
 
@@ -89,15 +106,37 @@ export function* handleNotificationServiceUpdate(notificationService) {
 }
 
 export function* testNotificationService(id) {
+  const storedNotificationService = yield select(selectors.selectNotificationServiceById, id);
+
+  const trackingProperties = {
+    notificationServiceId: id,
+    scope: storedNotificationService && storedNotificationService.boardId ? 'board' : 'user',
+    format: (storedNotificationService && storedNotificationService.format) || null,
+  };
+
   yield put(actions.testNotificationService(id));
 
   let notificationService;
   try {
     ({ item: notificationService } = yield call(request, api.testNotificationService, id));
   } catch (error) {
+    // Test delivery rejected by the external notification channel
+    yield call(trackPendoEvent, 'notification_service_tested', {
+      ...trackingProperties,
+      success: false,
+      errorCode: (error && error.code) || 'unknown',
+    });
+
     yield put(actions.testNotificationService.failure(id, error));
     return;
   }
+
+  // Test delivery succeeded
+  yield call(trackPendoEvent, 'notification_service_tested', {
+    ...trackingProperties,
+    success: true,
+    errorCode: null,
+  });
 
   yield put(actions.testNotificationService.success(notificationService));
 }
