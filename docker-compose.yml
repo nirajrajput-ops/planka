@@ -99,6 +99,12 @@ services:
       # Use a proxy you control for privacy, or leave commented out or empty to disable.
       # - GRAVATAR_BASE_URL=https://www.gravatar.com/avatar/
 
+      # Pendo Track Events (server-side analytics). Nothing is sent unless the integration key is set.
+      # - PENDO_TRACK_EVENT_SECRET=
+      # - PENDO_DATA_HOST=data.pendo.io
+      # Defaults to the hostname of BASE_URL.
+      # - PENDO_ACCOUNT_ID=
+
       # --------------------------------------------------------------------
       # Outgoing traffic control (internal Squid proxy)
       # --------------------------------------------------------------------

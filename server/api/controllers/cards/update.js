@@ -346,6 +346,23 @@ module.exports = {
       throw Errors.CARD_NOT_FOUND;
     }
 
+    // Pendo: card's list changed on the server
+    if (nextList && card.listId !== list.id) {
+      sails.helpers.utils.sendPendoTrackEvent.with({
+        event: 'Card moved',
+        visitorId: currentUser.id,
+        properties: {
+          project_id: (nextProject || project).id,
+          board_id: card.boardId,
+          card_id: card.id,
+          from_list_type: list.type,
+          to_list_type: nextList.type,
+          is_board_changed: !!nextBoard && nextBoard.id !== board.id,
+        },
+        request: this.req,
+      });
+    }
+
     return {
       item: card,
     };
