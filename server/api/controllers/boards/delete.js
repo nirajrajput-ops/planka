@@ -89,6 +89,19 @@ module.exports = {
       throw Errors.BOARD_NOT_FOUND;
     }
 
+    // Pendo: the board and its contents were removed
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Board deleted',
+      visitorId: currentUser.id,
+      properties: {
+        board_id: board.id,
+        project_id: project.id,
+        project_type: project.ownerProjectManagerId ? Project.Types.PRIVATE : Project.Types.SHARED,
+        user_role: currentUser.role,
+      },
+      request: this.req,
+    });
+
     return {
       item: board,
     };

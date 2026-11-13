@@ -57,6 +57,7 @@
  */
 
 const { idInput } = require('../../../utils/inputs');
+const { extractMentionIds } = require('../../../utils/mentions');
 
 const Errors = {
   NOT_ENOUGH_RIGHTS: {
@@ -121,6 +122,23 @@ module.exports = {
         ...values,
         card,
         user: currentUser,
+      },
+      request: this.req,
+    });
+
+    // Pendo: the comment was stored and subscribers were notified
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Comment posted',
+      visitorId: currentUser.id,
+      properties: {
+        comment_id: comment.id,
+        card_id: card.id,
+        board_id: board.id,
+        project_id: project.id,
+        text_length: comment.text.length,
+        mention_count: _.uniq(extractMentionIds(comment.text)).length,
+        board_role: boardMembership.role,
+        user_role: currentUser.role,
       },
       request: this.req,
     });
