@@ -12,6 +12,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
 import mergeRecords from '../../../utils/merge-records';
+import trackPendoEvent from '../../../utils/pendo';
 
 export function* createProjectManager(projectId, data) {
   const localId = yield call(createLocalId);
@@ -33,6 +34,11 @@ export function* createProjectManager(projectId, data) {
   }
 
   yield put(actions.createProjectManager.success(localId, projectManager));
+
+  // Pendo: server confirmed a user became a project manager
+  yield call(trackPendoEvent, 'project_manager_added', {
+    projectId,
+  });
 }
 
 export function* createManagerInCurrentProject(data) {

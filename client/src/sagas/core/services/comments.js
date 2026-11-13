@@ -10,6 +10,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import trackPendoEvent from '../../../utils/pendo';
 
 export function* fetchComments(cardId) {
   const { lastCommentId } = yield select(selectors.selectCardById, cardId);
@@ -62,6 +63,16 @@ export function* createComment(cardId, data) {
   }
 
   yield put(actions.createComment.success(localId, comment));
+
+  // Pendo: server saved a new comment on a card
+  const text = (data && data.text) || '';
+
+  yield call(trackPendoEvent, 'comment_posted', {
+    cardId,
+    commentId: comment.id,
+    textLength: text.length,
+    hasMentions: /@\[[^\]]*\]\([^)]*\)/.test(text),
+  });
 }
 
 export function* createCommentInCurrentCard(data) {

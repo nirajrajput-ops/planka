@@ -13,6 +13,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import trackPendoEvent from '../../../utils/pendo';
 import { AttachmentTypes } from '../../../constants/Enums';
 import ToastTypes from '../../../constants/ToastTypes';
 
@@ -44,12 +45,16 @@ export function* createAttachment(cardId, data) {
   } catch (error) {
     yield put(actions.createAttachment.failure(localId, error));
 
+    let failureReason = (error && error.code) || 'unknown';
+
     if (error.code === 'E_UNPROCESSABLE_ENTITY') {
       let toastType;
       if (error.message.startsWith('Upload limit')) {
         toastType = ToastTypes.FILE_IS_TOO_BIG;
+        failureReason = 'file_too_big';
       } else if (error.message === 'Storage limit reached') {
         toastType = ToastTypes.NOT_ENOUGH_STORAGE;
+        failureReason = 'not_enough_storage';
       }
 
       if (toastType) {
@@ -59,10 +64,29 @@ export function* createAttachment(cardId, data) {
       }
     }
 
+    // Pendo: attachment (file upload or link) was rejected
+    yield call(trackPendoEvent, 'attachment_upload_completed', {
+      cardId,
+      type: nextData.type || null,
+      fileType: nextData.file ? nextData.file.type || null : null,
+      fileSize: nextData.file ? nextData.file.size : null,
+      success: false,
+      failureReason,
+    });
+
     return;
   }
 
   yield put(actions.createAttachment.success(localId, attachment));
+
+  // Pendo: attachment (file upload or link) was created
+  yield call(trackPendoEvent, 'attachment_upload_completed', {
+    cardId,
+    type: nextData.type || null,
+    fileType: nextData.file ? nextData.file.type || null : null,
+    fileSize: nextData.file ? nextData.file.size : null,
+    success: true,
+  });
 }
 
 export function* createAttachmentInCurrentCard(data) {
