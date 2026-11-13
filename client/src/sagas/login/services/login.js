@@ -10,6 +10,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import i18n from '../../../i18n';
 import { setAccessToken } from '../../../utils/access-token-storage';
+import { trackEvent } from '../../../utils/pendo';
 import AccessTokenSteps from '../../../constants/AccessTokenSteps';
 
 export function* initializeLogin() {
@@ -35,6 +36,14 @@ export function* authenticate(data) {
   }
 
   yield call(setAccessToken, accessToken);
+  // Pendo: an access token was issued, i.e. the login actually succeeded. Tracked before
+  // the success action, which makes the login saga cancel its watcher tasks
+  yield call(trackEvent, 'login_completed', {
+    auth_step: 'authenticate',
+    totp_required: false,
+    terms_accepted: false,
+    language: i18n.resolvedLanguage,
+  });
   yield put(actions.authenticate.success(accessToken));
 }
 
@@ -60,6 +69,14 @@ export function* acceptTerms(signature) {
   }
 
   yield call(setAccessToken, accessToken);
+  // Pendo: an access token was issued, i.e. the login actually succeeded. Tracked before
+  // the success action, which makes the login saga cancel its watcher tasks
+  yield call(trackEvent, 'login_completed', {
+    auth_step: 'accept_terms',
+    totp_required: false,
+    terms_accepted: true,
+    language: i18n.resolvedLanguage,
+  });
   yield put(actions.acceptTerms.success(accessToken));
 }
 
@@ -111,6 +128,14 @@ export function* verifyTotp(data) {
   }
 
   yield call(setAccessToken, accessToken);
+  // Pendo: an access token was issued, i.e. the login actually succeeded. Tracked before
+  // the success action, which makes the login saga cancel its watcher tasks
+  yield call(trackEvent, 'login_completed', {
+    auth_step: 'verify_totp',
+    totp_required: true,
+    terms_accepted: false,
+    language: i18n.resolvedLanguage,
+  });
   yield put(actions.verifyTotp.success(accessToken));
 }
 

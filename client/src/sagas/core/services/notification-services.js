@@ -10,6 +10,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import { trackEvent } from '../../../utils/pendo';
 
 export function* createNotificationServiceInCurrentUser(data) {
   const localId = yield call(createLocalId);
@@ -37,6 +38,14 @@ export function* createNotificationServiceInCurrentUser(data) {
   }
 
   yield put(actions.createNotificationService.success(localId, notificationService));
+
+  // Pendo: the server saved a user-level notification service
+  yield call(trackEvent, 'notification_service_created', {
+    scope: 'user',
+    board_id: null,
+    format: notificationService.format,
+    notification_service_id: notificationService.id,
+  });
 }
 
 export function* createNotificationServiceInBoard(boardId, data) {
@@ -64,6 +73,14 @@ export function* createNotificationServiceInBoard(boardId, data) {
   }
 
   yield put(actions.createNotificationService.success(localId, notificationService));
+
+  // Pendo: the server saved a board-level notification service
+  yield call(trackEvent, 'notification_service_created', {
+    scope: 'board',
+    board_id: boardId,
+    format: notificationService.format,
+    notification_service_id: notificationService.id,
+  });
 }
 
 export function* handleNotificationServiceCreate(notificationService) {
@@ -89,6 +106,15 @@ export function* handleNotificationServiceUpdate(notificationService) {
 }
 
 export function* testNotificationService(id) {
+  const prevNotificationService = yield select(selectors.selectNotificationServiceById, id);
+
+  // Pendo: shared properties for the notification_service_test_completed event
+  const trackProperties = {
+    notification_service_id: id,
+    format: prevNotificationService ? prevNotificationService.format : null,
+    scope: prevNotificationService && prevNotificationService.boardId ? 'board' : 'user',
+  };
+
   yield put(actions.testNotificationService(id));
 
   let notificationService;
@@ -96,10 +122,23 @@ export function* testNotificationService(id) {
     ({ item: notificationService } = yield call(request, api.testNotificationService, id));
   } catch (error) {
     yield put(actions.testNotificationService.failure(id, error));
+
+    // Pendo: the test delivery finished, but failed
+    yield call(trackEvent, 'notification_service_test_completed', {
+      ...trackProperties,
+      outcome: 'failure',
+    });
+
     return;
   }
 
   yield put(actions.testNotificationService.success(notificationService));
+
+  // Pendo: the test delivery finished successfully
+  yield call(trackEvent, 'notification_service_test_completed', {
+    ...trackProperties,
+    outcome: 'success',
+  });
 }
 
 export function* deleteNotificationService(id) {

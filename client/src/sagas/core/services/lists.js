@@ -12,6 +12,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import { trackEvent } from '../../../utils/pendo';
 import ToastTypes from '../../../constants/ToastTypes';
 
 export function* createList(boardId, data) {
@@ -200,6 +201,17 @@ export function* moveListCards(id, nextId) {
   }
 
   yield put(actions.moveListCards.success(list, cards, activities));
+
+  const nextList = yield select(selectors.selectListById, nextId);
+
+  // Pendo: the server moved every card of the list to another list (or the archive)
+  yield call(trackEvent, 'list_cards_moved', {
+    source_list_id: id,
+    destination_list_id: nextId,
+    destination_list_type: nextList ? nextList.type : null,
+    card_count: cards ? cards.length : cardIds.length,
+    board_id: list.boardId,
+  });
 }
 
 export function* moveListCardsToArchiveList(id) {
@@ -210,6 +222,9 @@ export function* moveListCardsToArchiveList(id) {
 
 export function* clearTrashListInCurrentBoard() {
   const trashListId = yield select(selectors.selectTrashListIdForCurrentBoard);
+
+  // Counted before the optimistic clear removes them (cards loaded in the client)
+  const trashCardIds = yield select(selectors.selectCardIdsByListId, trashListId);
 
   yield put(actions.clearList(trashListId));
 
@@ -229,6 +244,13 @@ export function* clearTrashListInCurrentBoard() {
   }
 
   yield put(actions.clearList.success(list));
+
+  // Pendo: the server permanently emptied the board's trash list
+  yield call(trackEvent, 'trash_emptied', {
+    board_id: list.boardId,
+    trash_list_id: trashListId,
+    deleted_card_count: trashCardIds ? trashCardIds.length : 0,
+  });
 }
 
 export function* handleListClear(list) {
