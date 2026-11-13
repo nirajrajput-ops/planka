@@ -79,6 +79,16 @@ module.exports = {
       }
 
       logs.push('', '🎉 Your configuration is working correctly.');
+
+      sails.helpers.utils.sendPendoTrackEvent.with({
+        event: 'Test email sent',
+        visitorId: currentUser.id,
+        properties: {
+          user_role: currentUser.role,
+          smtp_secure: !!config.smtpSecure,
+          smtp_port: config.smtpPort,
+        },
+      });
     } catch (error) {
       logs.push('❌ Failed to send email.', '');
 

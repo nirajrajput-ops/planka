@@ -124,6 +124,18 @@ module.exports = {
       list: inputs.list,
     });
 
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Member added to card',
+      visitorId: inputs.actorUser.id,
+      properties: {
+        project_id: inputs.project.id,
+        board_id: inputs.board.id,
+        card_id: cardMembership.cardId,
+        member_user_id: cardMembership.userId,
+        is_self_added: cardMembership.userId === inputs.actorUser.id,
+      },
+    });
+
     return cardMembership;
   },
 };

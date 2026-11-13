@@ -94,6 +94,18 @@ module.exports = {
       user: inputs.actorUser,
     });
 
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Board notification service connected',
+      visitorId: inputs.actorUser.id,
+      properties: {
+        project_id: inputs.project.id,
+        board_id: values.board.id,
+        notification_service_id: notificationService.id,
+        schema,
+        format: notificationService.format,
+      },
+    });
+
     return notificationService;
   },
 };

@@ -166,6 +166,15 @@ module.exports = {
       totpRecoveryCodes: hashedRecoveryCodes,
     });
 
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Two-factor authentication enabled',
+      visitorId: updatedUser.id,
+      properties: {
+        user_role: updatedUser.role,
+        recovery_codes_count: recoveryCodes.length,
+      },
+    });
+
     return {
       item: sails.helpers.users.presentOne(updatedUser, currentUser),
       included: {

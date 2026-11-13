@@ -228,6 +228,16 @@ module.exports = {
       setTrustDeviceCookie(this.res, plainToken);
     }
 
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Two-factor login verified',
+      visitorId: user.id,
+      properties: {
+        user_role: user.role,
+        used_recovery_code: consumedRecoveryIndex >= 0,
+        trust_device: !!inputs.trustDevice,
+      },
+    });
+
     return {
       item: accessToken,
     };

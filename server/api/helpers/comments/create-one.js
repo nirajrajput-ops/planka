@@ -186,6 +186,18 @@ module.exports = {
       );
     }
 
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Comment posted',
+      visitorId: comment.userId,
+      properties: {
+        project_id: inputs.project.id,
+        board_id: inputs.board.id,
+        card_id: comment.cardId,
+        mentions_count: mentionUserIds.length,
+        notified_users_count: notifiableUserIds.length,
+      },
+    });
+
     return comment;
   },
 };

@@ -67,6 +67,19 @@ module.exports = {
       user: inputs.actorUser,
     });
 
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Webhook created',
+      visitorId: inputs.actorUser.id,
+      properties: {
+        webhook_id: webhook.id,
+        events_count: webhook.events ? webhook.events.length : null,
+        excluded_events_count: webhook.excludedEvents ? webhook.excludedEvents.length : null,
+        has_access_token: !!webhook.accessToken,
+        is_project_scoped: !!webhook.projectId,
+        is_board_scoped: !!webhook.boardId,
+      },
+    });
+
     return webhook;
   },
 };

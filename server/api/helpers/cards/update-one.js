@@ -330,6 +330,18 @@ module.exports = {
             board: inputs.board,
             list: values.list,
           });
+
+          sails.helpers.utils.sendPendoTrackEvent.with({
+            event: 'Card moved',
+            visitorId: inputs.actorUser.id,
+            properties: {
+              project_id: inputs.project.id,
+              board_id: card.boardId,
+              card_id: card.id,
+              from_list_type: inputs.list.type,
+              to_list_type: values.list.type,
+            },
+          });
         }
       }
 
