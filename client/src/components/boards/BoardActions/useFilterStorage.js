@@ -50,6 +50,22 @@ const createSavedFilterId = () => {
   return `f-${time}-${random}`;
 };
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// How long ago a saved filter was saved, in days, read back out of the id that
+// createSavedFilterId built from that moment. Entries written by another build
+// may carry ids of some other shape, and those have no known age.
+export const getSavedFilterAgeDays = ({ id }) => {
+  const match = /^f-([0-9a-z]+)-/.exec(id);
+  const savedAt = match && parseInt(match[1], 36);
+
+  if (!savedAt || savedAt > Date.now()) {
+    return null;
+  }
+
+  return Math.round(((Date.now() - savedAt) / DAY_MS) * 10) / 10;
+};
+
 // A filter worth remembering. Every dimension Community can filter on
 // counts, including the ones Pro has no equivalent for — otherwise a
 // "cards without a member" filter could never be saved.

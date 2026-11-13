@@ -17,6 +17,7 @@ import entryActions from '../../../entry-actions';
 import { useEscapeInterceptor, useForm, useNestedRef } from '../../../hooks';
 import { isUsernameChar, mentionTextToMarkup } from '../../../utils/mentions';
 import { isModifierKeyPressed } from '../../../utils/event-helpers';
+import { CommentSubmitMethods } from '../../../constants/TrackEventEnums';
 import UserAvatar from '../../users/UserAvatar';
 
 import styles from './Add.module.scss';
@@ -39,6 +40,9 @@ const Add = React.memo(({ initialText, onInitialTextConsumed }) => {
   const textInputRef = useRef(null);
   const [buttonRef, handleButtonRef] = useNestedRef();
 
+  // Whether the draft started from a Reply prefill, reported with the comment
+  const isReplyRef = useRef(false);
+
   const userByUsername = useMemo(
     () =>
       keyBy(
@@ -48,21 +52,32 @@ const Add = React.memo(({ initialText, onInitialTextConsumed }) => {
     [boardMemberships],
   );
 
-  const submit = useCallback(() => {
-    const cleanData = {
-      ...data,
-      text: mentionTextToMarkup(data.text.trim(), userByUsername),
-    };
+  const submit = useCallback(
+    (submitMethod) => {
+      const cleanData = {
+        ...data,
+        text: mentionTextToMarkup(data.text.trim(), userByUsername),
+      };
 
-    if (!cleanData.text) {
-      textInputRef.current.select();
-      return;
-    }
+      if (!cleanData.text) {
+        textInputRef.current.select();
+        return;
+      }
 
-    dispatch(entryActions.createCommentInCurrentCard(cleanData));
-    setData(DEFAULT_DATA);
-    selectTextField();
-  }, [dispatch, data, setData, selectTextField, userByUsername]);
+      dispatch(
+        entryActions.createCommentInCurrentCard({
+          ...cleanData,
+          isReply: isReplyRef.current,
+          submitMethod,
+        }),
+      );
+
+      isReplyRef.current = false;
+      setData(DEFAULT_DATA);
+      selectTextField();
+    },
+    [dispatch, data, setData, selectTextField, userByUsername],
+  );
 
   const handleEscape = useCallback(() => {
     if (textMentionsRef.current.isOpened()) {
@@ -78,7 +93,7 @@ const Add = React.memo(({ initialText, onInitialTextConsumed }) => {
     useEscapeInterceptor(handleEscape);
 
   const handleSubmit = useCallback(() => {
-    submit();
+    submit(CommentSubmitMethods.BUTTON);
   }, [submit]);
 
   const handleFieldFocus = useCallback(() => {
@@ -87,6 +102,11 @@ const Add = React.memo(({ initialText, onInitialTextConsumed }) => {
 
   const handleFieldChange = useCallback(
     (_, text) => {
+      // Clearing the field out leaves nothing of a Reply prefill behind
+      if (!text) {
+        isReplyRef.current = false;
+      }
+
       setData({
         text: !isUsernameChar(text.slice(-1)) ? mentionTextToMarkup(text, userByUsername) : text,
       });
@@ -97,7 +117,7 @@ const Add = React.memo(({ initialText, onInitialTextConsumed }) => {
   const handleFieldKeyDown = useCallback(
     (event) => {
       if (isModifierKeyPressed(event) && event.key === 'Enter') {
-        submit();
+        submit(CommentSubmitMethods.KEYBOARD_SHORTCUT);
       }
     },
     [submit],
@@ -147,6 +167,7 @@ const Add = React.memo(({ initialText, onInitialTextConsumed }) => {
     setData({
       text: initialText,
     });
+    isReplyRef.current = true;
     setIsOpened(true);
     selectTextField();
     onInitialTextConsumed();

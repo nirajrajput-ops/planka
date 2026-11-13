@@ -74,21 +74,23 @@ const handleCardUpdate = (card) => ({
   },
 });
 
-const moveCard = (id, listId, index = 0) => ({
+const moveCard = (id, listId, index = 0, method = null) => ({
   type: EntryActionTypes.CARD_MOVE,
   payload: {
     id,
     listId,
     index,
+    method,
   },
 });
 
-const moveCurrentCard = (listId, index = 0, autoClose = false) => ({
+const moveCurrentCard = (listId, index = 0, autoClose = false, method = null) => ({
   type: EntryActionTypes.CURRENT_CARD_MOVE,
   payload: {
     listId,
     index,
     autoClose,
+    method,
   },
 });
 
@@ -116,13 +118,14 @@ const moveCurrentCardToTrash = () => ({
   payload: {},
 });
 
-const transferCard = (id, boardId, listId, index = 0) => ({
+const transferCard = (id, boardId, listId, index = 0, method = null) => ({
   type: EntryActionTypes.CARD_TRANSFER,
   payload: {
     id,
     boardId,
     listId,
     index,
+    method,
   },
 });
 

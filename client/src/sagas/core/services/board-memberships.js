@@ -11,6 +11,7 @@ import requests from '../requests';
 import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
+import pendoTrack from '../../../utils/pendo-track';
 import { createLocalId } from '../../../utils/local-id';
 import mergeRecords from '../../../utils/merge-records';
 
@@ -34,6 +35,23 @@ export function* createBoardMembership(boardId, data) {
   }
 
   yield put(actions.createBoardMembership.success(localId, boardMembership));
+
+  const currentUserId = yield select(selectors.selectCurrentUserId);
+  const { boardId: currentBoardId } = yield select(selectors.selectPath);
+  const boardMemberships = yield select(selectors.selectMembershipsForCurrentBoard);
+
+  // Role and comment rights were picked in separate controls before the click;
+  // what the server granted is what goes out. Viewers alone carry `canComment`.
+  yield call(pendoTrack, 'board_member_added', {
+    boardId,
+    projectId: boardMembership.projectId,
+    role: boardMembership.role,
+    canComment: boardMembership.canComment,
+    isSelfAdd: boardMembership.userId === currentUserId,
+    // Only countable while that board is still the one open
+    boardMembershipsCount:
+      boardId === currentBoardId && boardMemberships ? boardMemberships.length : undefined,
+  });
 }
 
 export function* createMembershipInCurrentBoard(data) {

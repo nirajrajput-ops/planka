@@ -20,6 +20,7 @@ import { isUsableMarkdownElement } from '../../../utils/element-helpers';
 import { mentionTextToMarkup } from '../../../utils/mentions';
 import { BoardMembershipRoles, CardTypes, ListTypes } from '../../../constants/Enums';
 import { CardTypeIcons } from '../../../constants/Icons';
+import { CardMoveMethods } from '../../../constants/TrackEventEnums';
 import { ClosableContext } from '../../../contexts';
 import NameField from './NameField';
 import Thumbnail from './Thumbnail';
@@ -156,7 +157,7 @@ const StoryContent = React.memo(() => {
 
   const handleListSelect = useCallback(
     (listId) => {
-      dispatch(entryActions.moveCurrentCard(listId));
+      dispatch(entryActions.moveCurrentCard(listId, undefined, false, CardMoveMethods.LIST_SELECT));
     },
     [dispatch],
   );
@@ -184,7 +185,9 @@ const StoryContent = React.memo(() => {
   );
 
   const handleRestoreClick = useCallback(() => {
-    dispatch(entryActions.moveCurrentCard(card.prevListId, undefined, true));
+    dispatch(
+      entryActions.moveCurrentCard(card.prevListId, undefined, true, CardMoveMethods.RESTORE),
+    );
   }, [card.prevListId, dispatch]);
 
   const handleArchiveConfirm = useCallback(() => {

@@ -12,11 +12,14 @@ import request from '../request';
 import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
+import pendoTrack from '../../../utils/pendo-track';
 import { createLocalId } from '../../../utils/local-id';
 import { AttachmentTypes } from '../../../constants/Enums';
 import ToastTypes from '../../../constants/ToastTypes';
 
-export function* createAttachment(cardId, data) {
+// `source` says where the attachment came from (picker, drop, paste) for the
+// `attachment_added` event. It is taken off here, before the data goes anywhere.
+export function* createAttachment(cardId, { source, ...data }) {
   const localId = yield call(createLocalId);
   const currentUserId = yield select(selectors.selectCurrentUserId);
 
@@ -46,15 +49,27 @@ export function* createAttachment(cardId, data) {
 
     if (error.code === 'E_UNPROCESSABLE_ENTITY') {
       let toastType;
+      let limitType;
       if (error.message.startsWith('Upload limit')) {
         toastType = ToastTypes.FILE_IS_TOO_BIG;
+        limitType = 'upload_file_size';
       } else if (error.message === 'Storage limit reached') {
         toastType = ToastTypes.NOT_ENOUGH_STORAGE;
+        limitType = 'storage';
       }
 
       if (toastType) {
         yield call(toast, {
           type: toastType,
+        });
+      }
+
+      if (limitType) {
+        yield call(pendoTrack, 'usage_limit_reached', {
+          limitType,
+          context: 'attachment',
+          fileSize: nextData.file && nextData.file.size,
+          mimeType: (nextData.file && nextData.file.type) || undefined,
         });
       }
     }
@@ -63,6 +78,18 @@ export function* createAttachment(cardId, data) {
   }
 
   yield put(actions.createAttachment.success(localId, attachment));
+
+  // Only metadata the server worked out goes along, never the file name or URL.
+  yield call(pendoTrack, 'attachment_added', {
+    cardId,
+    attachmentType: attachment.type,
+    source,
+    ...(attachment.type === AttachmentTypes.FILE && {
+      mimeType: attachment.data.mimeType,
+      size: attachment.data.size,
+      isImage: !!attachment.data.image,
+    }),
+  });
 }
 
 export function* createAttachmentInCurrentCard(data) {

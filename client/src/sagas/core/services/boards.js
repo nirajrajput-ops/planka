@@ -3,6 +3,7 @@
  * Licensed under the Fair Use License: https://github.com/plankanban/planka/blob/master/LICENSE.md
  */
 
+import truncate from 'lodash/truncate';
 import { call, fork, put, select, take } from 'redux-saga/effects';
 
 import { goToBoard, goToProject } from './router';
@@ -11,10 +12,25 @@ import request from '../request';
 import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
+import buildSearchParts from '../../../utils/build-search-parts';
+import pendoTrack from '../../../utils/pendo-track';
 import { createLocalId } from '../../../utils/local-id';
 import { rememberBoardView } from '../../../utils/board-view-memory';
 import ActionTypes from '../../../constants/ActionTypes';
 import ModalTypes from '../../../constants/ModalTypes';
+import { BoardContexts } from '../../../constants/Enums';
+
+// Compiled the way the Board model compiles a `/` search, so a pattern the board
+// gives up on (and shows no cards for) is reported as an invalid one.
+const isRegexValid = (pattern) => {
+  try {
+    RegExp(pattern, 'i');
+  } catch {
+    return false;
+  }
+
+  return true;
+};
 
 export function* createBoard(projectId, { import: boardImport, ...data }) {
   const localId = yield call(createLocalId);
@@ -59,10 +75,37 @@ export function* createBoard(projectId, { import: boardImport, ...data }) {
       : call(request, api.createBoard, projectId, nextData));
   } catch (error) {
     yield put(actions.createBoard.failure(localId, error));
+
+    // The server can turn an import down (an invalid or missing file, an upload
+    // over the limit) and nothing on screen says so. The file name stays here.
+    if (boardImport) {
+      yield call(pendoTrack, 'board_import_completed', {
+        importType: boardImport.type,
+        outcome: 'failure',
+        failureReason:
+          error.message &&
+          truncate(error.message, {
+            length: 100,
+          }),
+        importFileSize: boardImport.file.size,
+        projectId,
+      });
+    }
+
     return;
   }
 
   yield put(actions.createBoard.success(localId, board, boardMemberships));
+
+  if (boardImport) {
+    yield call(pendoTrack, 'board_import_completed', {
+      importType: boardImport.type,
+      outcome: 'success',
+      importFileSize: boardImport.file.size,
+      projectId,
+      boardId: board.id,
+    });
+  }
 
   if (watchForCreateBoardActionTask.isRunning()) {
     yield call(goToBoard, board.id);
@@ -218,11 +261,66 @@ export function* updateViewInCurrentBoard(value) {
   yield call(updateBoardView, boardId, value);
 }
 
-export function* searchInCurrentBoard(value) {
+function* trackBoardCardsSearched(value, source) {
+  const board = yield select(selectors.selectCurrentBoard);
+
+  if (!board) {
+    return;
+  }
+
+  const filterUserIds = yield select(selectors.selectFilterUserIdsForCurrentBoard);
+  const filterLabelIds = yield select(selectors.selectFilterLabelIdsForCurrentBoard);
+  const filterListIds = yield select(selectors.selectFilterListIdsForCurrentBoard);
+
+  const filterExcludedLabelIds = yield select(
+    selectors.selectFilterExcludedLabelIdsForCurrentBoard,
+  );
+
+  // Only the board context has every card in memory. The archive and the trash
+  // fetch theirs from the server, so there is no count to read at this point.
+  let matchedCardCount;
+  if (board.context === BoardContexts.BOARD) {
+    const filteredCardIds = yield select(selectors.selectFilteredCardIdsForCurrentBoard);
+    matchedCardCount = filteredCardIds.length;
+  }
+
+  const isRegex = value.startsWith('/');
+
+  // The length and the mode go out, the query itself never does.
+  yield call(pendoTrack, 'board_cards_searched', {
+    boardId: board.id,
+    boardView: board.view,
+    boardContext: board.context,
+    searchMode: isRegex ? 'regex' : 'text',
+    queryLength: value.length,
+    ...(isRegex
+      ? {
+          isValidRegex: isRegexValid(value.substring(1)),
+        }
+      : {
+          termCount: buildSearchParts(value).length,
+        }),
+    matchedCardCount,
+    activeFilterCount:
+      filterUserIds.length +
+      filterLabelIds.length +
+      filterExcludedLabelIds.length +
+      filterListIds.length +
+      (board.filterNoMember ? 1 : 0),
+    source,
+  });
+}
+
+export function* searchInCurrentBoard(value, source) {
   const { boardId } = yield select(selectors.selectPath);
   const currentListId = yield select(selectors.selectCurrentListId);
 
   yield put(actions.searchInBoard(boardId, value, currentListId));
+
+  // Read after the store update, so the match count is the one now on screen.
+  if (source && value.trim()) {
+    yield call(trackBoardCardsSearched, value, source);
+  }
 }
 
 export function* deleteBoard(id) {

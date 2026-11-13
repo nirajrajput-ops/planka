@@ -9,7 +9,9 @@ import request from '../request';
 import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
+import pendoTrack from '../../../utils/pendo-track';
 import { createLocalId } from '../../../utils/local-id';
+import { countMentionsInMarkup, mentionMarkupToText } from '../../../utils/mentions';
 
 export function* fetchComments(cardId) {
   const { lastCommentId } = yield select(selectors.selectCardById, cardId);
@@ -40,7 +42,9 @@ export function* fetchCommentsInCurrentCard() {
   yield call(fetchComments, cardId);
 }
 
-export function* createComment(cardId, data) {
+// `isReply` and `submitMethod` describe how the comment was written, for the
+// `comment_posted` event. They are taken off here, before the data goes anywhere.
+export function* createComment(cardId, { isReply, submitMethod, ...data }) {
   const localId = yield call(createLocalId);
   const currentUser = yield select(selectors.selectCurrentUser);
 
@@ -62,6 +66,18 @@ export function* createComment(cardId, data) {
   }
 
   yield put(actions.createComment.success(localId, comment));
+
+  const card = yield select(selectors.selectCardById, cardId);
+
+  // Each mention is one notification sent. The text itself never goes along.
+  yield call(pendoTrack, 'comment_posted', {
+    cardId,
+    boardId: card && card.boardId,
+    mentionCount: countMentionsInMarkup(data.text),
+    isReply,
+    textLength: mentionMarkupToText(data.text).length,
+    submitMethod,
+  });
 }
 
 export function* createCommentInCurrentCard(data) {

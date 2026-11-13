@@ -39,11 +39,13 @@ export default function* cardsWatchers() {
     takeEvery(EntryActionTypes.CARD_UPDATE_HANDLE, ({ payload: { card } }) =>
       services.handleCardUpdate(card),
     ),
-    takeEvery(EntryActionTypes.CARD_MOVE, ({ payload: { id, listId, index } }) =>
-      services.moveCard(id, listId, index),
+    takeEvery(EntryActionTypes.CARD_MOVE, ({ payload: { id, listId, index, method } }) =>
+      services.moveCard(id, listId, index, method),
     ),
-    takeEvery(EntryActionTypes.CURRENT_CARD_MOVE, ({ payload: { listId, index, autoClose } }) =>
-      services.moveCurrentCard(listId, index, autoClose),
+    takeEvery(
+      EntryActionTypes.CURRENT_CARD_MOVE,
+      ({ payload: { listId, index, autoClose, method } }) =>
+        services.moveCurrentCard(listId, index, autoClose, method),
     ),
     takeEvery(EntryActionTypes.CARD_TO_ARCHIVE_MOVE, ({ payload: { id } }) =>
       services.moveCardToArchive(id),
@@ -55,8 +57,10 @@ export default function* cardsWatchers() {
       services.moveCardToTrash(id),
     ),
     takeEvery(EntryActionTypes.CURRENT_CARD_TO_TRASH_MOVE, () => services.moveCurrentCardToTrash()),
-    takeEvery(EntryActionTypes.CARD_TRANSFER, ({ payload: { id, boardId, listId, index } }) =>
-      services.transferCard(id, boardId, listId, index),
+    takeEvery(
+      EntryActionTypes.CARD_TRANSFER,
+      ({ payload: { id, boardId, listId, index, method } }) =>
+        services.transferCard(id, boardId, listId, index, method),
     ),
     takeEvery(EntryActionTypes.CURRENT_CARD_TRANSFER, ({ payload: { boardId, listId, index } }) =>
       services.transferCurrentCard(boardId, listId, index),

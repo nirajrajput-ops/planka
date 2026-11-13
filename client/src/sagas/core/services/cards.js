@@ -15,13 +15,51 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import i18n from '../../../i18n';
+import pendoTrack from '../../../utils/pendo-track';
 import { createLocalId } from '../../../utils/local-id';
 import { isListArchiveOrTrash, isListFinite } from '../../../utils/record-helpers';
 import ActionTypes from '../../../constants/ActionTypes';
 import ClipboardTypes from '../../../constants/ClipboardTypes';
 import ToastTypes from '../../../constants/ToastTypes';
 import { BoardViews, ListTypes, ListTypeStates } from '../../../constants/Enums';
+import { CardDuplicateMethods, CardMoveMethods } from '../../../constants/TrackEventEnums';
 import LIST_TYPE_STATE_BY_TYPE from '../../../constants/ListTypeStateByType';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const daysSince = (date) => Math.round(((Date.now() - date) / DAY_MS) * 10) / 10;
+
+// What the `card_moved` Pendo Track Event says about a card that landed in a
+// different list. `prevCard` and `prevList` are where it was before the move and
+// `card` is what the server sent back. A card cut on a board that has since been
+// unloaded has no `prevCard`, and whatever depends on it is left out.
+const buildCardMovedProperties = ({ prevCard, prevList, list, card, moveMethod, boardView }) => {
+  // Moving into or out of a closed list is what closes or reopens a card.
+  let closedStateChange;
+  if (prevCard) {
+    if (card.isClosed === prevCard.isClosed) {
+      closedStateChange = 'none';
+    } else {
+      closedStateChange = card.isClosed ? 'closed' : 'reopened';
+    }
+  }
+
+  return {
+    cardId: card.id,
+    boardId: card.boardId,
+    fromListType: prevList && prevList.type,
+    toListType: list.type,
+    closedStateChange,
+    isCrossBoard: prevCard && prevCard.boardId !== card.boardId,
+    moveMethod,
+    boardView,
+    cardType: card.type,
+    cardAgeDays: card.createdAt && daysSince(card.createdAt),
+    daysInPreviousList: prevCard && prevCard.listChangedAt && daysSince(prevCard.listChangedAt),
+    wasOverdue:
+      prevCard && !!prevCard.dueDate && !prevCard.isDueCompleted && prevCard.dueDate < Date.now(),
+  };
+};
 
 // eslint-disable-next-line no-underscore-dangle
 const _preloadImage = (url) =>
@@ -177,6 +215,25 @@ export function* createCard(listId, data, index, autoOpen) {
   const filterUserIds = yield select(selectors.selectFilterUserIdsForCurrentBoard);
   const filterLabelIds = yield select(selectors.selectFilterLabelIdsForCurrentBoard);
 
+  // Most cards are added with Enter rather than a click, so this is where card
+  // creation is counted, whichever form or view it came from.
+  const board = yield select(selectors.selectBoardById, list.boardId);
+
+  yield call(pendoTrack, 'card_created', {
+    cardId: card.id,
+    boardId: card.boardId,
+    cardType: card.type,
+    listType: list.type,
+    boardView: board && board.view,
+    autoOpen: !!autoOpen,
+    // An unset index appends; the top-of-list form and the grid and list views pass 0
+    ...(isListFinite(list) && {
+      addPosition: index === 0 ? 'top' : 'bottom',
+    }),
+    inheritedFilterUserCount: filterUserIds.length,
+    inheritedFilterLabelCount: filterLabelIds.length,
+  });
+
   yield all([
     ...filterUserIds.map((userId) => call(addUserToCard, userId, card.id)),
     ...filterLabelIds.map((labelId) => call(addLabelToCard, labelId, card.id)),
@@ -245,9 +302,10 @@ export function* handleCardCreate(card) {
   );
 }
 
-export function* updateCard(id, data) {
+export function* updateCard(id, data, moveMethod) {
   let prevListId;
   let isClosed;
+  let move;
 
   if (data.listId) {
     const list = yield select(selectors.selectListById, data.listId);
@@ -272,6 +330,16 @@ export function* updateCard(id, data) {
     } else if (typeState === ListTypeStates.CLOSED) {
       isClosed = true;
     }
+
+    // KanbanContent hands a list over even when a card was only reordered inside
+    // it. Only landing in a different list makes this a move.
+    if (prevList.id !== list.id) {
+      move = {
+        prevCard: card,
+        prevList,
+        list,
+      };
+    }
   }
 
   yield put(
@@ -295,6 +363,21 @@ export function* updateCard(id, data) {
   }
 
   yield put(actions.updateCard.success(card));
+
+  if (move) {
+    const currentBoard = yield select(selectors.selectCurrentBoard);
+
+    yield call(
+      pendoTrack,
+      'card_moved',
+      buildCardMovedProperties({
+        ...move,
+        card,
+        moveMethod,
+        boardView: currentBoard && currentBoard.view,
+      }),
+    );
+  }
 }
 
 export function* updateCurrentCard(data) {
@@ -368,7 +451,7 @@ export function* handleCardUpdate(card) {
   }
 }
 
-export function* moveCard(id, listId, index) {
+export function* moveCard(id, listId, index, moveMethod) {
   const data = {};
   if (listId) {
     data.listId = listId;
@@ -383,45 +466,54 @@ export function* moveCard(id, listId, index) {
     data.position = yield select(selectors.selectNextCardPosition, listId, index, id);
   }
 
-  yield call(updateCard, id, data);
+  yield call(updateCard, id, data, moveMethod);
 }
 
-export function* moveCurrentCard(listId, index, autoClose) {
+export function* moveCurrentCard(listId, index, autoClose, moveMethod) {
   const { cardId, boardId } = yield select(selectors.selectPath);
 
   if (autoClose) {
     yield call(goToBoard, boardId);
   }
 
-  yield call(moveCard, cardId, listId, index);
+  yield call(moveCard, cardId, listId, index, moveMethod);
 }
 
 export function* moveCardToArchive(id) {
   const archiveListId = yield select(selectors.selectArchiveListIdForCurrentBoard);
 
-  yield call(moveCard, id, archiveListId);
+  yield call(moveCard, id, archiveListId, undefined, CardMoveMethods.ARCHIVE);
 }
 
 export function* moveCurrentCardToArchive() {
   const archiveListId = yield select(selectors.selectArchiveListIdForCurrentBoard);
 
-  yield call(moveCurrentCard, archiveListId, undefined, true);
+  yield call(moveCurrentCard, archiveListId, undefined, true, CardMoveMethods.ARCHIVE);
 }
 
 export function* moveCardToTrash(id) {
   const trashListId = yield select(selectors.selectTrashListIdForCurrentBoard);
 
-  yield call(moveCard, id, trashListId);
+  yield call(moveCard, id, trashListId, undefined, CardMoveMethods.TRASH);
 }
 
 export function* moveCurrentCardToTrash() {
   const trashListId = yield select(selectors.selectTrashListIdForCurrentBoard);
 
-  yield call(moveCurrentCard, trashListId, undefined, true);
+  yield call(moveCurrentCard, trashListId, undefined, true, CardMoveMethods.TRASH);
 }
 
-export function* transferCard(id, boardId, listId, index) {
+export function* transferCard(id, boardId, listId, index, moveMethod) {
   const { cardId: currentCardId, boardId: currentBoardId } = yield select(selectors.selectPath);
+  const currentBoard = yield select(selectors.selectCurrentBoard);
+
+  // Where the card was before the move, for the `card_moved` event
+  const prevCard = yield select(selectors.selectCardById, id);
+
+  let prevList;
+  if (prevCard) {
+    prevList = yield select(selectors.selectListById, prevCard.listId);
+  }
 
   // TODO: hack?
   if (id === currentCardId) {
@@ -525,6 +617,20 @@ export function* transferCard(id, boardId, listId, index) {
       customFieldValues,
     ),
   );
+
+  // Moves to another board, and cut-and-paste on any board, land here
+  yield call(
+    pendoTrack,
+    'card_moved',
+    buildCardMovedProperties({
+      prevCard,
+      prevList,
+      list,
+      card,
+      moveMethod,
+      boardView: currentBoard && currentBoard.view,
+    }),
+  );
 }
 
 export function* transferCurrentCard(boardId, listId, index) {
@@ -533,7 +639,9 @@ export function* transferCurrentCard(boardId, listId, index) {
   yield call(transferCard, cardId, boardId, listId, index);
 }
 
-export function* duplicateCard(id, data) {
+// Both duplicate entry actions come from the "Duplicate card" menu items; pasting
+// a copied card passes its own method.
+export function* duplicateCard(id, data, method = CardDuplicateMethods.MENU) {
   const localId = yield call(createLocalId);
   const { cardId: currentCardId } = yield select(selectors.selectPath);
   const sourceCard = yield select(selectors.selectCardById, id);
@@ -633,6 +741,16 @@ export function* duplicateCard(id, data) {
       customFieldValues,
     ),
   );
+
+  yield call(pendoTrack, 'card_duplicated', {
+    sourceCardId: id,
+    cardId: card.id,
+    method,
+    isCrossBoard: sourceCard && card.boardId !== sourceCard.boardId,
+    cardType: card.type,
+    taskListsCount: taskLists.length,
+    attachmentsCount: attachments.length,
+  });
 }
 
 export function* duplicateCurrentCard(data) {
@@ -667,13 +785,20 @@ export function* pasteCard(listId) {
       data.position = yield select(selectors.selectNextCardPosition, listId);
     }
 
-    yield call(duplicateCard, clipboard.cardId, data);
+    yield call(duplicateCard, clipboard.cardId, data, CardDuplicateMethods.COPY_PASTE);
   } else if (clipboard.type === ClipboardTypes.CUT) {
     if (sourceCard && listId === sourceCard.listId) {
       return;
     }
 
-    yield call(transferCard, clipboard.cardId, list.boardId, list.id);
+    yield call(
+      transferCard,
+      clipboard.cardId,
+      list.boardId,
+      list.id,
+      undefined,
+      CardMoveMethods.CUT_PASTE,
+    );
   }
 }
 
