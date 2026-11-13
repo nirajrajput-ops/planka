@@ -164,13 +164,11 @@ export const readSavedFilters = (userId, boardId) => {
   }
 };
 
-// Returns whether the write reached storage, so callers can tell a real
-// save apart from one that degraded silently.
 const writeSavedFilters = (userId, boardId, entries) => {
   const key = buildKey(SAVED_KEY_PREFIX, userId, boardId);
 
   if (!key) {
-    return false;
+    return;
   }
 
   try {
@@ -179,36 +177,8 @@ const writeSavedFilters = (userId, boardId, entries) => {
     } else {
       window.localStorage.removeItem(key);
     }
-
-    return true;
   } catch {
     // See writeLastFilter.
-    return false;
-  }
-};
-
-// Pendo: a named filter was written to storage and now shows in the
-// saved filters list. Only counts and flags are sent, never the filter's
-// name or search text.
-const trackFilterSaved = (boardId, entry, { isOverwrite, savedFiltersTotal }) => {
-  if (!window.pendo || typeof window.pendo.track !== 'function') {
-    return;
-  }
-
-  try {
-    window.pendo.track('Filter saved', {
-      board_id: boardId,
-      member_count: entry.userIds.length,
-      label_count: entry.labelIds.length,
-      excluded_label_count: entry.excludedLabelIds.length,
-      list_count: entry.listIds.length,
-      no_member: entry.noMember,
-      has_search: entry.search.length > 0,
-      is_overwrite: isOverwrite,
-      saved_filters_total: savedFiltersTotal,
-    });
-  } catch {
-    // Tracking must never interfere with saving a filter.
   }
 };
 
@@ -239,15 +209,7 @@ export const addSavedFilter = (userId, boardId, { name, ...filter }) => {
 
   // Newest first, and re-saving under an existing name overwrites that
   // entry rather than adding a duplicate.
-  const rest = current.filter((item) => item.name !== cleanName);
-  const nextEntries = [entry, ...rest];
-
-  if (writeSavedFilters(userId, boardId, nextEntries)) {
-    trackFilterSaved(boardId, entry, {
-      isOverwrite: rest.length !== current.length,
-      savedFiltersTotal: nextEntries.length,
-    });
-  }
+  writeSavedFilters(userId, boardId, [entry, ...current.filter((item) => item.name !== cleanName)]);
 
   return entry;
 };

@@ -156,19 +156,6 @@ module.exports = {
         () => Errors.USER_MUST_BE_ADMIN_OR_PROJECT_OWNER,
       );
 
-    // Pendo: a new project manager link was stored
-    sails.helpers.utils.sendPendoTrackEvent.with({
-      event: 'Project manager added',
-      visitorId: currentUser.id,
-      properties: {
-        project_id: project.id,
-        actor_role: currentUser.role,
-        manager_role: user.role,
-        is_self_assignment: user.id === currentUser.id,
-      },
-      request: this.req,
-    });
-
     return {
       item: projectManager,
     };

@@ -224,20 +224,6 @@ module.exports = {
       .intercept('usernameAlreadyInUse', () => Errors.USERNAME_ALREADY_IN_USE)
       .intercept('activeLimitReached', () => Errors.ACTIVE_LIMIT_REACHED);
 
-    // Pendo: the new account was stored
-    sails.helpers.utils.sendPendoTrackEvent.with({
-      event: 'User created',
-      visitorId: currentUser.id,
-      properties: {
-        created_user_id: user.id,
-        created_user_role: user.role,
-        has_username: !!user.username,
-        language: user.language || undefined,
-        actor_role: currentUser.role,
-      },
-      request: this.req,
-    });
-
     return {
       item: sails.helpers.users.presentOne(user, currentUser),
     };
