@@ -12,5 +12,11 @@ import Root from './components/common/Root';
 
 import './i18n';
 
+window.pendo.initialize({
+  visitor: {
+    id: '',
+  },
+});
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(React.createElement(Root, { store, history }));
