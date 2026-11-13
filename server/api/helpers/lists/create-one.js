@@ -87,6 +87,19 @@ module.exports = {
       user: inputs.actorUser,
     });
 
+    // Pendo: a new list is saved on the board
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'List created',
+      user: inputs.actorUser,
+      properties: {
+        project_id: inputs.project.id,
+        board_id: list.boardId,
+        list_id: list.id,
+        list_type: list.type,
+        lists_count: lists.length + 1,
+      },
+    });
+
     return list;
   },
 };

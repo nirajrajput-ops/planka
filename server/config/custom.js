@@ -107,6 +107,10 @@ module.exports.custom = {
 
   gravatarBaseUrl: process.env.GRAVATAR_BASE_URL,
 
+  pendoTrackEventSecret: process.env.PENDO_TRACK_EVENT_SECRET,
+  pendoDataHost: process.env.PENDO_DATA_HOST || 'data.pendo.io',
+  pendoAccountId: process.env.PENDO_ACCOUNT_ID || parsedBasedUrl.hostname,
+
   /* Internal */
 
   internalAccessToken: process.env.INTERNAL_ACCESS_TOKEN,

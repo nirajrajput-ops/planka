@@ -79,6 +79,18 @@ module.exports = {
       user: inputs.actorUser,
     });
 
+    // Pendo: a notification service is saved for a user
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Notification service connected',
+      user: inputs.actorUser,
+      properties: {
+        scope: 'user',
+        service_schema: schema,
+        format: notificationService.format,
+        services_total: notificationServicesTotal + 1,
+      },
+    });
+
     return notificationService;
   },
 };

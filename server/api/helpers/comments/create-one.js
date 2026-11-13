@@ -169,6 +169,19 @@ module.exports = {
       }
     }
 
+    // Pendo: a comment is saved, which notifies subscribers and mentioned users
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Comment posted',
+      user: values.user,
+      properties: {
+        project_id: inputs.project.id,
+        board_id: inputs.board.id,
+        card_id: comment.cardId,
+        mentions_count: mentionUserIds.length,
+        notified_users_count: notifiableUserIds.length,
+      },
+    });
+
     const notificationServices = await NotificationService.qm.getByBoardId(inputs.board.id);
 
     if (notificationServices.length > 0) {

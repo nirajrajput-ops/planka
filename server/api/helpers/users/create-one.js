@@ -107,6 +107,17 @@ module.exports = {
       user: inputs.actorUser,
     });
 
+    // Pendo: a new user account exists
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'User created',
+      user: inputs.actorUser,
+      properties: {
+        created_user_id: user.id,
+        created_user_role: user.role,
+        has_password: !!user.password,
+      },
+    });
+
     return user;
   },
 };
