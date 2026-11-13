@@ -54,6 +54,19 @@ export function* createProject(data) {
   }
 
   yield put(actions.createProject.success(project, projectManagers));
+
+  // Track project creation with type and description metadata
+  try {
+    if (window.pendo) {
+      window.pendo.track('project_created', {
+        project_type: data.type || 'unknown',
+        has_description: !!data.description,
+      });
+    }
+  } catch (e) {
+    // Do not let tracking break application flow
+  }
+
   yield call(goToProject, project.id);
 }
 
