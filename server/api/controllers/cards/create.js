@@ -214,6 +214,24 @@ module.exports = {
       })
       .intercept('positionMustBeInValues', () => Errors.POSITION_MUST_BE_PRESENT);
 
+    // Pendo: the card was stored, a create action was logged, and webhooks fired
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Card created',
+      visitorId: currentUser.id,
+      properties: {
+        card_id: card.id,
+        card_type: card.type,
+        list_type: list.type,
+        board_id: board.id,
+        project_id: project.id,
+        has_description: !!card.description,
+        has_due_date: !!card.dueDate,
+        has_stopwatch: !!card.stopwatch,
+        user_role: currentUser.role,
+      },
+      request: this.req,
+    });
+
     return {
       item: card,
     };
