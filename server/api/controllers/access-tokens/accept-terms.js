@@ -192,11 +192,24 @@ module.exports = {
       termsAcceptedAt: new Date().toISOString(),
     };
 
+    const isReacceptance = !!user.termsSignature;
+
     if (!user.language && inputs.initialLanguage) {
       values.language = inputs.initialLanguage;
     }
 
     ({ user } = await User.qm.updateOne(user.id, values));
+
+    // Pendo Track Event: the terms signature was recorded for the user
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Terms accepted',
+      visitorId: user.id,
+      properties: {
+        terms_type: sails.config.custom.termsType,
+        is_reacceptance: isReacceptance,
+        user_role: user.role,
+      },
+    });
 
     const internalConfig = await InternalConfig.qm.getOneMain();
 
@@ -226,6 +239,17 @@ module.exports = {
         this.res,
       );
     }
+
+    // Pendo Track Event: an access token was issued once the terms step was completed
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Signed in',
+      visitorId: user.id,
+      properties: {
+        final_step: 'accept_terms',
+        user_role: user.role,
+        is_socket: !!this.req.isSocket,
+      },
+    });
 
     return {
       item: accessToken,

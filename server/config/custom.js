@@ -107,6 +107,12 @@ module.exports.custom = {
 
   gravatarBaseUrl: process.env.GRAVATAR_BASE_URL,
 
+  // Server-side Pendo Track Events. Nothing is sent unless the integration key is set.
+  // One PLANKA instance is reported as one Pendo account, keyed by its host unless overridden.
+  pendoDataHost: process.env.PENDO_DATA_HOST || 'data.pendo.io',
+  pendoTrackEventSecret: process.env.PENDO_TRACK_EVENT_SECRET,
+  pendoAccountId: process.env.PENDO_ACCOUNT_ID || parsedBasedUrl.host,
+
   /* Internal */
 
   internalAccessToken: process.env.INTERNAL_ACCESS_TOKEN,

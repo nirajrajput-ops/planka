@@ -164,11 +164,12 @@ export const readSavedFilters = (userId, boardId) => {
   }
 };
 
+// Returns whether the entries actually reached storage.
 const writeSavedFilters = (userId, boardId, entries) => {
   const key = buildKey(SAVED_KEY_PREFIX, userId, boardId);
 
   if (!key) {
-    return;
+    return false;
   }
 
   try {
@@ -177,8 +178,37 @@ const writeSavedFilters = (userId, boardId, entries) => {
     } else {
       window.localStorage.removeItem(key);
     }
+
+    return true;
   } catch {
     // See writeLastFilter.
+    return false;
+  }
+};
+
+// Pendo Track Event: a named filter was stored for this user and board.
+// Only shape and counts are sent — never the filter name or search text.
+const trackFilterSaved = (boardId, entry, entries, isOverwrite) => {
+  const { pendo } = window;
+
+  if (!pendo || typeof pendo.track !== 'function') {
+    return;
+  }
+
+  try {
+    pendo.track('Filter saved', {
+      board_id: boardId,
+      is_overwrite: isOverwrite,
+      saved_filter_count: entries.length,
+      user_filter_count: entry.userIds.length,
+      label_filter_count: entry.labelIds.length,
+      excluded_label_count: entry.excludedLabelIds.length,
+      list_filter_count: entry.listIds.length,
+      has_search: entry.search.length > 0,
+      no_member: entry.noMember,
+    });
+  } catch {
+    // Analytics must never break saving a filter.
   }
 };
 
@@ -206,10 +236,15 @@ export const addSavedFilter = (userId, boardId, { name, ...filter }) => {
   };
 
   const current = readSavedFilters(userId, boardId);
+  const rest = current.filter((item) => item.name !== cleanName);
 
   // Newest first, and re-saving under an existing name overwrites that
   // entry rather than adding a duplicate.
-  writeSavedFilters(userId, boardId, [entry, ...current.filter((item) => item.name !== cleanName)]);
+  const nextEntries = [entry, ...rest];
+
+  if (writeSavedFilters(userId, boardId, nextEntries)) {
+    trackFilterSaved(boardId, entry, nextEntries, rest.length < current.length);
+  }
 
   return entry;
 };
