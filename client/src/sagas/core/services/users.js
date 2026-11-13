@@ -13,6 +13,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import { setAccessToken } from '../../../utils/access-token-storage';
 import mergeRecords from '../../../utils/merge-records';
+import { trackPendoEvent, truncatePendoValue } from '../../../utils/pendo';
 import { isUserAdminOrProjectOwner } from '../../../utils/record-helpers';
 import { UserRoles } from '../../../constants/Enums';
 
@@ -30,15 +31,33 @@ export function* handleUsersReset() {
 export function* createUser(data) {
   yield put(actions.createUser(data));
 
+  // No email or name is sent
+  const trackingProperties = {
+    role: data.role || null,
+    hasUsername: !!data.username,
+  };
+
   let user;
   try {
     ({ item: user } = yield call(request, api.createUser, data));
   } catch (error) {
     yield put(actions.createUser.failure(error));
+
+    yield call(trackPendoEvent, 'user_created', {
+      ...trackingProperties,
+      success: false,
+      errorMessage: truncatePendoValue(error.message) || null,
+    });
+
     return;
   }
 
   yield put(actions.createUser.success(user));
+
+  yield call(trackPendoEvent, 'user_created', {
+    ...trackingProperties,
+    success: true,
+  });
 }
 
 export function* handleUserCreate(user) {
@@ -259,6 +278,9 @@ export function* clearCurrentUserEmailUpdateError() {
 }
 
 export function* updateUserPassword(id, data) {
+  const currentUserId = yield select(selectors.selectCurrentUserId);
+  const isSelf = id === currentUserId;
+
   yield put(actions.updateUserPassword(id, data));
 
   let user;
@@ -273,6 +295,13 @@ export function* updateUserPassword(id, data) {
     ));
   } catch (error) {
     yield put(actions.updateUserPassword.failure(id, error));
+
+    yield call(trackPendoEvent, 'password_changed', {
+      userId: id,
+      isSelf,
+      success: false,
+    });
+
     return;
   }
 
@@ -281,6 +310,12 @@ export function* updateUserPassword(id, data) {
   }
 
   yield put(actions.updateUserPassword.success(user, accessToken));
+
+  yield call(trackPendoEvent, 'password_changed', {
+    userId: id,
+    isSelf,
+    success: true,
+  });
 }
 
 export function* updateCurrentUserPassword(data) {
@@ -428,6 +463,15 @@ export function* enableUserTotp(id, data) {
   }
 
   yield put(actions.enableUserTotp.success(user, recoveryCodes));
+
+  const currentUserId = yield select(selectors.selectCurrentUserId);
+
+  yield call(trackPendoEvent, 'two_factor_enabled', {
+    userId: id,
+    isSelf: id === currentUserId,
+    recoveryCodesCount: recoveryCodes ? recoveryCodes.length : 0,
+    action: 'enabled',
+  });
 }
 
 export function* enableCurrentUserTotp(data) {
@@ -447,6 +491,14 @@ export function* disableUserTotp(id, data) {
   }
 
   yield put(actions.disableUserTotp.success(user));
+
+  const currentUserId = yield select(selectors.selectCurrentUserId);
+
+  yield call(trackPendoEvent, 'two_factor_enabled', {
+    userId: id,
+    isSelf: id === currentUserId,
+    action: 'disabled',
+  });
 }
 
 export function* disableCurrentUserTotp(data) {
