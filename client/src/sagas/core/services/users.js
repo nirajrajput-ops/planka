@@ -13,6 +13,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import { setAccessToken } from '../../../utils/access-token-storage';
 import mergeRecords from '../../../utils/merge-records';
+import { trackEvent } from '../../../utils/pendo-track';
 import { isUserAdminOrProjectOwner } from '../../../utils/record-helpers';
 import { UserRoles } from '../../../constants/Enums';
 
@@ -37,6 +38,13 @@ export function* createUser(data) {
     yield put(actions.createUser.failure(error));
     return;
   }
+
+  // Admin created a user. Only form-level values are sent, never the email or username.
+  trackEvent('user_created', {
+    role: user.role,
+    has_organization: !!user.organization,
+    language: user.language || 'default',
+  });
 
   yield put(actions.createUser.success(user));
 }
@@ -350,6 +358,8 @@ export function* updateCurrentUserAvatar(data) {
 }
 
 export function* createUserApiKey(id) {
+  const prevUser = yield select(selectors.selectUserById, id);
+
   yield put(actions.createUserApiKey(id));
 
   let user;
@@ -364,6 +374,12 @@ export function* createUserApiKey(id) {
     yield put(actions.createUserApiKey.failure(id, error));
     return;
   }
+
+  // Never include the key value
+  trackEvent('api_key_created', {
+    user_role: user.role,
+    is_regenerated: !!(prevUser && prevUser.apiKeyPrefix),
+  });
 
   yield put(actions.createUserApiKey.success(user, apiKey));
 }
@@ -427,6 +443,11 @@ export function* enableUserTotp(id, data) {
     return;
   }
 
+  trackEvent('two_factor_enabled', {
+    recovery_codes_count: recoveryCodes ? recoveryCodes.length : 0,
+    user_role: user.role,
+  });
+
   yield put(actions.enableUserTotp.success(user, recoveryCodes));
 }
 
@@ -436,6 +457,8 @@ export function* enableCurrentUserTotp(data) {
 }
 
 export function* disableUserTotp(id, data) {
+  const prevUser = yield select(selectors.selectUserById, id);
+
   yield put(actions.disableUserTotp(id));
 
   let user;
@@ -445,6 +468,16 @@ export function* disableUserTotp(id, data) {
     yield put(actions.disableUserTotp.failure(id, error));
     return;
   }
+
+  const totpEnabledAt = prevUser && prevUser.totpEnabledAt && new Date(prevUser.totpEnabledAt);
+
+  trackEvent('two_factor_disabled', {
+    user_role: user.role,
+    totp_enabled_duration_days:
+      totpEnabledAt && !Number.isNaN(totpEnabledAt.getTime())
+        ? Math.floor((Date.now() - totpEnabledAt.getTime()) / (24 * 60 * 60 * 1000))
+        : null,
+  });
 
   yield put(actions.disableUserTotp.success(user));
 }

@@ -12,7 +12,9 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import { trackEvent } from '../../../utils/pendo-track';
 import ToastTypes from '../../../constants/ToastTypes';
+import { SortOrders } from '../../../constants/Enums';
 
 export function* createList(boardId, data) {
   const localId = yield call(createLocalId);
@@ -171,6 +173,13 @@ export function* sortList(id, data) {
     return;
   }
 
+  trackEvent('list_sorted', {
+    list_id: id,
+    field_name: data.fieldName,
+    order: data.order || SortOrders.ASC,
+    cards_count: cards ? cards.length : 0,
+  });
+
   yield put(actions.sortList.success(list, cards));
 }
 
@@ -199,6 +208,15 @@ export function* moveListCards(id, nextId) {
     return;
   }
 
+  const targetList = yield select(selectors.selectListById, nextId);
+
+  trackEvent('list_cards_moved', {
+    source_list_id: id,
+    target_list_id: nextId,
+    target_list_type: targetList ? targetList.type : null,
+    cards_moved_count: cards ? cards.length : cardIds.length,
+  });
+
   yield put(actions.moveListCards.success(list, cards, activities));
 }
 
@@ -210,6 +228,9 @@ export function* moveListCardsToArchiveList(id) {
 
 export function* clearTrashListInCurrentBoard() {
   const trashListId = yield select(selectors.selectTrashListIdForCurrentBoard);
+  // Counted before the cards are removed from the store
+  const trashList = yield select(selectors.selectListById, trashListId);
+  const trashCardsCount = yield select(selectors.selectCardCountByListId, trashListId);
 
   yield put(actions.clearList(trashListId));
 
@@ -227,6 +248,11 @@ export function* clearTrashListInCurrentBoard() {
     yield put(actions.clearList.failure(trashListId, error));
     return;
   }
+
+  trackEvent('trash_emptied', {
+    board_id: trashList ? trashList.boardId : null,
+    cards_deleted_count: trashCardsCount || 0,
+  });
 
   yield put(actions.clearList.success(list));
 }

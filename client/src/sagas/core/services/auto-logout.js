@@ -18,6 +18,7 @@ import {
 import { AutoLogoutModes } from '../../../constants/Enums';
 import ActionTypes from '../../../constants/ActionTypes';
 import EntryActionTypes from '../../../constants/EntryActionTypes';
+import { trackEvent } from '../../../utils/pendo-track';
 
 const WARNING_LEAD_MS = 30 * 1000;
 const ACTIVITY_THROTTLE_MS = 1000;
@@ -32,6 +33,11 @@ const MODE_DURATIONS_MS = {
 };
 
 const ACTIVITY_EVENTS = ['mousedown', 'keydown', 'wheel', 'touchstart', 'mousemove'];
+
+const TriggerSources = {
+  IDLE_TIMEOUT: 'idle_timeout',
+  REMOTE_LOGOUT: 'remote_logout',
+};
 
 const EventTypes = {
   LOCAL_ACTIVITY: 'localActivity',
@@ -100,11 +106,19 @@ function* maybeBroadcastActivity() {
   yield call(broadcastActivity);
 }
 
-function* triggerLogout({ broadcast = true } = {}) {
+function* triggerLogout({ broadcast = true, mode, triggerSource, warningShown = false } = {}) {
   if (broadcast) {
     yield call(broadcastLogout);
   }
   yield put(actions.dismissAutoLogoutWarning());
+
+  // Session ended without a click. Sent before logout clears the Pendo session.
+  trackEvent('auto_logout_triggered', {
+    auto_logout_mode: mode || AutoLogoutModes.NEVER,
+    trigger_source: triggerSource,
+    warning_shown: warningShown,
+  });
+
   yield call(logoutService, true);
 }
 
@@ -117,11 +131,15 @@ function* waitForRelevantEvent(channel, predicate) {
   }
 }
 
-function* runIdleMode(channel) {
+function* runIdleMode(channel, mode) {
   // For NEVER mode: only react to remote logout broadcasts so a logout in another tab
   // also signs out this tab.
   yield call(waitForRelevantEvent, channel, (e) => e.type === EventTypes.REMOTE_LOGOUT);
-  yield call(triggerLogout, { broadcast: false });
+  yield call(triggerLogout, {
+    broadcast: false,
+    mode,
+    triggerSource: TriggerSources.REMOTE_LOGOUT,
+  });
 }
 
 function* runTimerMode(channel, mode) {
@@ -139,7 +157,11 @@ function* runTimerMode(channel, mode) {
     if (idleResult.event) {
       const { type } = idleResult.event;
       if (type === EventTypes.REMOTE_LOGOUT) {
-        yield call(triggerLogout, { broadcast: false });
+        yield call(triggerLogout, {
+          broadcast: false,
+          mode,
+          triggerSource: TriggerSources.REMOTE_LOGOUT,
+        });
         return;
       }
       if (type === EventTypes.LOCAL_ACTIVITY) {
@@ -167,14 +189,23 @@ function* runTimerMode(channel, mode) {
     });
 
     if (warningResult.channel && warningResult.channel.type === EventTypes.REMOTE_LOGOUT) {
-      yield call(triggerLogout, { broadcast: false });
+      yield call(triggerLogout, {
+        broadcast: false,
+        mode,
+        triggerSource: TriggerSources.REMOTE_LOGOUT,
+        warningShown: true,
+      });
       return;
     }
 
     yield put(actions.dismissAutoLogoutWarning());
 
     if (warningResult.timeout) {
-      yield call(triggerLogout);
+      yield call(triggerLogout, {
+        mode,
+        triggerSource: TriggerSources.IDLE_TIMEOUT,
+        warningShown: true,
+      });
       return;
     }
 
@@ -187,7 +218,7 @@ function* runTimerMode(channel, mode) {
 
 function* runMode(channel, mode) {
   if (!mode || mode === AutoLogoutModes.NEVER) {
-    yield call(runIdleMode, channel);
+    yield call(runIdleMode, channel, mode);
     return;
   }
 

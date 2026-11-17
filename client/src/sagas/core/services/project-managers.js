@@ -11,7 +11,9 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import { trackEvent } from '../../../utils/pendo-track';
 import mergeRecords from '../../../utils/merge-records';
+import { ProjectTypes } from '../../../constants/Enums';
 
 export function* createProjectManager(projectId, data) {
   const localId = yield call(createLocalId);
@@ -31,6 +33,23 @@ export function* createProjectManager(projectId, data) {
     yield put(actions.createProjectManager.failure(localId, error));
     return;
   }
+
+  const project = yield select(selectors.selectProjectById, projectId);
+  const { projectId: currentProjectId } = yield select(selectors.selectPath);
+
+  // Managers are only listed for the open project. The count includes the new manager.
+  let managersCount = null;
+  if (projectId === currentProjectId) {
+    const projectManagers = yield select(selectors.selectManagersForCurrentProject);
+    managersCount = projectManagers ? projectManagers.length : null;
+  }
+
+  trackEvent('project_manager_added', {
+    project_id: projectId,
+    project_type:
+      project && project.ownerProjectManagerId ? ProjectTypes.PRIVATE : ProjectTypes.SHARED,
+    managers_count: managersCount,
+  });
 
   yield put(actions.createProjectManager.success(localId, projectManager));
 }
