@@ -12,6 +12,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
 import mergeRecords from '../../../utils/merge-records';
+import { trackPendoEvent } from '../../../utils/pendo';
 
 export function* createProjectManager(projectId, data) {
   const localId = yield call(createLocalId);
@@ -33,6 +34,19 @@ export function* createProjectManager(projectId, data) {
   }
 
   yield put(actions.createProjectManager.success(localId, projectManager));
+
+  // Pendo: another manager was added to the project
+  const { projectId: currentProjectId } = yield select(selectors.selectPath);
+
+  let projectManagers;
+  if (projectId === currentProjectId) {
+    projectManagers = yield select(selectors.selectManagersForCurrentProject);
+  }
+
+  yield call(trackPendoEvent, 'project_manager_added', {
+    projectId,
+    projectManagerCount: projectManagers ? projectManagers.length : undefined,
+  });
 }
 
 export function* createManagerInCurrentProject(data) {

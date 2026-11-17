@@ -16,6 +16,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import i18n from '../../../i18n';
 import { createLocalId } from '../../../utils/local-id';
+import { trackPendoEvent } from '../../../utils/pendo';
 import { isListArchiveOrTrash, isListFinite } from '../../../utils/record-helpers';
 import ActionTypes from '../../../constants/ActionTypes';
 import ClipboardTypes from '../../../constants/ClipboardTypes';
@@ -43,12 +44,14 @@ export function* fetchCards(listId) {
     selectors.selectFilterExcludedLabelIdsForCurrentBoard,
   );
 
+  const trimmedSearch = (search && search.trim()) || '';
+
   function* getCardsRequest() {
     const response = {};
 
     try {
       response.body = yield call(request, api.getCards, listId, {
-        search: (search && search.trim()) || undefined,
+        search: trimmedSearch || undefined,
         userIds: filterUserIds.length > 0 ? filterUserIds.join(',') : undefined,
         labelIds: filterLabelIds.length > 0 ? filterLabelIds.join(',') : undefined,
         excludedLabelIds:
@@ -112,6 +115,24 @@ export function* fetchCards(listId) {
       customFieldValues,
     ),
   );
+
+  // Pendo: board search or filter returned cards (first page only, so pagination doesn't re-fire)
+  if (
+    !lastCard &&
+    (trimmedSearch ||
+      filterUserIds.length > 0 ||
+      filterLabelIds.length > 0 ||
+      filterExcludedLabelIds.length > 0)
+  ) {
+    yield call(trackPendoEvent, 'board_cards_searched', {
+      boardId,
+      searchLength: trimmedSearch.length,
+      filterUserCount: filterUserIds.length,
+      filterLabelCount: filterLabelIds.length,
+      filterExcludedLabelCount: filterExcludedLabelIds.length,
+      resultsCount: cards.length,
+    });
+  }
 }
 
 export function* fetchCardsInCurrentList() {
@@ -176,6 +197,17 @@ export function* createCard(listId, data, index, autoOpen) {
   // Inherit active board filters so the new card stays visible in the filtered view
   const filterUserIds = yield select(selectors.selectFilterUserIdsForCurrentBoard);
   const filterLabelIds = yield select(selectors.selectFilterLabelIdsForCurrentBoard);
+
+  // Pendo: card was created on the server
+  yield call(trackPendoEvent, 'card_created', {
+    cardId: card.id,
+    boardId: list.boardId,
+    listId,
+    listType: list.type,
+    autoOpen: !!autoOpen,
+    inheritedFilterUserCount: filterUserIds.length,
+    inheritedFilterLabelCount: filterLabelIds.length,
+  });
 
   yield all([
     ...filterUserIds.map((userId) => call(addUserToCard, userId, card.id)),
@@ -248,12 +280,20 @@ export function* handleCardCreate(card) {
 export function* updateCard(id, data) {
   let prevListId;
   let isClosed;
+  let moveContext;
 
   if (data.listId) {
     const list = yield select(selectors.selectListById, data.listId);
 
     const card = yield select(selectors.selectCardById, id);
     const prevList = yield select(selectors.selectListById, card.listId);
+
+    if (prevList.id !== list.id) {
+      moveContext = {
+        prevListType: prevList.type,
+        listType: list.type,
+      };
+    }
 
     if (prevList.type === ListTypes.TRASH) {
       prevListId = null;
@@ -295,6 +335,18 @@ export function* updateCard(id, data) {
   }
 
   yield put(actions.updateCard.success(card));
+
+  // Pendo: card was moved to a different list
+  if (moveContext) {
+    yield call(trackPendoEvent, 'card_moved', {
+      cardId: card.id,
+      boardId: card.boardId,
+      prevListType: moveContext.prevListType,
+      listType: moveContext.listType,
+      isClosed: card.isClosed,
+      isClosedChanged: isClosed !== undefined,
+    });
+  }
 }
 
 export function* updateCurrentCard(data) {
@@ -429,6 +481,8 @@ export function* transferCard(id, boardId, listId, index) {
   }
 
   const list = yield select(selectors.selectListById, listId);
+  const sourceCard = yield select(selectors.selectCardById, id);
+  const sourceBoardId = sourceCard ? sourceCard.boardId : undefined;
 
   const data = {
     listId,
@@ -525,6 +579,17 @@ export function* transferCard(id, boardId, listId, index) {
       customFieldValues,
     ),
   );
+
+  // Pendo: card was transferred to a different board and its related records loaded
+  if (sourceBoardId !== boardId) {
+    yield call(trackPendoEvent, 'card_transferred_to_board', {
+      cardId: id,
+      sourceBoardId,
+      boardId,
+      listType: list.type,
+      isClosed: card ? card.isClosed : typeState === ListTypeStates.CLOSED,
+    });
+  }
 }
 
 export function* transferCurrentCard(boardId, listId, index) {
@@ -633,6 +698,18 @@ export function* duplicateCard(id, data) {
       customFieldValues,
     ),
   );
+
+  // Pendo: card copy was created on the server
+  yield call(trackPendoEvent, 'card_duplicated', {
+    sourceCardId: id,
+    cardId: card.id,
+    boardId,
+    isCrossBoard: boardId !== sourceCard.boardId,
+    taskCount: tasks ? tasks.length : 0,
+    attachmentCount: attachments ? attachments.length : 0,
+    cardLabelCount: cardLabels ? cardLabels.length : 0,
+    cardMembershipCount: cardMemberships ? cardMemberships.length : 0,
+  });
 }
 
 export function* duplicateCurrentCard(data) {

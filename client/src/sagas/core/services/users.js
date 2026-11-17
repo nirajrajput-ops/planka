@@ -13,6 +13,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import { setAccessToken } from '../../../utils/access-token-storage';
 import mergeRecords from '../../../utils/merge-records';
+import { trackPendoEvent } from '../../../utils/pendo';
 import { isUserAdminOrProjectOwner } from '../../../utils/record-helpers';
 import { UserRoles } from '../../../constants/Enums';
 
@@ -39,6 +40,11 @@ export function* createUser(data) {
   }
 
   yield put(actions.createUser.success(user));
+
+  // Pendo: admin created a user account
+  yield call(trackPendoEvent, 'user_created', {
+    role: user.role,
+  });
 }
 
 export function* handleUserCreate(user) {
@@ -366,6 +372,13 @@ export function* createUserApiKey(id) {
   }
 
   yield put(actions.createUserApiKey.success(user, apiKey));
+
+  // Pendo: server issued an API key (the key value is never sent)
+  const currentUserId = yield select(selectors.selectCurrentUserId);
+
+  yield call(trackPendoEvent, 'api_key_created', {
+    isCurrentUser: id === currentUserId,
+  });
 }
 
 export function* deleteUserApiKey(id) {
@@ -428,6 +441,14 @@ export function* enableUserTotp(id, data) {
   }
 
   yield put(actions.enableUserTotp.success(user, recoveryCodes));
+
+  // Pendo: two-factor authentication was confirmed by the server
+  const currentUserId = yield select(selectors.selectCurrentUserId);
+
+  yield call(trackPendoEvent, 'two_factor_enabled', {
+    recoveryCodeCount: recoveryCodes ? recoveryCodes.length : 0,
+    isCurrentUser: id === currentUserId,
+  });
 }
 
 export function* enableCurrentUserTotp(data) {

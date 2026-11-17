@@ -13,6 +13,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import { trackPendoEvent } from '../../../utils/pendo';
 import { AttachmentTypes } from '../../../constants/Enums';
 import ToastTypes from '../../../constants/ToastTypes';
 
@@ -36,6 +37,8 @@ export function* createAttachment(cardId, data) {
     }),
   );
 
+  const sizeInBytes = nextData.file ? nextData.file.size : undefined;
+
   let attachment;
   try {
     ({ item: attachment } = yield nextData.type === AttachmentTypes.FILE
@@ -44,12 +47,16 @@ export function* createAttachment(cardId, data) {
   } catch (error) {
     yield put(actions.createAttachment.failure(localId, error));
 
+    let failureReason = error.code || 'unknown';
+
     if (error.code === 'E_UNPROCESSABLE_ENTITY') {
       let toastType;
       if (error.message.startsWith('Upload limit')) {
         toastType = ToastTypes.FILE_IS_TOO_BIG;
+        failureReason = 'file_too_big';
       } else if (error.message === 'Storage limit reached') {
         toastType = ToastTypes.NOT_ENOUGH_STORAGE;
+        failureReason = 'storage_limit_reached';
       }
 
       if (toastType) {
@@ -59,10 +66,29 @@ export function* createAttachment(cardId, data) {
       }
     }
 
+    // Pendo: attachment was rejected by the server
+    yield call(trackPendoEvent, 'attachment_upload_failed', {
+      cardId,
+      type: nextData.type,
+      failureReason,
+      sizeInBytes,
+    });
+
     return;
   }
 
   yield put(actions.createAttachment.success(localId, attachment));
+
+  // Pendo: attachment was uploaded or linked to the card
+  const attachmentData = attachment.data || {};
+
+  yield call(trackPendoEvent, 'attachment_added', {
+    cardId,
+    type: attachment.type,
+    mimeType: attachmentData.mimeType || (nextData.file ? nextData.file.type : undefined),
+    sizeInBytes,
+    isImage: !!attachmentData.image,
+  });
 }
 
 export function* createAttachmentInCurrentCard(data) {
