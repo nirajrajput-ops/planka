@@ -380,6 +380,36 @@ module.exports = {
         }),
         user: inputs.actorUser,
       });
+
+      if (values.list) {
+        // Pendo: the card landed in a new list
+        sails.helpers.utils.sendPendoTrackEvent.with({
+          event: 'Card moved',
+          visitorId: inputs.actorUser.id,
+          properties: {
+            project_id: project.id,
+            board_id: card.boardId,
+            card_id: card.id,
+            from_list_type: inputs.list.type,
+            to_list_type: values.list.type,
+            is_board_changed: !!values.board,
+          },
+        });
+      }
+
+      if (!inputs.record.isClosed && card.isClosed) {
+        // Pendo: the card entered a Closed list and was marked done
+        sails.helpers.utils.sendPendoTrackEvent.with({
+          event: 'Card closed',
+          visitorId: inputs.actorUser.id,
+          properties: {
+            project_id: project.id,
+            board_id: card.boardId,
+            card_id: card.id,
+            from_list_type: inputs.list.type,
+          },
+        });
+      }
     }
 
     if (!_.isUndefined(isSubscribed)) {

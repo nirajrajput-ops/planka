@@ -116,6 +116,17 @@ async function sendWebhook(webhook, event, data, prevData, user) {
       sails.log.error(
         `Webhook ${webhook.name} failed with status ${response.status} and message: ${message}`,
       );
+    } else {
+      // Pendo: the event payload was posted to the registered webhook URL
+      sails.helpers.utils.sendPendoTrackEvent.with({
+        event: 'Webhook delivered',
+        visitorId: user && user.id,
+        properties: {
+          webhook_event: event,
+          webhook_id: webhook.id,
+          response_status: response.status,
+        },
+      });
     }
   } catch (error) {
     sails.log.error(`Webhook ${webhook.name} failed with error: ${error}`);

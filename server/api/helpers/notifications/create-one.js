@@ -285,6 +285,19 @@ module.exports = {
       const notificationServices = await NotificationService.qm.getByUserId(notification.userId);
       const { transporter } = await sails.helpers.utils.makeSmtpTransporter();
 
+      // Pendo: a notification was created for the recipient (sent by email if SMTP is set)
+      sails.helpers.utils.sendPendoTrackEvent.with({
+        event: 'Notification delivered',
+        visitorId: notification.userId,
+        properties: {
+          notification_type: notification.type,
+          project_id: inputs.project.id,
+          board_id: notification.boardId,
+          is_email_sent: !!transporter,
+          services_count: notificationServices.length,
+        },
+      });
+
       if (notificationServices.length > 0 || transporter) {
         const t = sails.helpers.utils.makeTranslator(notifiableUser.language);
 

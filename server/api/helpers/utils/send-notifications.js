@@ -61,6 +61,16 @@ module.exports = {
       );
     } catch (error) {
       sails.log.error(`Error sending notifications:\n${error.stderr || error.message}`);
+      return;
     }
+
+    // Pendo: the message was delivered through Apprise to the configured services
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'External notification sent',
+      properties: {
+        services_count: inputs.services.length,
+        formats: _.uniq(inputs.services.map((service) => service.format || 'text')).join(','),
+      },
+    });
   },
 };

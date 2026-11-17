@@ -69,6 +69,19 @@ module.exports = {
       user: inputs.actorUser,
     });
 
+    // Pendo: the custom field value was stored on the card
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Custom field value saved',
+      visitorId: inputs.actorUser.id,
+      properties: {
+        project_id: inputs.project.id,
+        board_id: inputs.board.id,
+        card_id: values.card.id,
+        custom_field_id: values.customField.id,
+        is_base_group: !!values.customFieldGroup.baseCustomFieldGroupId,
+      },
+    });
+
     return customFieldValue;
   },
 };

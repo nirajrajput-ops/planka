@@ -87,6 +87,17 @@ module.exports = {
       user: inputs.actorUser,
     });
 
+    // Pendo: a new list exists on the board
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'List created',
+      visitorId: inputs.actorUser.id,
+      properties: {
+        project_id: inputs.project.id,
+        board_id: list.boardId,
+        list_type: list.type,
+      },
+    });
+
     return list;
   },
 };

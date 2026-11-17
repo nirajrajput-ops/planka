@@ -97,6 +97,17 @@ module.exports = {
       user: inputs.actorUser,
     });
 
+    // Pendo: a new task list exists on the card
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Task list created',
+      visitorId: inputs.actorUser.id,
+      properties: {
+        project_id: inputs.project.id,
+        board_id: inputs.board.id,
+        card_id: values.card.id,
+      },
+    });
+
     return taskList;
   },
 };

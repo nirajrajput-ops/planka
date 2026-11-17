@@ -102,6 +102,18 @@ module.exports = {
       user: inputs.actorUser,
     });
 
+    // Pendo: a new custom field group exists on the board
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Custom field group created',
+      visitorId: inputs.actorUser.id,
+      properties: {
+        scope: 'board',
+        project_id: inputs.project.id,
+        board_id: customFieldGroup.boardId,
+        is_from_base_group: !!customFieldGroup.baseCustomFieldGroupId,
+      },
+    });
+
     return customFieldGroup;
   },
 };
