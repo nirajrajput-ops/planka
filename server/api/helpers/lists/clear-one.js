@@ -52,5 +52,16 @@ module.exports = {
       }),
       user: inputs.actorUser,
     });
+
+    // Pendo: trashed cards were permanently removed
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Trash emptied',
+      visitorId: inputs.actorUser.id,
+      properties: {
+        project_id: inputs.project.id,
+        board_id: inputs.board.id,
+        list_type: inputs.record.type,
+      },
+    });
   },
 };

@@ -227,6 +227,17 @@ module.exports = {
       );
     }
 
+    // Pendo: terms acceptance was recorded and sign-in continues
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Terms accepted',
+      visitorId: user.id,
+      properties: {
+        terms_type: sails.config.custom.termsType,
+        user_role: user.role,
+        language: user.language || undefined,
+      },
+    });
+
     return {
       item: accessToken,
     };

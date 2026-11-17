@@ -61,6 +61,16 @@ module.exports = {
         }),
         user: inputs.actorUser,
       });
+
+      // Pendo: the project was permanently removed
+      sails.helpers.utils.sendPendoTrackEvent.with({
+        event: 'Project deleted',
+        visitorId: inputs.actorUser.id,
+        properties: {
+          project_id: project.id,
+          managers_count: projectManagers.length,
+        },
+      });
     }
 
     return project;

@@ -124,6 +124,18 @@ module.exports = {
       list: inputs.list,
     });
 
+    // Pendo: a user was assigned to the card and notified
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Card member added',
+      visitorId: inputs.actorUser.id,
+      properties: {
+        project_id: inputs.project.id,
+        board_id: inputs.board.id,
+        card_id: values.card.id,
+        is_self: values.user.id === inputs.actorUser.id,
+      },
+    });
+
     return cardMembership;
   },
 };

@@ -112,6 +112,20 @@ module.exports = {
 
     // TODO: create notifications
 
+    // Pendo: all cards from the list were moved to the board archive
+    if (values.list.type === List.Types.ARCHIVE && cards.length > 0) {
+      sails.helpers.utils.sendPendoTrackEvent.with({
+        event: 'Cards archived in bulk',
+        visitorId: inputs.actorUser.id,
+        properties: {
+          project_id: inputs.project.id,
+          board_id: inputs.board.id,
+          from_list_type: inputs.record.type,
+          cards_count: cards.length,
+        },
+      });
+    }
+
     return { cards, actions };
   },
 };
