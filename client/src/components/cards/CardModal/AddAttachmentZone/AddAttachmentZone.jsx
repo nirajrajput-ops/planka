@@ -24,11 +24,13 @@ const AddAttachmentZone = React.memo(({ children }) => {
   const [t] = useTranslation();
   const [modal, openModal, handleModalClose] = useModal();
 
+  // `source` is only used for analytics and isn't sent to the server
   const submitFile = useCallback(
-    (file) => {
+    (file, source) => {
       dispatch(
         entryActions.createAttachmentInCurrentCard({
           file,
+          source,
           type: AttachmentTypes.FILE,
           name: file.name,
         }),
@@ -42,6 +44,7 @@ const AddAttachmentZone = React.memo(({ children }) => {
       dispatch(
         entryActions.createAttachmentInCurrentCard({
           url,
+          source: 'paste',
           type: AttachmentTypes.LINK,
           name: url,
         }),
@@ -53,7 +56,7 @@ const AddAttachmentZone = React.memo(({ children }) => {
   const handleDropAccepted = useCallback(
     (files) => {
       files.forEach((file) => {
-        submitFile(file);
+        submitFile(file, 'drop');
       });
     },
     [submitFile],
@@ -67,7 +70,7 @@ const AddAttachmentZone = React.memo(({ children }) => {
 
   const handleFileCreate = useCallback(
     (file) => {
-      submitFile(file);
+      submitFile(file, 'text_file');
     },
     [submitFile],
   );
@@ -82,7 +85,7 @@ const AddAttachmentZone = React.memo(({ children }) => {
 
       if (files.length > 0) {
         [...files].forEach((file) => {
-          submitFile(file);
+          submitFile(file, 'paste');
         });
 
         return;
@@ -117,7 +120,7 @@ const AddAttachmentZone = React.memo(({ children }) => {
           return;
         }
 
-        submitFile(item.getAsFile());
+        submitFile(item.getAsFile(), 'paste');
       });
     };
 

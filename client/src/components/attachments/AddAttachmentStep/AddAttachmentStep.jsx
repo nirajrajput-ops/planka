@@ -25,6 +25,7 @@ const AddAttachmentStep = React.memo(({ onClose }) => {
         dispatch(
           entryActions.createAttachmentInCurrentCard({
             file,
+            source: 'file_picker',
             type: AttachmentTypes.FILE,
             name: file.name,
           }),

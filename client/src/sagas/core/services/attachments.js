@@ -13,10 +13,12 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import { getErrorCode, trackEvent } from '../../../utils/pendo-track';
 import { AttachmentTypes } from '../../../constants/Enums';
 import ToastTypes from '../../../constants/ToastTypes';
 
-export function* createAttachment(cardId, data) {
+// `source` tells how the attachment was added and is only used for analytics
+export function* createAttachment(cardId, { source, ...data }) {
   const localId = yield call(createLocalId);
   const currentUserId = yield select(selectors.selectCurrentUserId);
 
@@ -44,12 +46,16 @@ export function* createAttachment(cardId, data) {
   } catch (error) {
     yield put(actions.createAttachment.failure(localId, error));
 
+    let failureReason = 'other';
+
     if (error.code === 'E_UNPROCESSABLE_ENTITY') {
       let toastType;
       if (error.message.startsWith('Upload limit')) {
         toastType = ToastTypes.FILE_IS_TOO_BIG;
+        failureReason = 'upload_limit';
       } else if (error.message === 'Storage limit reached') {
         toastType = ToastTypes.NOT_ENOUGH_STORAGE;
+        failureReason = 'storage_limit';
       }
 
       if (toastType) {
@@ -59,8 +65,25 @@ export function* createAttachment(cardId, data) {
       }
     }
 
+    trackEvent('attachment_upload_failed', {
+      card_id: cardId,
+      attachment_type: nextData.type,
+      file_size: nextData.file ? nextData.file.size : null,
+      failure_reason: failureReason,
+      error_code: getErrorCode(error),
+    });
+
     return;
   }
+
+  // Only file metadata is sent, never the file name or link URL
+  trackEvent('attachment_added', {
+    card_id: cardId,
+    attachment_type: nextData.type,
+    file_mime_type: nextData.file ? nextData.file.type || 'unknown' : null,
+    file_size: nextData.file ? nextData.file.size : null,
+    source: source || 'unknown',
+  });
 
   yield put(actions.createAttachment.success(localId, attachment));
 }

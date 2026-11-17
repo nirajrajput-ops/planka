@@ -11,6 +11,16 @@ import api from '../../../api';
 import i18n from '../../../i18n';
 import { setAccessToken } from '../../../utils/access-token-storage';
 import AccessTokenSteps from '../../../constants/AccessTokenSteps';
+import { getErrorCode, trackEvent } from '../../../utils/pendo-track';
+
+const trackSignedIn = (signInStep) => {
+  trackEvent('user_signed_in', {
+    sign_in_step: signInStep,
+    totp_verified: signInStep === 'totp',
+    terms_accepted: signInStep === 'terms',
+    language: i18n.resolvedLanguage || 'unknown',
+  });
+};
 
 export function* initializeLogin() {
   const { item: bootstrap } = yield call(api.getBootstrap); // TODO: handle error
@@ -30,11 +40,19 @@ export function* authenticate(data) {
       ({ item: terms } = yield call(api.getTerms, i18n.resolvedLanguage));
     }
 
+    // The server reports an extra sign-in step (terms or TOTP) as a rejection
+    trackEvent('sign_in_failed', {
+      error_step: (error && error.step) || 'none',
+      error_code: getErrorCode(error),
+      terms_required: !!error && error.step === AccessTokenSteps.ACCEPT_TERMS,
+    });
+
     yield put(actions.authenticate.failure(error, terms));
     return;
   }
 
   yield call(setAccessToken, accessToken);
+  trackSignedIn('password');
   yield put(actions.authenticate.success(accessToken));
 }
 
@@ -60,6 +78,7 @@ export function* acceptTerms(signature) {
   }
 
   yield call(setAccessToken, accessToken);
+  trackSignedIn('terms');
   yield put(actions.acceptTerms.success(accessToken));
 }
 
@@ -111,6 +130,7 @@ export function* verifyTotp(data) {
   }
 
   yield call(setAccessToken, accessToken);
+  trackSignedIn('totp');
   yield put(actions.verifyTotp.success(accessToken));
 }
 

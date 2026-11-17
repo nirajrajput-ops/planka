@@ -10,6 +10,9 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import { trackEvent } from '../../../utils/pendo-track';
+
+const MENTION_MARKUP_REGEX = /@\[.*?\]\(.*?\)/;
 
 export function* fetchComments(cardId) {
   const { lastCommentId } = yield select(selectors.selectCardById, cardId);
@@ -60,6 +63,17 @@ export function* createComment(cardId, data) {
     yield put(actions.createComment.failure(localId, error));
     return;
   }
+
+  const card = yield select(selectors.selectCardById, cardId);
+  const text = comment.text || '';
+
+  // Only the text length is sent, never the comment text
+  trackEvent('comment_posted', {
+    card_id: cardId,
+    board_id: card ? card.boardId : null,
+    text_length: text.length,
+    has_mentions: MENTION_MARKUP_REGEX.test(text),
+  });
 
   yield put(actions.createComment.success(localId, comment));
 }

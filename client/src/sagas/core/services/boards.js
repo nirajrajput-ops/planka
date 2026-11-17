@@ -13,6 +13,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
 import { rememberBoardView } from '../../../utils/board-view-memory';
+import { getErrorCode, trackEvent } from '../../../utils/pendo-track';
 import ActionTypes from '../../../constants/ActionTypes';
 import ModalTypes from '../../../constants/ModalTypes';
 
@@ -58,9 +59,27 @@ export function* createBoard(projectId, { import: boardImport, ...data }) {
         )
       : call(request, api.createBoard, projectId, nextData));
   } catch (error) {
+    if (boardImport) {
+      trackEvent('board_import_failed', {
+        project_id: projectId,
+        import_type: boardImport.type,
+        import_file_size: boardImport.file ? boardImport.file.size : null,
+        error_code: getErrorCode(error),
+      });
+    }
+
     yield put(actions.createBoard.failure(localId, error));
     return;
   }
+
+  trackEvent('board_created', {
+    board_id: board.id,
+    project_id: projectId,
+    creation_method: boardImport ? 'import' : 'blank',
+    import_type: boardImport ? boardImport.type : null,
+    import_file_size: boardImport && boardImport.file ? boardImport.file.size : null,
+    board_memberships_count: boardMemberships ? boardMemberships.length : 0,
+  });
 
   yield put(actions.createBoard.success(localId, board, boardMemberships));
 
@@ -223,6 +242,23 @@ export function* searchInCurrentBoard(value) {
   const currentListId = yield select(selectors.selectCurrentListId);
 
   yield put(actions.searchInBoard(boardId, value, currentListId));
+
+  // Clearing the search field isn't a search. Only the query length is sent, never the text.
+  if (value) {
+    const board = yield select(selectors.selectCurrentBoard);
+    const filterUserIds = yield select(selectors.selectFilterUserIdsForCurrentBoard);
+    const filterLabelIds = yield select(selectors.selectFilterLabelIdsForCurrentBoard);
+    const filteredCardIds = yield select(selectors.selectFilteredCardIdsForCurrentBoard);
+
+    trackEvent('board_search_performed', {
+      board_id: boardId,
+      query_length: value.length,
+      board_view: board ? board.view : null,
+      user_filters_count: filterUserIds ? filterUserIds.length : 0,
+      label_filters_count: filterLabelIds ? filterLabelIds.length : 0,
+      results_count: filteredCardIds ? filteredCardIds.length : 0,
+    });
+  }
 }
 
 export function* deleteBoard(id) {

@@ -10,6 +10,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import { getErrorCode, trackEvent } from '../../../utils/pendo-track';
 
 export function* createNotificationServiceInCurrentUser(data) {
   const localId = yield call(createLocalId);
@@ -35,6 +36,13 @@ export function* createNotificationServiceInCurrentUser(data) {
     yield put(actions.createNotificationService.failure(localId, error));
     return;
   }
+
+  // Never include the service URL
+  trackEvent('notification_service_connected', {
+    scope: 'user',
+    board_id: null,
+    format: notificationService.format,
+  });
 
   yield put(actions.createNotificationService.success(localId, notificationService));
 }
@@ -63,6 +71,13 @@ export function* createNotificationServiceInBoard(boardId, data) {
     return;
   }
 
+  // Never include the service URL
+  trackEvent('notification_service_connected', {
+    scope: 'board',
+    board_id: boardId,
+    format: notificationService.format,
+  });
+
   yield put(actions.createNotificationService.success(localId, notificationService));
 }
 
@@ -89,15 +104,32 @@ export function* handleNotificationServiceUpdate(notificationService) {
 }
 
 export function* testNotificationService(id) {
+  const prevNotificationService = yield select(selectors.selectNotificationServiceById, id);
+
+  // Never include the service URL
+  const trackTest = (success, error) => {
+    trackEvent('notification_service_tested', {
+      notification_service_id: id,
+      scope: prevNotificationService && prevNotificationService.boardId ? 'board' : 'user',
+      format: prevNotificationService ? prevNotificationService.format : null,
+      success,
+      error_code: success ? null : getErrorCode(error),
+    });
+  };
+
   yield put(actions.testNotificationService(id));
 
   let notificationService;
   try {
     ({ item: notificationService } = yield call(request, api.testNotificationService, id));
   } catch (error) {
+    trackTest(false, error);
+
     yield put(actions.testNotificationService.failure(id, error));
     return;
   }
+
+  trackTest(true);
 
   yield put(actions.testNotificationService.success(notificationService));
 }
