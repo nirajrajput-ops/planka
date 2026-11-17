@@ -46,6 +46,35 @@ export function* initializeCore() {
     notificationServices,
   } = yield call(requests.fetchCore); // TODO: handle error
 
+  if (window.pendo) {
+    window.pendo.identify({
+      visitor: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        username: user.username,
+        organization: user.organization,
+        language: user.language,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+        isDeactivated: user.isDeactivated,
+        isDefaultAdmin: user.isDefaultAdmin,
+        isTotpEnabled: user.isTotpEnabled,
+        totpEnabledAt: user.totpEnabledAt,
+        termsAcceptedAt: user.termsAcceptedAt,
+        apiKeyCreatedAt: user.apiKeyCreatedAt,
+        autoLogoutMode: user.autoLogoutMode,
+        defaultEditorMode: user.defaultEditorMode,
+        defaultHomeView: user.defaultHomeView,
+        defaultProjectsOrder: user.defaultProjectsOrder,
+        subscribeToOwnCards: user.subscribeToOwnCards,
+        subscribeToCardWhenCommenting: user.subscribeToCardWhenCommenting,
+        turnOffRecentCardHighlighting: user.turnOffRecentCardHighlighting,
+        enableFavoritesByDefault: user.enableFavoritesByDefault,
+      },
+    });
+  }
+
   yield call(i18n.changeLanguage, user.language);
   yield call(i18n.loadCoreLocale);
 
@@ -121,6 +150,11 @@ export function* logout(revokeAccessToken) {
   // Everything this window was holding about the boards it had open. None of it
   // belongs to the next person to sign in here.
   yield call(forgetBoardViews);
+
+  // clearSession is only available once the Pendo agent script has loaded.
+  if (window.pendo && typeof window.pendo.clearSession === 'function') {
+    window.pendo.clearSession();
+  }
 
   if (revokeAccessToken) {
     yield put(actions.logout.revokeAccessToken());
