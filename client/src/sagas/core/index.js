@@ -21,5 +21,8 @@ export default function* coreSaga() {
 
   yield take(ActionTypes.LOGOUT);
 
+  // clearSession is only defined once the Pendo agent has loaded (it is not stubbed by the snippet).
+  window.pendo?.clearSession?.();
+
   window.location.href = Paths.LOGIN;
 }
