@@ -13,6 +13,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import trackPendoEvent from '../../../utils/track-pendo-event';
 import { AttachmentTypes } from '../../../constants/Enums';
 import ToastTypes from '../../../constants/ToastTypes';
 
@@ -36,6 +37,16 @@ export function* createAttachment(cardId, data) {
     }),
   );
 
+  const attachmentTrackingProperties = {
+    card_id: cardId,
+    attachment_type: nextData.type,
+    ...(nextData.type === AttachmentTypes.FILE &&
+      nextData.file && {
+        file_type: nextData.file.type || 'unknown',
+        file_size: nextData.file.size,
+      }),
+  };
+
   let attachment;
   try {
     ({ item: attachment } = yield nextData.type === AttachmentTypes.FILE
@@ -44,25 +55,38 @@ export function* createAttachment(cardId, data) {
   } catch (error) {
     yield put(actions.createAttachment.failure(localId, error));
 
+    let toastType;
     if (error.code === 'E_UNPROCESSABLE_ENTITY') {
-      let toastType;
       if (error.message.startsWith('Upload limit')) {
         toastType = ToastTypes.FILE_IS_TOO_BIG;
       } else if (error.message === 'Storage limit reached') {
         toastType = ToastTypes.NOT_ENOUGH_STORAGE;
       }
+    }
 
-      if (toastType) {
-        yield call(toast, {
-          type: toastType,
-        });
-      }
+    // Pendo: attachment upload failed on the server
+    yield call(trackPendoEvent, 'attachment_uploaded', {
+      ...attachmentTrackingProperties,
+      success: false,
+      failure_reason: toastType || (error && error.code) || 'unknown',
+    });
+
+    if (toastType) {
+      yield call(toast, {
+        type: toastType,
+      });
     }
 
     return;
   }
 
   yield put(actions.createAttachment.success(localId, attachment));
+
+  // Pendo: attachment stored on the server
+  yield call(trackPendoEvent, 'attachment_uploaded', {
+    ...attachmentTrackingProperties,
+    success: true,
+  });
 }
 
 export function* createAttachmentInCurrentCard(data) {

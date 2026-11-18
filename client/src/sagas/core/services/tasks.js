@@ -10,6 +10,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import trackPendoEvent from '../../../utils/track-pendo-event';
 
 export function* createTask(taskListId, data) {
   let isCompleted;
@@ -62,6 +63,16 @@ export function* updateTask(id, data) {
   }
 
   yield put(actions.updateTask.success(task));
+
+  if (data.isCompleted && task.isCompleted) {
+    // Pendo: task marked complete on the server
+    yield call(trackPendoEvent, 'task_completed', {
+      task_id: task.id,
+      task_list_id: task.taskListId,
+      is_completed: true,
+      has_linked_card: Boolean(task.linkedCardId),
+    });
+  }
 }
 
 export function* handleTaskUpdate(task) {
