@@ -143,6 +143,19 @@ module.exports = {
       request: this.req,
     });
 
+    // Pendo: list persisted on the board
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      project,
+      event: 'List created',
+      user: currentUser,
+      properties: {
+        list_id: list.id,
+        list_type: list.type,
+        board_id: board.id,
+        project_id: project.id,
+      },
+    });
+
     return {
       item: list,
     };

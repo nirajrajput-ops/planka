@@ -60,6 +60,19 @@ module.exports = {
         }),
         user: inputs.actorUser,
       });
+
+      // Pendo: card removed permanently
+      sails.helpers.utils.sendPendoTrackEvent.with({
+        event: 'Card deleted',
+        user: inputs.actorUser,
+        project: inputs.project,
+        properties: {
+          card_id: card.id,
+          list_type: inputs.list.type,
+          board_id: card.boardId,
+          project_id: inputs.project.id,
+        },
+      });
     }
 
     return card;

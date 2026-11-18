@@ -152,6 +152,22 @@ module.exports = {
           board: inputs.board,
           list: inputs.list,
         });
+
+        // Pendo: task transitioned to completed and 'completeTask' activity logged
+        if (task.isCompleted) {
+          sails.helpers.utils.sendPendoTrackEvent.with({
+            event: 'Task completed',
+            user: inputs.actorUser,
+            project: inputs.project,
+            properties: {
+              task_id: task.id,
+              card_id: inputs.card.id,
+              board_id: inputs.board.id,
+              project_id: inputs.project.id,
+              is_linked_card: !!task.linkedCardId,
+            },
+          });
+        }
       }
     }
 

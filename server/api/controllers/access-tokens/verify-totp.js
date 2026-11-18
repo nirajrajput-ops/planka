@@ -228,6 +228,17 @@ module.exports = {
       setTrustDeviceCookie(this.res, plainToken);
     }
 
+    // Pendo: second factor accepted and login completed
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      user,
+      event: 'Two-factor challenge passed',
+      properties: {
+        user_role: user.role,
+        code_type: consumedRecoveryIndex >= 0 ? 'recovery_code' : 'totp',
+        trust_device: !!inputs.trustDevice,
+      },
+    });
+
     return {
       item: accessToken,
     };

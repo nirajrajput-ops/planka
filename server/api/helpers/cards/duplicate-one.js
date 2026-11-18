@@ -349,6 +349,24 @@ module.exports = {
       },
     });
 
+    // Pendo: duplicate card (with tasks, labels, custom fields) created
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      project,
+      event: 'Card duplicated',
+      user: values.creatorUser,
+      properties: {
+        card_id: card.id,
+        source_card_id: inputs.record.id,
+        board_id: card.boardId,
+        project_id: project.id,
+        is_other_board: !!values.board,
+        tasks_count: nextTasks.length,
+        labels_count: nextCardLabels.length,
+        attachments_count: nextAttachments.length,
+        custom_field_values_count: nextCustomFieldValues.length,
+      },
+    });
+
     return {
       card,
       cardMemberships: nextCardMemberships,

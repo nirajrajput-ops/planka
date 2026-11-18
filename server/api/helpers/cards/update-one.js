@@ -380,6 +380,24 @@ module.exports = {
         }),
         user: inputs.actorUser,
       });
+
+      // Pendo: card's list changed (values.list is only kept when it differs from the current one)
+      if (values.list) {
+        sails.helpers.utils.sendPendoTrackEvent.with({
+          project,
+          event: 'Card moved',
+          user: inputs.actorUser,
+          properties: {
+            card_id: card.id,
+            board_id: card.boardId,
+            project_id: project.id,
+            from_list_type: inputs.list.type,
+            to_list_type: values.list.type,
+            is_other_board: !!values.board,
+            is_closed: !!card.isClosed,
+          },
+        });
+      }
     }
 
     if (!_.isUndefined(isSubscribed)) {
