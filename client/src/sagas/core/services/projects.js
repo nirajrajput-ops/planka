@@ -13,7 +13,8 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import mergeRecords from '../../../utils/merge-records';
-import { UserRoles } from '../../../constants/Enums';
+import { trackPendoEvent } from '../../../utils/pendo';
+import { ProjectTypes, UserRoles } from '../../../constants/Enums';
 
 export function* searchProjects(value) {
   yield put(actions.searchProjects(value));
@@ -54,6 +55,15 @@ export function* createProject(data) {
   }
 
   yield put(actions.createProject.success(project, projectManagers));
+
+  // Project creation confirmed by the server, before navigating to it
+  yield call(trackPendoEvent, 'project_created', {
+    projectId: project.id,
+    type: data.type || null,
+    isShared: data.type === ProjectTypes.SHARED,
+    projectManagerCount: projectManagers ? projectManagers.length : 0,
+  });
+
   yield call(goToProject, project.id);
 }
 
