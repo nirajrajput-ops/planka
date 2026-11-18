@@ -10,6 +10,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import { trackPendoEvent } from '../../../utils/pendo';
 
 export function* createNotificationServiceInCurrentUser(data) {
   const localId = yield call(createLocalId);
@@ -37,6 +38,12 @@ export function* createNotificationServiceInCurrentUser(data) {
   }
 
   yield put(actions.createNotificationService.success(localId, notificationService));
+
+  // Pendo: notification service was created for the current user
+  yield call(trackPendoEvent, 'notification_service_created', {
+    scope: 'user',
+    format: notificationService.format,
+  });
 }
 
 export function* createNotificationServiceInBoard(boardId, data) {
@@ -64,6 +71,13 @@ export function* createNotificationServiceInBoard(boardId, data) {
   }
 
   yield put(actions.createNotificationService.success(localId, notificationService));
+
+  // Pendo: notification service was created for a board
+  yield call(trackPendoEvent, 'notification_service_created', {
+    scope: 'board',
+    format: notificationService.format,
+    boardId,
+  });
 }
 
 export function* handleNotificationServiceCreate(notificationService) {
@@ -89,6 +103,8 @@ export function* handleNotificationServiceUpdate(notificationService) {
 }
 
 export function* testNotificationService(id) {
+  const existingNotificationService = yield select(selectors.selectNotificationServiceById, id);
+
   yield put(actions.testNotificationService(id));
 
   let notificationService;
@@ -96,10 +112,26 @@ export function* testNotificationService(id) {
     ({ item: notificationService } = yield call(request, api.testNotificationService, id));
   } catch (error) {
     yield put(actions.testNotificationService.failure(id, error));
+
+    // Pendo: test notification failed on the server
+    yield call(trackPendoEvent, 'notification_service_tested', {
+      notificationServiceId: id,
+      format: existingNotificationService ? existingNotificationService.format : undefined,
+      success: false,
+      errorCode: error.code,
+    });
+
     return;
   }
 
   yield put(actions.testNotificationService.success(notificationService));
+
+  // Pendo: test notification was delivered by the server
+  yield call(trackPendoEvent, 'notification_service_tested', {
+    notificationServiceId: id,
+    format: notificationService.format,
+    success: true,
+  });
 }
 
 export function* deleteNotificationService(id) {
