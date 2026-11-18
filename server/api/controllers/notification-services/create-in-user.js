@@ -134,6 +134,19 @@ module.exports = {
       .intercept('schemaNotAllowed', () => Errors.SCHEMA_NOT_ALLOWED)
       .intercept('limitReached', () => Errors.LIMIT_REACHED);
 
+    // Pendo Track Event: the notification service record was created.
+    // Only the URL schema is sent — the rest of an Apprise URL can contain credentials.
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Notification service connected',
+      visitorId: currentUser.id,
+      properties: {
+        notification_service_id: notificationService.id,
+        service_schema: values.url.split(':')[0].toLowerCase(),
+        format: values.format,
+        scope: 'user',
+      },
+    });
+
     return {
       item: notificationService,
     };

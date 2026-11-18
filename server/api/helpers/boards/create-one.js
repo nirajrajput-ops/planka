@@ -123,6 +123,18 @@ module.exports = {
       user: inputs.actorUser,
     });
 
+    // Pendo Track Event: the board was persisted (including Trello imports)
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Board created',
+      visitorId: inputs.actorUser.id,
+      properties: {
+        board_id: board.id,
+        project_id: board.projectId,
+        is_trello_import: !!(inputs.import && inputs.import.type === Board.ImportTypes.TRELLO),
+        list_count: lists ? lists.length : 0,
+      },
+    });
+
     return {
       board,
       boardMembership,
