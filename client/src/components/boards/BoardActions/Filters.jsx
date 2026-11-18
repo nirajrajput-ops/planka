@@ -17,6 +17,7 @@ import { Input, Tooltip } from '../../../lib/custom-ui';
 import selectors from '../../../selectors';
 import entryActions from '../../../entry-actions';
 import { useNestedRef } from '../../../hooks';
+import { trackEvent } from '../../../utils/pendo';
 import { BoardViews, LabelFilterModes } from '../../../constants/Enums';
 import UserAvatar from '../../users/UserAvatar';
 import BoardMembershipsStep from '../../board-memberships/BoardMembershipsStep';
@@ -38,6 +39,16 @@ import styles from './Filters.module.scss';
 
 // Membership comparison — order carries no meaning for a filter selection.
 const sameIds = (a, b) => a.length === b.length && a.every((id) => b.includes(id));
+
+// Pendo: which dimensions a (saved) filter is made of, without the ids themselves.
+const buildFilterTrackProperties = (filter) => ({
+  user_filter_count: (filter.userIds || []).length,
+  label_filter_count: (filter.labelIds || []).length,
+  excluded_label_filter_count: (filter.excludedLabelIds || []).length,
+  list_filter_count: (filter.listIds || []).length,
+  no_member: !!filter.noMember,
+  has_search: !!filter.search,
+});
 
 const FilterListChip = React.memo(({ id, onClick }) => {
   const selectListById = useMemo(() => selectors.makeSelectListById(), []);
@@ -384,11 +395,21 @@ const Filters = React.memo(() => {
     (item) => {
       clearCurrentFilter();
 
-      if (item.id !== activeSavedFilterId) {
+      const isApplied = item.id !== activeSavedFilterId;
+
+      if (isApplied) {
         applyFilter(item);
       }
+
+      // Pendo: a saved filter was applied to the board, or turned off when already active
+      trackEvent('saved_board_filter_applied', {
+        board_id: board.id,
+        action: isApplied ? 'applied' : 'deactivated',
+        ...buildFilterTrackProperties(item),
+        saved_filters_total: savedFilters.length,
+      });
     },
-    [activeSavedFilterId, applyFilter, clearCurrentFilter],
+    [activeSavedFilterId, applyFilter, board.id, clearCurrentFilter, savedFilters.length],
   );
 
   const handleSavedFilterRemove = useCallback(
@@ -401,14 +422,24 @@ const Filters = React.memo(() => {
 
   const handleSaveFilter = useCallback(
     (name) => {
-      addSavedFilter(currentUserId, board.id, {
+      const entry = addSavedFilter(currentUserId, board.id, {
         name,
         ...currentFilter,
       });
 
+      // Pendo: the filter was actually stored (addSavedFilter returns null when nothing is saved)
+      if (entry) {
+        trackEvent('board_filter_saved', {
+          board_id: board.id,
+          ...buildFilterTrackProperties(entry),
+          overwrote_existing: savedFilters.some((item) => item.name === entry.name),
+          saved_filters_total: readSavedFilters(currentUserId, board.id).length,
+        });
+      }
+
       setStorageRev((prevStorageRev) => prevStorageRev + 1);
     },
-    [board.id, currentFilter, currentUserId],
+    [board.id, currentFilter, currentUserId, savedFilters],
   );
 
   useDidUpdate(() => {

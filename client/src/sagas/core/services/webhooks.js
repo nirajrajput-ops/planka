@@ -9,6 +9,7 @@ import request from '../request';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import { trackEvent } from '../../../utils/pendo';
 
 export function* createWebhook(data) {
   const localId = yield call(createLocalId);
@@ -33,6 +34,14 @@ export function* createWebhook(data) {
   }
 
   yield put(actions.createWebhook.success(localId, webhook));
+
+  // Pendo: the server saved a new webhook integration
+  yield call(trackEvent, 'webhook_created', {
+    webhook_id: webhook.id,
+    events_count: data.events ? data.events.length : 0,
+    excluded_events_count: data.excludedEvents ? data.excludedEvents.length : 0,
+    has_access_token: !!data.accessToken,
+  });
 }
 
 export function* handleWebhookCreate(webhook) {
