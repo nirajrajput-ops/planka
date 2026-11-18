@@ -143,6 +143,19 @@ module.exports = {
       request: this.req,
     });
 
+    // Pendo: new list saved
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'List created',
+      visitorId: currentUser.id,
+      properties: {
+        project_id: project.id,
+        board_id: board.id,
+        list_id: list.id,
+        list_type: list.type,
+      },
+      request: this.req,
+    });
+
     return {
       item: list,
     };

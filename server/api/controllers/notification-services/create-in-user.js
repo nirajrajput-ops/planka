@@ -134,6 +134,20 @@ module.exports = {
       .intercept('schemaNotAllowed', () => Errors.SCHEMA_NOT_ALLOWED)
       .intercept('limitReached', () => Errors.LIMIT_REACHED);
 
+    // Pendo: personal notification service saved
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Notification service connected',
+      visitorId: currentUser.id,
+      properties: {
+        service_scope: 'user',
+        service_format: inputs.format,
+        service_schema: inputs.url.includes('://')
+          ? inputs.url.split('://')[0].toLowerCase().slice(0, 32)
+          : null,
+      },
+      request: this.req,
+    });
+
     return {
       item: notificationService,
     };

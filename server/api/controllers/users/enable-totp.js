@@ -166,6 +166,19 @@ module.exports = {
       totpRecoveryCodes: hashedRecoveryCodes,
     });
 
+    // Pendo: 2FA turned on (only on the off-to-on transition)
+    if (!user.isTotpEnabled) {
+      sails.helpers.utils.sendPendoTrackEvent.with({
+        event: 'Two-factor authentication enabled',
+        visitorId: currentUser.id,
+        properties: {
+          user_role: currentUser.role,
+          recovery_codes_count: recoveryCodes.length,
+        },
+        request: this.req,
+      });
+    }
+
     return {
       item: sails.helpers.users.presentOne(updatedUser, currentUser),
       included: {

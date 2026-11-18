@@ -97,6 +97,18 @@ module.exports = {
       throw Errors.PROJECT_NOT_FOUND;
     }
 
+    // Pendo: project removed
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Project deleted',
+      visitorId: currentUser.id,
+      properties: {
+        project_id: project.id,
+        project_type: project.type,
+        user_role: currentUser.role,
+      },
+      request: this.req,
+    });
+
     return {
       item: project,
     };
