@@ -7,7 +7,7 @@ import debounce from 'lodash/debounce';
 import React, { useCallback, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector, useStore } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { Icon } from 'semantic-ui-react';
 import { useDidUpdate } from '../../../lib/hooks';
@@ -18,6 +18,7 @@ import selectors from '../../../selectors';
 import entryActions from '../../../entry-actions';
 import { useNestedRef } from '../../../hooks';
 import { BoardViews, LabelFilterModes } from '../../../constants/Enums';
+import trackPendoEvent from '../../../utils/pendo-track';
 import UserAvatar from '../../users/UserAvatar';
 import BoardMembershipsStep from '../../board-memberships/BoardMembershipsStep';
 import LabelChip from '../../labels/LabelChip';
@@ -38,6 +39,31 @@ import styles from './Filters.module.scss';
 
 // Membership comparison — order carries no meaning for a filter selection.
 const sameIds = (a, b) => a.length === b.length && a.every((id) => b.includes(id));
+
+// Applied board search: query shape (never the query itself), matching cards
+// loaded on the board and how many other filters are active alongside it.
+const trackBoardSearch = (state, search) => {
+  const board = selectors.selectCurrentBoard(state);
+
+  if (!board) {
+    return;
+  }
+
+  const countIds = (ids) => (ids ? ids.length : 0);
+
+  trackPendoEvent('board_searched', {
+    queryLength: search.trim().length,
+    isRegex: search.startsWith('/'),
+    resultsCount: countIds(selectors.selectFilteredCardIdsForCurrentBoard(state)),
+    boardView: board.view,
+    activeFilterCount:
+      countIds(selectors.selectFilterUserIdsForCurrentBoard(state)) +
+      countIds(selectors.selectFilterLabelIdsForCurrentBoard(state)) +
+      countIds(selectors.selectFilterExcludedLabelIdsForCurrentBoard(state)) +
+      countIds(selectors.selectFilterListIdsForCurrentBoard(state)) +
+      (board.filterNoMember ? 1 : 0),
+  });
+};
 
 const FilterListChip = React.memo(({ id, onClick }) => {
   const selectListById = useMemo(() => selectors.makeSelectListById(), []);
@@ -77,6 +103,7 @@ const Filters = React.memo(() => {
   );
 
   const dispatch = useDispatch();
+  const store = useStore();
   const [t] = useTranslation();
   const [search, setSearch] = useState(board.search);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -90,8 +117,13 @@ const Filters = React.memo(() => {
     () =>
       debounce((nextSearch) => {
         dispatch(entryActions.searchInCurrentBoard(nextSearch));
+
+        if (nextSearch && nextSearch.trim()) {
+          // The dispatch above updates the store synchronously, so results are already filtered
+          trackBoardSearch(store.getState(), nextSearch);
+        }
       }, 400),
-    [dispatch],
+    [dispatch, store],
   );
 
   const [searchFieldRef, handleSearchFieldRef] = useNestedRef('inputRef');
@@ -401,10 +433,23 @@ const Filters = React.memo(() => {
 
   const handleSaveFilter = useCallback(
     (name) => {
-      addSavedFilter(currentUserId, board.id, {
+      const savedFilter = addSavedFilter(currentUserId, board.id, {
         name,
         ...currentFilter,
       });
+
+      // Board filter combination saved; only its shape is sent, never names or ids
+      if (savedFilter) {
+        trackPendoEvent('board_filter_saved', {
+          userCount: currentFilter.userIds.length,
+          labelCount: currentFilter.labelIds.length,
+          excludedLabelCount: currentFilter.excludedLabelIds.length,
+          listCount: currentFilter.listIds.length,
+          noMember: currentFilter.noMember,
+          hasSearch: currentFilter.search.length > 0,
+          savedFilterCount: readSavedFilters(currentUserId, board.id).length,
+        });
+      }
 
       setStorageRev((prevStorageRev) => prevStorageRev + 1);
     },

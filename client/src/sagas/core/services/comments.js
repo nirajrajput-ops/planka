@@ -10,6 +10,9 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import trackPendoEvent from '../../../utils/pendo-track';
+
+const MENTION_MARKUP_REGEX = /@\[(.*?)\]\((.*?)\)/g;
 
 export function* fetchComments(cardId) {
   const { lastCommentId } = yield select(selectors.selectCardById, cardId);
@@ -62,6 +65,17 @@ export function* createComment(cardId, data) {
   }
 
   yield put(actions.createComment.success(localId, comment));
+
+  const card = yield select(selectors.selectCardById, cardId);
+  const text = data.text || '';
+
+  // Comment posted (button or keyboard shortcut); content itself is never sent
+  yield call(trackPendoEvent, 'comment_created', {
+    cardId,
+    boardId: card ? card.boardId : null,
+    textLength: text.length,
+    mentionCount: (text.match(MENTION_MARKUP_REGEX) || []).length,
+  });
 }
 
 export function* createCommentInCurrentCard(data) {

@@ -12,6 +12,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import trackPendoEvent from '../../../utils/pendo-track';
 import { rememberBoardView } from '../../../utils/board-view-memory';
 import ActionTypes from '../../../constants/ActionTypes';
 import ModalTypes from '../../../constants/ModalTypes';
@@ -59,10 +60,32 @@ export function* createBoard(projectId, { import: boardImport, ...data }) {
       : call(request, api.createBoard, projectId, nextData));
   } catch (error) {
     yield put(actions.createBoard.failure(localId, error));
+
+    // Failed board import
+    if (boardImport) {
+      yield call(trackPendoEvent, 'board_import_completed', {
+        importType: boardImport.type,
+        fileSize: boardImport.file ? boardImport.file.size : null,
+        projectId,
+        success: false,
+      });
+    }
+
     return;
   }
 
   yield put(actions.createBoard.success(localId, board, boardMemberships));
+
+  // Successful board import
+  if (boardImport) {
+    yield call(trackPendoEvent, 'board_import_completed', {
+      importType: boardImport.type,
+      fileSize: boardImport.file ? boardImport.file.size : null,
+      projectId,
+      success: true,
+      boardMembershipCount: boardMemberships ? boardMemberships.length : 0,
+    });
+  }
 
   if (watchForCreateBoardActionTask.isRunning()) {
     yield call(goToBoard, board.id);
