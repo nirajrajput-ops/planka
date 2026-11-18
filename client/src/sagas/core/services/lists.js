@@ -204,8 +204,23 @@ export function* moveListCards(id, nextId) {
 
 export function* moveListCardsToArchiveList(id) {
   const archiveListId = yield select(selectors.selectArchiveListIdForCurrentBoard);
+  const cardIds = yield select(selectors.selectCardIdsByListId, id);
 
   yield call(moveListCards, id, archiveListId);
+
+  // Track bulk archive if there were cards to move
+  if (cardIds.length > 0) {
+    try {
+      if (window.pendo) {
+        window.pendo.track('bulk_cards_archived', {
+          card_count: cardIds.length,
+          source_list_id: id,
+        });
+      }
+    } catch (e) {
+      // Do not let tracking break application flow
+    }
+  }
 }
 
 export function* clearTrashListInCurrentBoard() {
