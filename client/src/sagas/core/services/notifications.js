@@ -9,6 +9,7 @@ import request from '../request';
 import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
+import pendo from '../../../utils/pendo';
 
 export function* deleteAllNotifications() {
   yield put(actions.deleteAllNotifications());
@@ -20,6 +21,11 @@ export function* deleteAllNotifications() {
     yield put(actions.deleteAllNotifications.failure(error));
     return;
   }
+
+  // Pendo: all notifications cleared on the server
+  pendo.track('notifications_cleared', {
+    notificationsCount: notifications ? notifications.length : 0,
+  });
 
   yield put(actions.deleteAllNotifications.success(notifications));
 }

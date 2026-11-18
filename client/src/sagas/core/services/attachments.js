@@ -13,6 +13,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import pendo from '../../../utils/pendo';
 import { AttachmentTypes } from '../../../constants/Enums';
 import ToastTypes from '../../../constants/ToastTypes';
 
@@ -53,6 +54,14 @@ export function* createAttachment(cardId, data) {
       }
 
       if (toastType) {
+        // Pendo: attachment rejected because of the upload or storage limit
+        pendo.track('attachment_upload_rejected', {
+          cardId,
+          attachmentType: nextData.type,
+          reason: toastType === ToastTypes.FILE_IS_TOO_BIG ? 'upload_limit' : 'storage_limit',
+          fileSize: nextData.file ? nextData.file.size : null,
+        });
+
         yield call(toast, {
           type: toastType,
         });
@@ -61,6 +70,17 @@ export function* createAttachment(cardId, data) {
 
     return;
   }
+
+  const attachmentData = attachment.data || {};
+
+  // Pendo: attachment (file or link) saved on the card
+  pendo.track('attachment_added', {
+    cardId,
+    attachmentType: attachment.type,
+    mimeType: attachmentData.mimeType || null,
+    fileSize: attachmentData.size !== undefined ? attachmentData.size : null,
+    hasThumbnail: !!attachmentData.thumbnailUrls,
+  });
 
   yield put(actions.createAttachment.success(localId, attachment));
 }

@@ -13,6 +13,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import { setAccessToken } from '../../../utils/access-token-storage';
 import mergeRecords from '../../../utils/merge-records';
+import pendo from '../../../utils/pendo';
 import { isUserAdminOrProjectOwner } from '../../../utils/record-helpers';
 import { UserRoles } from '../../../constants/Enums';
 
@@ -37,6 +38,14 @@ export function* createUser(data) {
     yield put(actions.createUser.failure(error));
     return;
   }
+
+  // Pendo: admin created a user (no email, name, or password sent)
+  pendo.track('user_created', {
+    role: user.role,
+    hasUsername: !!user.username,
+    hasPhone: !!user.phone,
+    hasOrganization: !!user.organization,
+  });
 
   yield put(actions.createUser.success(user));
 }
@@ -280,6 +289,14 @@ export function* updateUserPassword(id, data) {
     yield call(setAccessToken, accessToken);
   }
 
+  const currentUserId = yield select(selectors.selectCurrentUserId);
+
+  // Pendo: password change accepted by the server
+  pendo.track('password_changed', {
+    isCurrentUser: id === currentUserId,
+    accessTokenRotated: !!accessToken,
+  });
+
   yield put(actions.updateUserPassword.success(user, accessToken));
 }
 
@@ -365,6 +382,14 @@ export function* createUserApiKey(id) {
     return;
   }
 
+  const currentUserId = yield select(selectors.selectCurrentUserId);
+
+  // Pendo: new API key issued (the key value is never sent)
+  pendo.track('api_key_created', {
+    isCurrentUser: id === currentUserId,
+    userRole: user.role,
+  });
+
   yield put(actions.createUserApiKey.success(user, apiKey));
 }
 
@@ -426,6 +451,12 @@ export function* enableUserTotp(id, data) {
     yield put(actions.enableUserTotp.failure(id, error));
     return;
   }
+
+  // Pendo: TOTP setup finished and recovery codes issued
+  pendo.track('two_factor_enabled', {
+    recoveryCodesCount: recoveryCodes ? recoveryCodes.length : 0,
+    userRole: user.role,
+  });
 
   yield put(actions.enableUserTotp.success(user, recoveryCodes));
 }

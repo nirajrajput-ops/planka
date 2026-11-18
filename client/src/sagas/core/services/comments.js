@@ -10,6 +10,9 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import pendo from '../../../utils/pendo';
+
+const MENTION_MARKUP_REGEX = /@\[.*?\]\(.*?\)/g;
 
 export function* fetchComments(cardId) {
   const { lastCommentId } = yield select(selectors.selectCardById, cardId);
@@ -60,6 +63,15 @@ export function* createComment(cardId, data) {
     yield put(actions.createComment.failure(localId, error));
     return;
   }
+
+  const commentText = comment.text || '';
+
+  // Pendo: comment saved on the server (the comment text is never sent)
+  pendo.track('comment_posted', {
+    cardId,
+    textLength: commentText.length,
+    mentionsCount: (commentText.match(MENTION_MARKUP_REGEX) || []).length,
+  });
 
   yield put(actions.createComment.success(localId, comment));
 }

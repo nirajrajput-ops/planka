@@ -10,6 +10,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import i18n from '../../../i18n';
 import { setAccessToken } from '../../../utils/access-token-storage';
+import pendo from '../../../utils/pendo';
 import AccessTokenSteps from '../../../constants/AccessTokenSteps';
 
 export function* initializeLogin() {
@@ -30,11 +31,27 @@ export function* authenticate(data) {
       ({ item: terms } = yield call(api.getTerms, i18n.resolvedLanguage));
     }
 
+    // Pendo: password step rejected or another step (terms, TOTP) is required
+    pendo.track('login_failed', {
+      errorStep: (error && error.step) || null,
+      errorCode: (error && error.code) || null,
+      authStage: 'password',
+    });
+
     yield put(actions.authenticate.failure(error, terms));
     return;
   }
 
   yield call(setAccessToken, accessToken);
+
+  // Pendo: access token received and stored after the password step
+  pendo.track('login_completed', {
+    completionStep: 'password',
+    trustDevice: false,
+    isTotpRequired: false,
+    isTermsAcceptanceRequired: false,
+  });
+
   yield put(actions.authenticate.success(accessToken));
 }
 
@@ -60,6 +77,15 @@ export function* acceptTerms(signature) {
   }
 
   yield call(setAccessToken, accessToken);
+
+  // Pendo: access token received and stored after terms acceptance
+  pendo.track('login_completed', {
+    completionStep: 'terms',
+    trustDevice: false,
+    isTotpRequired: false,
+    isTermsAcceptanceRequired: true,
+  });
+
   yield put(actions.acceptTerms.success(accessToken));
 }
 
@@ -106,11 +132,27 @@ export function* verifyTotp(data) {
       pendingToken,
     }));
   } catch (error) {
+    // Pendo: TOTP challenge rejected
+    pendo.track('login_failed', {
+      errorStep: (error && error.step) || null,
+      errorCode: (error && error.code) || null,
+      authStage: 'totp',
+    });
+
     yield put(actions.verifyTotp.failure(error));
     return;
   }
 
   yield call(setAccessToken, accessToken);
+
+  // Pendo: access token received and stored after the TOTP challenge
+  pendo.track('login_completed', {
+    completionStep: 'totp',
+    trustDevice: !!data.trustDevice,
+    isTotpRequired: true,
+    isTermsAcceptanceRequired: false,
+  });
+
   yield put(actions.verifyTotp.success(accessToken));
 }
 

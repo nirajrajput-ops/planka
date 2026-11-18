@@ -10,6 +10,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import pendo from '../../../utils/pendo';
 
 export function* createNotificationServiceInCurrentUser(data) {
   const localId = yield call(createLocalId);
@@ -35,6 +36,13 @@ export function* createNotificationServiceInCurrentUser(data) {
     yield put(actions.createNotificationService.failure(localId, error));
     return;
   }
+
+  // Pendo: notification service created for the current user (the URL is never sent)
+  pendo.track('notification_service_created', {
+    scope: 'user',
+    format: notificationService.format || null,
+    boardId: null,
+  });
 
   yield put(actions.createNotificationService.success(localId, notificationService));
 }
@@ -63,6 +71,13 @@ export function* createNotificationServiceInBoard(boardId, data) {
     return;
   }
 
+  // Pendo: notification service created for a board (the URL is never sent)
+  pendo.track('notification_service_created', {
+    scope: 'board',
+    format: notificationService.format || null,
+    boardId,
+  });
+
   yield put(actions.createNotificationService.success(localId, notificationService));
 }
 
@@ -89,15 +104,36 @@ export function* handleNotificationServiceUpdate(notificationService) {
 }
 
 export function* testNotificationService(id) {
+  const testedNotificationService = yield select(selectors.selectNotificationServiceById, id);
+
+  const testTrackingProperties = {
+    scope: testedNotificationService && testedNotificationService.boardId ? 'board' : 'user',
+    format: (testedNotificationService && testedNotificationService.format) || null,
+  };
+
   yield put(actions.testNotificationService(id));
 
   let notificationService;
   try {
     ({ item: notificationService } = yield call(request, api.testNotificationService, id));
   } catch (error) {
+    // Pendo: notification service test failed
+    pendo.track('notification_service_tested', {
+      ...testTrackingProperties,
+      outcome: 'failure',
+      errorCode: (error && error.code) || null,
+    });
+
     yield put(actions.testNotificationService.failure(id, error));
     return;
   }
+
+  // Pendo: notification service test delivered
+  pendo.track('notification_service_tested', {
+    ...testTrackingProperties,
+    outcome: 'success',
+    errorCode: null,
+  });
 
   yield put(actions.testNotificationService.success(notificationService));
 }

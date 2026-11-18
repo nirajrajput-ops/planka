@@ -13,6 +13,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
 import { rememberBoardView } from '../../../utils/board-view-memory';
+import pendo from '../../../utils/pendo';
 import ActionTypes from '../../../constants/ActionTypes';
 import ModalTypes from '../../../constants/ModalTypes';
 
@@ -61,6 +62,15 @@ export function* createBoard(projectId, { import: boardImport, ...data }) {
     yield put(actions.createBoard.failure(localId, error));
     return;
   }
+
+  // Pendo: board created on the server, blank or through import
+  pendo.track('board_created', {
+    boardId: board.id,
+    projectId,
+    isImport: !!boardImport,
+    importType: boardImport ? boardImport.type : null,
+    boardMembershipsCount: boardMemberships ? boardMemberships.length : 0,
+  });
 
   yield put(actions.createBoard.success(localId, board, boardMemberships));
 
@@ -223,6 +233,24 @@ export function* searchInCurrentBoard(value) {
   const currentListId = yield select(selectors.selectCurrentListId);
 
   yield put(actions.searchInBoard(boardId, value, currentListId));
+
+  // Pendo: search term applied (the input is debounced, so this is the final term).
+  // Clearing the search isn't a search, so it isn't tracked.
+  if (value && value.trim()) {
+    const board = yield select(selectors.selectCurrentBoard);
+
+    const matchedCardIds = currentListId
+      ? yield select(selectors.selectFilteredCardIdsForCurrentList)
+      : yield select(selectors.selectFilteredCardIdsForCurrentBoard);
+
+    pendo.track('board_searched', {
+      boardId,
+      queryLength: value.trim().length,
+      isListScoped: !!currentListId,
+      matchedCardsCount: matchedCardIds ? matchedCardIds.length : 0,
+      boardView: (board && board.view) || null,
+    });
+  }
 }
 
 export function* deleteBoard(id) {
