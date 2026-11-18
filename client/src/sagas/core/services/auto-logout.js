@@ -15,6 +15,7 @@ import {
   postStayLoggedIn as broadcastStayLoggedIn,
   subscribe as subscribeToChannel,
 } from '../../../utils/auto-logout-channel';
+import trackPendoEvent from '../../../utils/pendo';
 import { AutoLogoutModes } from '../../../constants/Enums';
 import ActionTypes from '../../../constants/ActionTypes';
 import EntryActionTypes from '../../../constants/EntryActionTypes';
@@ -101,6 +102,16 @@ function* maybeBroadcastActivity() {
 }
 
 function* triggerLogout({ broadcast = true } = {}) {
+  // Pendo: inactivity auto-logout signed the user out. Local timeouts broadcast the
+  // logout to other tabs; a logout received from another tab is not re-broadcast.
+  const autoLogoutMode = yield select(selectCurrentUserAutoLogoutMode);
+
+  yield call(trackPendoEvent, 'auto_logout_triggered', {
+    autoLogoutMode: autoLogoutMode || null,
+    reason: broadcast ? 'warning_timeout' : 'remote_logout',
+    broadcast,
+  });
+
   if (broadcast) {
     yield call(broadcastLogout);
   }

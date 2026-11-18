@@ -13,6 +13,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import { setAccessToken } from '../../../utils/access-token-storage';
 import mergeRecords from '../../../utils/merge-records';
+import trackPendoEvent from '../../../utils/pendo';
 import { isUserAdminOrProjectOwner } from '../../../utils/record-helpers';
 import { UserRoles } from '../../../constants/Enums';
 
@@ -35,10 +36,24 @@ export function* createUser(data) {
     ({ item: user } = yield call(request, api.createUser, data));
   } catch (error) {
     yield put(actions.createUser.failure(error));
+
+    // Pendo: user account creation was rejected (e.g. email or username already in use)
+    yield call(trackPendoEvent, 'user_created', {
+      role: data.role || null,
+      success: false,
+      errorMessage: ((error && error.message) || 'unknown').substring(0, 100),
+    });
+
     return;
   }
 
   yield put(actions.createUser.success(user));
+
+  // Pendo: server confirmed a new user account
+  yield call(trackPendoEvent, 'user_created', {
+    role: user.role || data.role || null,
+    success: true,
+  });
 }
 
 export function* handleUserCreate(user) {
@@ -428,6 +443,12 @@ export function* enableUserTotp(id, data) {
   }
 
   yield put(actions.enableUserTotp.success(user, recoveryCodes));
+
+  // Pendo: two-factor authentication was set up and turned on
+  yield call(trackPendoEvent, 'two_factor_enabled', {
+    userId: id,
+    recoveryCodesCount: recoveryCodes ? recoveryCodes.length : 0,
+  });
 }
 
 export function* enableCurrentUserTotp(data) {
