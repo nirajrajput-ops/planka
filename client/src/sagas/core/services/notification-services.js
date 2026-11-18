@@ -10,6 +10,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import trackPendoEvent from '../../../utils/pendo';
 
 export function* createNotificationServiceInCurrentUser(data) {
   const localId = yield call(createLocalId);
@@ -89,6 +90,15 @@ export function* handleNotificationServiceUpdate(notificationService) {
 }
 
 export function* testNotificationService(id) {
+  const existingNotificationService = yield select(selectors.selectNotificationServiceById, id);
+
+  // The service URL is never sent, as it may embed credentials
+  const trackingProperties = {
+    notification_service_id: id,
+    scope: existingNotificationService && existingNotificationService.boardId ? 'board' : 'user',
+    format: (existingNotificationService && existingNotificationService.format) || null,
+  };
+
   yield put(actions.testNotificationService(id));
 
   let notificationService;
@@ -96,10 +106,21 @@ export function* testNotificationService(id) {
     ({ item: notificationService } = yield call(request, api.testNotificationService, id));
   } catch (error) {
     yield put(actions.testNotificationService.failure(id, error));
+
+    yield call(trackPendoEvent, 'notification_service_tested', {
+      ...trackingProperties,
+      success: false,
+    });
+
     return;
   }
 
   yield put(actions.testNotificationService.success(notificationService));
+
+  yield call(trackPendoEvent, 'notification_service_tested', {
+    ...trackingProperties,
+    success: true,
+  });
 }
 
 export function* deleteNotificationService(id) {
