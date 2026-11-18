@@ -13,6 +13,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import { setAccessToken } from '../../../utils/access-token-storage';
 import mergeRecords from '../../../utils/merge-records';
+import pendoTrack from '../../../utils/pendo-track';
 import { isUserAdminOrProjectOwner } from '../../../utils/record-helpers';
 import { UserRoles } from '../../../constants/Enums';
 
@@ -37,6 +38,13 @@ export function* createUser(data) {
     yield put(actions.createUser.failure(error));
     return;
   }
+
+  // Role and settings only: never email, name or password.
+  yield call(pendoTrack, 'user_created', {
+    role: user.role,
+    has_username: !!user.username,
+    language: user.language || data.language || null,
+  });
 
   yield put(actions.createUser.success(user));
 }
@@ -365,6 +373,14 @@ export function* createUserApiKey(id) {
     return;
   }
 
+  const currentUserId = yield select(selectors.selectCurrentUserId);
+
+  // The key itself is a secret and must never be sent.
+  yield call(pendoTrack, 'api_key_created', {
+    is_current_user: id === currentUserId,
+    target_user_role: user.role,
+  });
+
   yield put(actions.createUserApiKey.success(user, apiKey));
 }
 
@@ -427,6 +443,14 @@ export function* enableUserTotp(id, data) {
     return;
   }
 
+  const currentUserId = yield select(selectors.selectCurrentUserId);
+
+  yield call(pendoTrack, 'two_factor_enabled', {
+    enabled: true,
+    recovery_code_count: (recoveryCodes || []).length,
+    is_current_user: id === currentUserId,
+  });
+
   yield put(actions.enableUserTotp.success(user, recoveryCodes));
 }
 
@@ -445,6 +469,13 @@ export function* disableUserTotp(id, data) {
     yield put(actions.disableUserTotp.failure(id, error));
     return;
   }
+
+  const currentUserId = yield select(selectors.selectCurrentUserId);
+
+  yield call(pendoTrack, 'two_factor_enabled', {
+    enabled: false,
+    is_current_user: id === currentUserId,
+  });
 
   yield put(actions.disableUserTotp.success(user));
 }

@@ -13,6 +13,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
 import { rememberBoardView } from '../../../utils/board-view-memory';
+import pendoTrack from '../../../utils/pendo-track';
 import ActionTypes from '../../../constants/ActionTypes';
 import ModalTypes from '../../../constants/ModalTypes';
 
@@ -61,6 +62,17 @@ export function* createBoard(projectId, { import: boardImport, ...data }) {
     yield put(actions.createBoard.failure(localId, error));
     return;
   }
+
+  yield call(pendoTrack, 'board_created', {
+    board_id: board.id,
+    project_id: projectId,
+    is_import: !!boardImport,
+    ...(boardImport && {
+      import_type: boardImport.type,
+      import_file_size: boardImport.file && boardImport.file.size,
+    }),
+    position: nextData.position,
+  });
 
   yield put(actions.createBoard.success(localId, board, boardMemberships));
 
@@ -223,6 +235,27 @@ export function* searchInCurrentBoard(value) {
   const currentListId = yield select(selectors.selectCurrentListId);
 
   yield put(actions.searchInBoard(boardId, value, currentListId));
+
+  // Clearing the search box also lands here; only a real query counts as a search.
+  if (value && value.trim()) {
+    const board = yield select(selectors.selectBoardById, boardId);
+    const filterUserIds = yield select(selectors.selectFilterUserIdsForCurrentBoard);
+    const filterLabelIds = yield select(selectors.selectFilterLabelIdsForCurrentBoard);
+    const filterExcludedLabelIds = yield select(
+      selectors.selectFilterExcludedLabelIdsForCurrentBoard,
+    );
+    const filterListIds = yield select(selectors.selectFilterListIdsForCurrentBoard);
+
+    yield call(pendoTrack, 'board_searched', {
+      board_id: boardId,
+      query_length: value.trim().length,
+      filter_user_count: (filterUserIds || []).length,
+      filter_label_count: (filterLabelIds || []).length,
+      filter_excluded_label_count: (filterExcludedLabelIds || []).length,
+      filter_list_count: (filterListIds || []).length,
+      board_view: board && board.view,
+    });
+  }
 }
 
 export function* deleteBoard(id) {

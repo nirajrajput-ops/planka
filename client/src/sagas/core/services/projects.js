@@ -13,6 +13,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import mergeRecords from '../../../utils/merge-records';
+import pendoTrack from '../../../utils/pendo-track';
 import { UserRoles } from '../../../constants/Enums';
 
 export function* searchProjects(value) {
@@ -52,6 +53,12 @@ export function* createProject(data) {
     yield put(actions.createProject.failure(error));
     return;
   }
+
+  yield call(pendoTrack, 'project_created', {
+    project_id: project.id,
+    project_type: data.type,
+    has_description: !!data.description,
+  });
 
   yield put(actions.createProject.success(project, projectManagers));
   yield call(goToProject, project.id);

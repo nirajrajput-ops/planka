@@ -12,6 +12,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
 import mergeRecords from '../../../utils/merge-records';
+import pendoTrack from '../../../utils/pendo-track';
 
 export function* createProjectManager(projectId, data) {
   const localId = yield call(createLocalId);
@@ -31,6 +32,24 @@ export function* createProjectManager(projectId, data) {
     yield put(actions.createProjectManager.failure(localId, error));
     return;
   }
+
+  const project = yield select(selectors.selectProjectById, projectId);
+  const { projectId: currentProjectId } = yield select(selectors.selectPath);
+
+  let managers;
+  if (projectId === currentProjectId) {
+    managers = yield select(selectors.selectManagersForCurrentProject);
+  }
+
+  yield call(pendoTrack, 'project_manager_added', {
+    project_id: projectId,
+    ...(project && {
+      project_type: project.ownerProjectManagerId ? 'private' : 'shared',
+    }),
+    ...(managers && {
+      manager_count: managers.length,
+    }),
+  });
 
   yield put(actions.createProjectManager.success(localId, projectManager));
 }

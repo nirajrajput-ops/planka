@@ -10,6 +10,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import pendoTrack from '../../../utils/pendo-track';
 
 export function* createNotificationServiceInCurrentUser(data) {
   const localId = yield call(createLocalId);
@@ -35,6 +36,11 @@ export function* createNotificationServiceInCurrentUser(data) {
     yield put(actions.createNotificationService.failure(localId, error));
     return;
   }
+
+  yield call(pendoTrack, 'notification_service_connected', {
+    scope: 'user',
+    format: notificationService.format,
+  });
 
   yield put(actions.createNotificationService.success(localId, notificationService));
 }
@@ -62,6 +68,12 @@ export function* createNotificationServiceInBoard(boardId, data) {
     yield put(actions.createNotificationService.failure(localId, error));
     return;
   }
+
+  yield call(pendoTrack, 'notification_service_connected', {
+    scope: 'board',
+    board_id: boardId,
+    format: notificationService.format,
+  });
 
   yield put(actions.createNotificationService.success(localId, notificationService));
 }
@@ -95,9 +107,28 @@ export function* testNotificationService(id) {
   try {
     ({ item: notificationService } = yield call(request, api.testNotificationService, id));
   } catch (error) {
+    const failedNotificationService = yield select(selectors.selectNotificationServiceById, id);
+
+    yield call(pendoTrack, 'notification_service_test_result', {
+      notification_service_id: id,
+      ...(failedNotificationService && {
+        scope: failedNotificationService.boardId ? 'board' : 'user',
+        format: failedNotificationService.format,
+      }),
+      success: false,
+      error_code: error.code || null,
+    });
+
     yield put(actions.testNotificationService.failure(id, error));
     return;
   }
+
+  yield call(pendoTrack, 'notification_service_test_result', {
+    notification_service_id: notificationService.id,
+    scope: notificationService.boardId ? 'board' : 'user',
+    format: notificationService.format,
+    success: true,
+  });
 
   yield put(actions.testNotificationService.success(notificationService));
 }

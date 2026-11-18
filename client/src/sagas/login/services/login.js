@@ -10,6 +10,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import i18n from '../../../i18n';
 import { setAccessToken } from '../../../utils/access-token-storage';
+import pendoTrack from '../../../utils/pendo-track';
 import AccessTokenSteps from '../../../constants/AccessTokenSteps';
 
 export function* initializeLogin() {
@@ -35,6 +36,13 @@ export function* authenticate(data) {
   }
 
   yield call(setAccessToken, accessToken);
+
+  yield call(pendoTrack, 'login_completed', {
+    completion_step: 'password',
+    totp_required: false,
+    terms_accepted: false,
+  });
+
   yield put(actions.authenticate.success(accessToken));
 }
 
@@ -45,7 +53,7 @@ export function* clearAuthenticateError() {
 export function* acceptTerms(signature) {
   yield put(actions.acceptTerms(signature));
 
-  const { pendingToken } = yield select(selectors.selectAuthenticateForm);
+  const { pendingToken, termsForm } = yield select(selectors.selectAuthenticateForm);
 
   let accessToken;
   try {
@@ -60,6 +68,14 @@ export function* acceptTerms(signature) {
   }
 
   yield call(setAccessToken, accessToken);
+
+  yield call(pendoTrack, 'login_completed', {
+    completion_step: 'terms',
+    totp_required: false,
+    terms_accepted: true,
+    terms_language: (termsForm.payload && termsForm.payload.language) || i18n.resolvedLanguage,
+  });
+
   yield put(actions.acceptTerms.success(accessToken));
 }
 
@@ -111,6 +127,13 @@ export function* verifyTotp(data) {
   }
 
   yield call(setAccessToken, accessToken);
+
+  yield call(pendoTrack, 'login_completed', {
+    completion_step: 'totp',
+    totp_required: true,
+    terms_accepted: false,
+  });
+
   yield put(actions.verifyTotp.success(accessToken));
 }
 
