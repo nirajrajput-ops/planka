@@ -15,6 +15,7 @@ import {
   postStayLoggedIn as broadcastStayLoggedIn,
   subscribe as subscribeToChannel,
 } from '../../../utils/auto-logout-channel';
+import { trackPendoEvent } from '../../../utils/pendo';
 import { AutoLogoutModes } from '../../../constants/Enums';
 import ActionTypes from '../../../constants/ActionTypes';
 import EntryActionTypes from '../../../constants/EntryActionTypes';
@@ -101,6 +102,15 @@ function* maybeBroadcastActivity() {
 }
 
 function* triggerLogout({ broadcast = true } = {}) {
+  // Broadcasting happens only when this tab's own inactivity timer expired;
+  // otherwise the logout was received from another tab.
+  const mode = yield select(selectCurrentUserAutoLogoutMode);
+  yield call(trackPendoEvent, 'auto_logout_triggered', {
+    autoLogoutMode: mode || null,
+    trigger: broadcast ? 'inactivity_timeout' : 'remote_logout',
+    durationMs: MODE_DURATIONS_MS[mode] || null,
+  });
+
   if (broadcast) {
     yield call(broadcastLogout);
   }

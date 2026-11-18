@@ -12,6 +12,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
 import mergeRecords from '../../../utils/merge-records';
+import { trackPendoEvent } from '../../../utils/pendo';
 
 export function* createProjectManager(projectId, data) {
   const localId = yield call(createLocalId);
@@ -33,6 +34,19 @@ export function* createProjectManager(projectId, data) {
   }
 
   yield put(actions.createProjectManager.success(localId, projectManager));
+
+  const project = yield select(selectors.selectProjectById, projectId);
+
+  let projectType = null;
+  if (project) {
+    projectType = project.ownerProjectManagerId ? 'private' : 'shared';
+  }
+
+  yield call(trackPendoEvent, 'project_manager_added', {
+    projectId,
+    projectType,
+    userId: projectManager.userId,
+  });
 }
 
 export function* createManagerInCurrentProject(data) {

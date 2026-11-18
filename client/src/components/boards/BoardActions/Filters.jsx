@@ -7,7 +7,7 @@ import debounce from 'lodash/debounce';
 import React, { useCallback, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector, useStore } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { Icon } from 'semantic-ui-react';
 import { useDidUpdate } from '../../../lib/hooks';
@@ -17,6 +17,7 @@ import { Input, Tooltip } from '../../../lib/custom-ui';
 import selectors from '../../../selectors';
 import entryActions from '../../../entry-actions';
 import { useNestedRef } from '../../../hooks';
+import { trackPendoEvent } from '../../../utils/pendo';
 import { BoardViews, LabelFilterModes } from '../../../constants/Enums';
 import UserAvatar from '../../users/UserAvatar';
 import BoardMembershipsStep from '../../board-memberships/BoardMembershipsStep';
@@ -38,6 +39,16 @@ import styles from './Filters.module.scss';
 
 // Membership comparison — order carries no meaning for a filter selection.
 const sameIds = (a, b) => a.length === b.length && a.every((id) => b.includes(id));
+
+// Describes what a filter contains for analytics, without sending the search text itself.
+const buildFilterTrackingProperties = (filter) => ({
+  userIdsCount: (filter.userIds || []).length,
+  labelIdsCount: (filter.labelIds || []).length,
+  excludedLabelIdsCount: (filter.excludedLabelIds || []).length,
+  listIdsCount: (filter.listIds || []).length,
+  noMember: !!filter.noMember,
+  hasSearch: !!filter.search,
+});
 
 const FilterListChip = React.memo(({ id, onClick }) => {
   const selectListById = useMemo(() => selectors.makeSelectListById(), []);
@@ -76,6 +87,7 @@ const Filters = React.memo(() => {
     (state) => !!selectors.selectCurrentUserMembershipForCurrentBoard(state),
   );
 
+  const store = useStore();
   const dispatch = useDispatch();
   const [t] = useTranslation();
   const [search, setSearch] = useState(board.search);
@@ -90,8 +102,28 @@ const Filters = React.memo(() => {
     () =>
       debounce((nextSearch) => {
         dispatch(entryActions.searchInCurrentBoard(nextSearch));
+
+        if (nextSearch && nextSearch.trim()) {
+          // Read after dispatching so the counts reflect the search that just ran
+          const state = store.getState();
+          const currentBoard = selectors.selectCurrentBoard(state);
+          const filteredCardIds = selectors.selectFilteredCardIdsForCurrentBoard(state);
+
+          trackPendoEvent('board_search_performed', {
+            boardId: currentBoard ? currentBoard.id : null,
+            queryLength: nextSearch.trim().length,
+            boardView: currentBoard ? currentBoard.view : null,
+            resultsCount: filteredCardIds ? filteredCardIds.length : 0,
+            hasOtherFilters:
+              selectors.selectFilterUserIdsForCurrentBoard(state).length > 0 ||
+              selectors.selectFilterLabelIdsForCurrentBoard(state).length > 0 ||
+              selectors.selectFilterExcludedLabelIdsForCurrentBoard(state).length > 0 ||
+              selectors.selectFilterListIdsForCurrentBoard(state).length > 0 ||
+              !!(currentBoard && currentBoard.filterNoMember),
+          });
+        }
       }, 400),
-    [dispatch],
+    [dispatch, store],
   );
 
   const [searchFieldRef, handleSearchFieldRef] = useNestedRef('inputRef');
@@ -375,8 +407,15 @@ const Filters = React.memo(() => {
   const handleRestoreClick = useCallback(() => {
     if (lastFilter) {
       applyFilter(lastFilter);
+
+      trackPendoEvent('board_filter_recalled', {
+        boardId: board.id,
+        source: 'restore',
+        action: 'apply',
+        ...buildFilterTrackingProperties(lastFilter),
+      });
     }
-  }, [applyFilter, lastFilter]);
+  }, [applyFilter, board.id, lastFilter]);
 
   // Saved filters replace rather than merge. Picking the one already on the
   // board turns it off instead, so the same row toggles both ways.
@@ -384,11 +423,20 @@ const Filters = React.memo(() => {
     (item) => {
       clearCurrentFilter();
 
-      if (item.id !== activeSavedFilterId) {
+      const isDeactivation = item.id === activeSavedFilterId;
+
+      if (!isDeactivation) {
         applyFilter(item);
       }
+
+      trackPendoEvent('board_filter_recalled', {
+        boardId: board.id,
+        source: 'saved_filter',
+        action: isDeactivation ? 'deactivate' : 'apply',
+        ...buildFilterTrackingProperties(item),
+      });
     },
-    [activeSavedFilterId, applyFilter, clearCurrentFilter],
+    [activeSavedFilterId, applyFilter, board.id, clearCurrentFilter],
   );
 
   const handleSavedFilterRemove = useCallback(
@@ -401,14 +449,23 @@ const Filters = React.memo(() => {
 
   const handleSaveFilter = useCallback(
     (name) => {
-      addSavedFilter(currentUserId, board.id, {
+      const entry = addSavedFilter(currentUserId, board.id, {
         name,
         ...currentFilter,
       });
 
+      if (entry) {
+        trackPendoEvent('board_filter_saved', {
+          boardId: board.id,
+          ...buildFilterTrackingProperties(entry),
+          isOverwrite: savedFilters.some((item) => item.name === entry.name),
+          savedFiltersCount: readSavedFilters(currentUserId, board.id).length,
+        });
+      }
+
       setStorageRev((prevStorageRev) => prevStorageRev + 1);
     },
-    [board.id, currentFilter, currentUserId],
+    [board.id, currentFilter, currentUserId, savedFilters],
   );
 
   useDidUpdate(() => {
