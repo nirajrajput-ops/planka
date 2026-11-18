@@ -46,6 +46,36 @@ export function* initializeCore() {
     notificationServices,
   } = yield call(requests.fetchCore); // TODO: handle error
 
+  // The first point at which the signed-in user is known, both right after logging in and on
+  // a reload with a stored access token.
+  window.pendo.identify({
+    visitor: {
+      id: user.id,
+      email: user.email,
+      full_name: user.name,
+      role: user.role,
+      username: user.username,
+      organization: user.organization,
+      language: user.language,
+      subscribeToOwnCards: user.subscribeToOwnCards,
+      subscribeToCardWhenCommenting: user.subscribeToCardWhenCommenting,
+      turnOffRecentCardHighlighting: user.turnOffRecentCardHighlighting,
+      enableFavoritesByDefault: user.enableFavoritesByDefault,
+      defaultEditorMode: user.defaultEditorMode,
+      defaultHomeView: user.defaultHomeView,
+      defaultProjectsOrder: user.defaultProjectsOrder,
+      autoLogoutMode: user.autoLogoutMode,
+      isTotpEnabled: user.isTotpEnabled,
+      totpEnabledAt: user.totpEnabledAt,
+      isDeactivated: user.isDeactivated,
+      createdAt: user.createdAt,
+      // The server's presentOne leaves these two out of /api/users/me, so they stay unset
+      // unless the API starts returning them.
+      termsAcceptedAt: user.termsAcceptedAt,
+      apiKeyCreatedAt: user.apiKeyCreatedAt,
+    },
+  });
+
   yield call(i18n.changeLanguage, user.language);
   yield call(i18n.loadCoreLocale);
 
@@ -121,6 +151,11 @@ export function* logout(revokeAccessToken) {
   // Everything this window was holding about the boards it had open. None of it
   // belongs to the next person to sign in here.
   yield call(forgetBoardViews);
+  // Nor does the Pendo visitor, so it is reset to a fresh anonymous one. The snippet in
+  // index.html doesn't stub clearSession: it only exists once the agent has loaded.
+  if (window.pendo.clearSession) {
+    window.pendo.clearSession();
+  }
 
   if (revokeAccessToken) {
     yield put(actions.logout.revokeAccessToken());
