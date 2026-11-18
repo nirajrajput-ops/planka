@@ -13,6 +13,7 @@ import { Popup } from '../../../lib/custom-ui';
 import selectors from '../../../selectors';
 import entryActions from '../../../entry-actions';
 import { useForm } from '../../../hooks';
+import { CardMoveMethods } from '../../../constants/TrackEventEnums';
 
 import styles from './MoveCardStep.module.scss';
 
@@ -65,9 +66,19 @@ const MoveCardStep = React.memo(({ id, onBack, onClose }) => {
 
   const handleSubmit = useCallback(() => {
     if (selectedBoard.id !== defaultPath.boardId) {
-      dispatch(entryActions.transferCard(id, selectedBoard.id, selectedList.id));
+      dispatch(
+        entryActions.transferCard(
+          id,
+          selectedBoard.id,
+          selectedList.id,
+          undefined,
+          CardMoveMethods.MOVE_CARD_STEP,
+        ),
+      );
     } else if (selectedList.id !== defaultPath.listId) {
-      dispatch(entryActions.moveCard(id, selectedList.id));
+      dispatch(
+        entryActions.moveCard(id, selectedList.id, undefined, CardMoveMethods.MOVE_CARD_STEP),
+      );
     }
 
     onClose();

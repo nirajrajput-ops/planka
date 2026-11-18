@@ -15,6 +15,7 @@ import entryActions from '../../../entry-actions';
 import { useSteps } from '../../../hooks';
 import { isListArchiveOrTrash } from '../../../utils/record-helpers';
 import { BoardMembershipRoles, CardTypes, ListTypes } from '../../../constants/Enums';
+import { CardMoveMethods } from '../../../constants/TrackEventEnums';
 import SelectCardTypeStep from '../SelectCardTypeStep';
 import EditDueDateStep from '../EditDueDateStep';
 import EditStopwatchStep from '../EditStopwatchStep';
@@ -238,7 +239,7 @@ const CardActionsStep = React.memo(({ cardId, defaultStep, onNameEdit, onClose }
   }, [cardId, onClose, dispatch]);
 
   const handleRestoreClick = useCallback(() => {
-    dispatch(entryActions.moveCard(cardId, card.prevListId, undefined, true));
+    dispatch(entryActions.moveCard(cardId, card.prevListId, undefined, CardMoveMethods.RESTORE));
   }, [cardId, card.prevListId, dispatch]);
 
   const handleArchiveConfirm = useCallback(() => {

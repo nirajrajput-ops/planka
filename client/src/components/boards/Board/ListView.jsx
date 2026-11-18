@@ -17,6 +17,7 @@ import selectors from '../../../selectors';
 import entryActions from '../../../entry-actions';
 import { BoardMembershipRoles } from '../../../constants/Enums';
 import DroppableTypes from '../../../constants/DroppableTypes';
+import { CardMoveMethods } from '../../../constants/TrackEventEnums';
 import parseDndId from '../../../utils/parse-dnd-id';
 import { closePopup } from '../../../lib/popup';
 import globalStyles from '../../../styles.module.scss';
@@ -111,7 +112,9 @@ const ListView = React.memo(
           }
         }
 
-        dispatch(entryActions.moveCard(cardId, targetListId, localIndex));
+        dispatch(
+          entryActions.moveCard(cardId, targetListId, localIndex, CardMoveMethods.DRAG_AND_DROP),
+        );
       },
       [cardIds, dispatch, store],
     );

@@ -11,6 +11,7 @@ import request from '../request';
 import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
+import pendoTrack from '../../../utils/pendo-track';
 import { createLocalId } from '../../../utils/local-id';
 import ToastTypes from '../../../constants/ToastTypes';
 
@@ -200,6 +201,36 @@ export function* moveListCards(id, nextId) {
   }
 
   yield put(actions.moveListCards.success(list, cards, activities));
+
+  // The server moves every card in the list, including the ones an active
+  // filter keeps off screen, so whether one was active goes along.
+  const board = yield select(selectors.selectCurrentBoard);
+  const filterUserIds = yield select(selectors.selectFilterUserIdsForCurrentBoard);
+  const filterLabelIds = yield select(selectors.selectFilterLabelIdsForCurrentBoard);
+  const filterListIds = yield select(selectors.selectFilterListIdsForCurrentBoard);
+
+  const filterExcludedLabelIds = yield select(
+    selectors.selectFilterExcludedLabelIdsForCurrentBoard,
+  );
+
+  const hadActiveFilter =
+    !!board &&
+    (filterUserIds.length > 0 ||
+      filterLabelIds.length > 0 ||
+      filterExcludedLabelIds.length > 0 ||
+      filterListIds.length > 0 ||
+      !!board.filterNoMember ||
+      !!board.search);
+
+  // Only reachable through moveListCardsToArchiveList, and the server takes no
+  // other target than the archive list
+  yield call(pendoTrack, 'list_cards_archived', {
+    listId: list.id,
+    boardId: list.boardId,
+    listType: list.type,
+    archivedCardCount: cards.length,
+    hadActiveFilter,
+  });
 }
 
 export function* moveListCardsToArchiveList(id) {

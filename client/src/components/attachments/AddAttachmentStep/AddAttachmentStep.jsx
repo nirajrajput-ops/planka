@@ -12,6 +12,7 @@ import { FilePicker, Popup } from '../../../lib/custom-ui';
 
 import entryActions from '../../../entry-actions';
 import { AttachmentTypes } from '../../../constants/Enums';
+import { AttachmentSources } from '../../../constants/TrackEventEnums';
 
 import styles from './AddAttachmentStep.module.scss';
 
@@ -27,6 +28,7 @@ const AddAttachmentStep = React.memo(({ onClose }) => {
             file,
             type: AttachmentTypes.FILE,
             name: file.name,
+            source: AttachmentSources.FILE_PICKER,
           }),
         );
       });

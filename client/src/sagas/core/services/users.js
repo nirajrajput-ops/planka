@@ -13,8 +13,27 @@ import actions from '../../../actions';
 import api from '../../../api';
 import { setAccessToken } from '../../../utils/access-token-storage';
 import mergeRecords from '../../../utils/merge-records';
+import pendoTrack from '../../../utils/pendo-track';
 import { isUserAdminOrProjectOwner } from '../../../utils/record-helpers';
 import { UserRoles } from '../../../constants/Enums';
+
+// 'Invalid TOTP code' rejections since the current two-factor setup began: how
+// much trouble the authenticator step gave someone before it worked.
+let invalidTotpCodeAttempts = 0;
+
+// The server turns a new or reactivated account away once the instance holds as
+// many active users as it is allowed to. The Add user form shows that as an
+// unknown error, and a refused reactivation shows nothing at all.
+function* trackActiveUsersLimitReached(context, userRole) {
+  const bootstrap = yield select(selectors.selectBootstrap);
+
+  yield call(pendoTrack, 'usage_limit_reached', {
+    limitType: 'active_users',
+    context,
+    activeUsersLimit: bootstrap && bootstrap.activeUsersLimit,
+    userRole,
+  });
+}
 
 export function* handleUsersReset() {
   let users;
@@ -35,10 +54,24 @@ export function* createUser(data) {
     ({ item: user } = yield call(request, api.createUser, data));
   } catch (error) {
     yield put(actions.createUser.failure(error));
+
+    if (error.message === 'Active limit reached') {
+      yield call(trackActiveUsersLimitReached, 'user_creation', data.role);
+    }
+
     return;
   }
 
   yield put(actions.createUser.success(user));
+
+  const activeUsersTotal = yield select(selectors.selectActiveUsersTotal);
+
+  // The role and whether a username was set; never the email, name or password
+  yield call(pendoTrack, 'user_created', {
+    role: user.role,
+    hasUsername: !!data.username,
+    activeUsersCount: activeUsersTotal,
+  });
 }
 
 export function* handleUserCreate(user) {
@@ -57,6 +90,14 @@ export function* updateUser(id, data) {
     ({ item: user } = yield call(request, api.updateUser, id, data));
   } catch (error) {
     yield put(actions.updateUser.failure(id, error));
+
+    // Reactivating an account is the only update the limit applies to
+    if (error.message === 'Active limit reached') {
+      const targetUser = yield select(selectors.selectUserById, id);
+
+      yield call(trackActiveUsersLimitReached, 'user_reactivation', targetUser && targetUser.role);
+    }
+
     return;
   }
 
@@ -389,6 +430,9 @@ export function* clearUserApiKeyValue(id) {
 }
 
 export function* setupUserTotp(id, data) {
+  // Every run of the setup wizard starts here, with a fresh secret
+  invalidTotpCodeAttempts = 0;
+
   yield put(actions.setupUserTotp(id));
 
   let setup;
@@ -424,10 +468,23 @@ export function* enableUserTotp(id, data) {
     } = yield call(request, api.enableUserTotp, id, data));
   } catch (error) {
     yield put(actions.enableUserTotp.failure(id, error));
+
+    if (error.message === 'Invalid TOTP code') {
+      invalidTotpCodeAttempts += 1;
+    }
+
     return;
   }
 
   yield put(actions.enableUserTotp.success(user, recoveryCodes));
+
+  // The server has verified the code, which no single click or page can show
+  yield call(pendoTrack, 'two_factor_authentication_enabled', {
+    userRole: user.role,
+    invalidTotpCodeAttempts,
+  });
+
+  invalidTotpCodeAttempts = 0;
 }
 
 export function* enableCurrentUserTotp(data) {

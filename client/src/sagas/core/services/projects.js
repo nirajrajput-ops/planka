@@ -13,6 +13,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import mergeRecords from '../../../utils/merge-records';
+import pendoTrack from '../../../utils/pendo-track';
 import { UserRoles } from '../../../constants/Enums';
 
 export function* searchProjects(value) {
@@ -54,6 +55,15 @@ export function* createProject(data) {
   }
 
   yield put(actions.createProject.success(project, projectManagers));
+
+  // The type was picked in a popup of its own, so the "Create project" click
+  // cannot tell personal from team use; the request that just succeeded can.
+  yield call(pendoTrack, 'project_created', {
+    projectId: project.id,
+    projectType: data.type,
+    hasDescription: !!data.description,
+  });
+
   yield call(goToProject, project.id);
 }
 

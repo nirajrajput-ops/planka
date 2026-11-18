@@ -15,6 +15,7 @@ import entryActions from '../../../../entry-actions';
 import parseDndId from '../../../../utils/parse-dnd-id';
 import DroppableTypes from '../../../../constants/DroppableTypes';
 import { BoardMembershipRoles } from '../../../../constants/Enums';
+import { CardMoveMethods } from '../../../../constants/TrackEventEnums';
 import AddList from './AddList';
 import List from '../../../lists/List';
 import PlusMathIcon from '../../../../assets/images/plus-math-icon.svg?react';
@@ -69,7 +70,12 @@ const KanbanContent = React.memo(() => {
           break;
         case DroppableTypes.CARD:
           dispatch(
-            entryActions.moveCard(id, parseDndId(destination.droppableId), destination.index),
+            entryActions.moveCard(
+              id,
+              parseDndId(destination.droppableId),
+              destination.index,
+              CardMoveMethods.DRAG_AND_DROP,
+            ),
           );
 
           break;
