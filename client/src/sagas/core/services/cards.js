@@ -16,6 +16,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import i18n from '../../../i18n';
 import { createLocalId } from '../../../utils/local-id';
+import { trackPendoEvent } from '../../../utils/pendo';
 import { isListArchiveOrTrash, isListFinite } from '../../../utils/record-helpers';
 import ActionTypes from '../../../constants/ActionTypes';
 import ClipboardTypes from '../../../constants/ClipboardTypes';
@@ -177,6 +178,17 @@ export function* createCard(listId, data, index, autoOpen) {
   const filterUserIds = yield select(selectors.selectFilterUserIdsForCurrentBoard);
   const filterLabelIds = yield select(selectors.selectFilterLabelIdsForCurrentBoard);
 
+  // Pendo: card was created, including the board filters copied onto it
+  yield call(trackPendoEvent, 'card_created', {
+    cardId: card.id,
+    boardId: list.boardId,
+    listId,
+    listType: list.type,
+    autoOpen: !!autoOpen,
+    inheritedFilterUserCount: filterUserIds.length,
+    inheritedFilterLabelCount: filterLabelIds.length,
+  });
+
   yield all([
     ...filterUserIds.map((userId) => call(addUserToCard, userId, card.id)),
     ...filterLabelIds.map((labelId) => call(addLabelToCard, labelId, card.id)),
@@ -248,12 +260,17 @@ export function* handleCardCreate(card) {
 export function* updateCard(id, data) {
   let prevListId;
   let isClosed;
+  let fromListType;
+  let toListType;
 
   if (data.listId) {
     const list = yield select(selectors.selectListById, data.listId);
 
     const card = yield select(selectors.selectCardById, id);
     const prevList = yield select(selectors.selectListById, card.listId);
+
+    fromListType = prevList.type;
+    toListType = list.type;
 
     if (prevList.type === ListTypes.TRASH) {
       prevListId = null;
@@ -295,6 +312,17 @@ export function* updateCard(id, data) {
   }
 
   yield put(actions.updateCard.success(card));
+
+  if (isClosed === true) {
+    // Pendo: card was moved into a list whose type state is closed
+    yield call(trackPendoEvent, 'card_closed', {
+      cardId: card.id,
+      boardId: card.boardId,
+      fromListType,
+      toListType,
+      isClosed,
+    });
+  }
 }
 
 export function* updateCurrentCard(data) {
@@ -429,6 +457,8 @@ export function* transferCard(id, boardId, listId, index) {
   }
 
   const list = yield select(selectors.selectListById, listId);
+  const sourceCard = yield select(selectors.selectCardById, id);
+  const fromBoardId = sourceCard ? sourceCard.boardId : null;
 
   const data = {
     listId,
@@ -509,6 +539,17 @@ export function* transferCard(id, boardId, listId, index) {
     });
 
     return;
+  }
+
+  if (fromBoardId !== boardId) {
+    // Pendo: card was moved to another board
+    yield call(trackPendoEvent, 'card_transferred', {
+      cardId: id,
+      fromBoardId,
+      toBoardId: boardId,
+      toListType: list.type,
+      isClosed: typeState === ListTypeStates.CLOSED,
+    });
   }
 
   yield put(
@@ -633,6 +674,15 @@ export function* duplicateCard(id, data) {
       customFieldValues,
     ),
   );
+
+  // Pendo: card was duplicated to the same board or another board
+  yield call(trackPendoEvent, 'card_duplicated', {
+    sourceCardId: id,
+    newCardId: card.id,
+    boardId,
+    listId,
+    isCrossBoard: !sourceCard || boardId !== sourceCard.boardId,
+  });
 }
 
 export function* duplicateCurrentCard(data) {
