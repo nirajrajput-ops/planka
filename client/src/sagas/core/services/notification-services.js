@@ -10,6 +10,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import { getErrorCode, getUrlScheme, trackPendoEvent } from '../../../utils/pendo-track';
 
 export function* createNotificationServiceInCurrentUser(data) {
   const localId = yield call(createLocalId);
@@ -37,6 +38,13 @@ export function* createNotificationServiceInCurrentUser(data) {
   }
 
   yield put(actions.createNotificationService.success(localId, notificationService));
+
+  yield call(trackPendoEvent, 'notification_service_created', {
+    scope: 'user',
+    board_id: null,
+    format: notificationService.format,
+    url_scheme: getUrlScheme(data.url),
+  });
 }
 
 export function* createNotificationServiceInBoard(boardId, data) {
@@ -64,6 +72,13 @@ export function* createNotificationServiceInBoard(boardId, data) {
   }
 
   yield put(actions.createNotificationService.success(localId, notificationService));
+
+  yield call(trackPendoEvent, 'notification_service_created', {
+    scope: 'board',
+    board_id: boardId,
+    format: notificationService.format,
+    url_scheme: getUrlScheme(data.url),
+  });
 }
 
 export function* handleNotificationServiceCreate(notificationService) {
@@ -89,6 +104,14 @@ export function* handleNotificationServiceUpdate(notificationService) {
 }
 
 export function* testNotificationService(id) {
+  const existingNotificationService = yield select(selectors.selectNotificationServiceById, id);
+
+  const trackingProperties = {
+    notification_service_id: id,
+    scope: existingNotificationService && existingNotificationService.boardId ? 'board' : 'user',
+    format: existingNotificationService ? existingNotificationService.format : null,
+  };
+
   yield put(actions.testNotificationService(id));
 
   let notificationService;
@@ -96,10 +119,22 @@ export function* testNotificationService(id) {
     ({ item: notificationService } = yield call(request, api.testNotificationService, id));
   } catch (error) {
     yield put(actions.testNotificationService.failure(id, error));
+
+    yield call(trackPendoEvent, 'notification_service_test_completed', {
+      ...trackingProperties,
+      success: false,
+      error_code: getErrorCode(error),
+    });
+
     return;
   }
 
   yield put(actions.testNotificationService.success(notificationService));
+
+  yield call(trackPendoEvent, 'notification_service_test_completed', {
+    ...trackingProperties,
+    success: true,
+  });
 }
 
 export function* deleteNotificationService(id) {

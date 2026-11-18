@@ -13,6 +13,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
 import { rememberBoardView } from '../../../utils/board-view-memory';
+import { getErrorCode, trackPendoEvent } from '../../../utils/pendo-track';
 import ActionTypes from '../../../constants/ActionTypes';
 import ModalTypes from '../../../constants/ModalTypes';
 
@@ -59,10 +60,29 @@ export function* createBoard(projectId, { import: boardImport, ...data }) {
       : call(request, api.createBoard, projectId, nextData));
   } catch (error) {
     yield put(actions.createBoard.failure(localId, error));
+
+    if (boardImport) {
+      yield call(trackPendoEvent, 'board_import_failed', {
+        project_id: projectId,
+        import_type: boardImport.type,
+        import_file_size: boardImport.file ? boardImport.file.size : null,
+        error_code: getErrorCode(error),
+      });
+    }
+
     return;
   }
 
   yield put(actions.createBoard.success(localId, board, boardMemberships));
+
+  yield call(trackPendoEvent, 'board_created', {
+    board_id: board.id,
+    project_id: projectId,
+    is_import: !!boardImport,
+    import_type: boardImport ? boardImport.type : null,
+    import_file_size: boardImport && boardImport.file ? boardImport.file.size : null,
+    board_membership_count: boardMemberships ? boardMemberships.length : 0,
+  });
 
   if (watchForCreateBoardActionTask.isRunning()) {
     yield call(goToBoard, board.id);
@@ -223,6 +243,25 @@ export function* searchInCurrentBoard(value) {
   const currentListId = yield select(selectors.selectCurrentListId);
 
   yield put(actions.searchInBoard(boardId, value, currentListId));
+
+  // Clearing the search field is not a search, so only non-empty queries are tracked.
+  const query = value ? value.trim() : '';
+
+  if (query) {
+    const board = yield select(selectors.selectBoardById, boardId);
+    const filteredCardIds = yield select(selectors.selectFilteredCardIdsForCurrentBoard);
+    const filterUserIds = yield select(selectors.selectFilterUserIdsForCurrentBoard);
+    const filterLabelIds = yield select(selectors.selectFilterLabelIdsForCurrentBoard);
+
+    yield call(trackPendoEvent, 'board_search_performed', {
+      board_id: boardId,
+      query_length: query.length,
+      results_count: filteredCardIds ? filteredCardIds.length : 0,
+      filter_user_count: filterUserIds ? filterUserIds.length : 0,
+      filter_label_count: filterLabelIds ? filterLabelIds.length : 0,
+      board_view: board ? board.view : null,
+    });
+  }
 }
 
 export function* deleteBoard(id) {

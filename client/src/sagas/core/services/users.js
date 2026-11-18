@@ -13,6 +13,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import { setAccessToken } from '../../../utils/access-token-storage';
 import mergeRecords from '../../../utils/merge-records';
+import { trackPendoEvent } from '../../../utils/pendo-track';
 import { isUserAdminOrProjectOwner } from '../../../utils/record-helpers';
 import { UserRoles } from '../../../constants/Enums';
 
@@ -39,6 +40,12 @@ export function* createUser(data) {
   }
 
   yield put(actions.createUser.success(user));
+
+  yield call(trackPendoEvent, 'user_created', {
+    role: user.role,
+    has_username: !!user.username,
+    language: user.language || null,
+  });
 }
 
 export function* handleUserCreate(user) {
@@ -281,6 +288,13 @@ export function* updateUserPassword(id, data) {
   }
 
   yield put(actions.updateUserPassword.success(user, accessToken));
+
+  const currentUserId = yield select(selectors.selectCurrentUserId);
+
+  yield call(trackPendoEvent, 'password_changed', {
+    is_current_user: id === currentUserId,
+    access_token_reissued: !!accessToken,
+  });
 }
 
 export function* updateCurrentUserPassword(data) {
@@ -366,6 +380,14 @@ export function* createUserApiKey(id) {
   }
 
   yield put(actions.createUserApiKey.success(user, apiKey));
+
+  const currentUserId = yield select(selectors.selectCurrentUserId);
+
+  // The key value is never sent to Pendo.
+  yield call(trackPendoEvent, 'api_key_created', {
+    is_current_user: id === currentUserId,
+    user_role: user.role,
+  });
 }
 
 export function* deleteUserApiKey(id) {
@@ -428,6 +450,13 @@ export function* enableUserTotp(id, data) {
   }
 
   yield put(actions.enableUserTotp.success(user, recoveryCodes));
+
+  const currentUserId = yield select(selectors.selectCurrentUserId);
+
+  yield call(trackPendoEvent, 'two_factor_enabled', {
+    recovery_code_count: recoveryCodes ? recoveryCodes.length : 0,
+    is_current_user: id === currentUserId,
+  });
 }
 
 export function* enableCurrentUserTotp(data) {
@@ -447,6 +476,12 @@ export function* disableUserTotp(id, data) {
   }
 
   yield put(actions.disableUserTotp.success(user));
+
+  const currentUserId = yield select(selectors.selectCurrentUserId);
+
+  yield call(trackPendoEvent, 'two_factor_disabled', {
+    is_current_user: id === currentUserId,
+  });
 }
 
 export function* disableCurrentUserTotp(data) {

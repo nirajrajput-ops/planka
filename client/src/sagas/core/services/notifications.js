@@ -9,6 +9,7 @@ import request from '../request';
 import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
+import { trackPendoEvent } from '../../../utils/pendo-track';
 
 export function* deleteAllNotifications() {
   yield put(actions.deleteAllNotifications());
@@ -22,6 +23,10 @@ export function* deleteAllNotifications() {
   }
 
   yield put(actions.deleteAllNotifications.success(notifications));
+
+  yield call(trackPendoEvent, 'notifications_cleared', {
+    notification_count: notifications ? notifications.length : 0,
+  });
 }
 
 export function* handleNotificationCreate(notification, users) {

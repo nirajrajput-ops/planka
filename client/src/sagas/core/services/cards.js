@@ -17,6 +17,7 @@ import api from '../../../api';
 import i18n from '../../../i18n';
 import { createLocalId } from '../../../utils/local-id';
 import { isListArchiveOrTrash, isListFinite } from '../../../utils/record-helpers';
+import { getErrorCode, trackPendoEvent } from '../../../utils/pendo-track';
 import ActionTypes from '../../../constants/ActionTypes';
 import ClipboardTypes from '../../../constants/ClipboardTypes';
 import ToastTypes from '../../../constants/ToastTypes';
@@ -177,6 +178,19 @@ export function* createCard(listId, data, index, autoOpen) {
   const filterUserIds = yield select(selectors.selectFilterUserIdsForCurrentBoard);
   const filterLabelIds = yield select(selectors.selectFilterLabelIdsForCurrentBoard);
 
+  const board = yield select(selectors.selectBoardById, list.boardId);
+
+  yield call(trackPendoEvent, 'card_created', {
+    card_id: card.id,
+    board_id: list.boardId,
+    list_id: listId,
+    list_type: list.type,
+    board_view: board ? board.view : null,
+    auto_open: !!autoOpen,
+    inherited_user_count: filterUserIds.length,
+    inherited_label_count: filterLabelIds.length,
+  });
+
   yield all([
     ...filterUserIds.map((userId) => call(addUserToCard, userId, card.id)),
     ...filterLabelIds.map((labelId) => call(addLabelToCard, labelId, card.id)),
@@ -248,12 +262,30 @@ export function* handleCardCreate(card) {
 export function* updateCard(id, data) {
   let prevListId;
   let isClosed;
+  let moveTrackingProperties;
 
   if (data.listId) {
     const list = yield select(selectors.selectListById, data.listId);
 
     const card = yield select(selectors.selectCardById, id);
     const prevList = yield select(selectors.selectListById, card.listId);
+
+    if (prevList.id !== list.id) {
+      let moveSource = 'list';
+      if (list.type === ListTypes.ARCHIVE) {
+        moveSource = 'archive';
+      } else if (list.type === ListTypes.TRASH) {
+        moveSource = 'trash';
+      }
+
+      moveTrackingProperties = {
+        card_id: id,
+        board_id: card.boardId,
+        from_list_type: prevList.type,
+        to_list_type: list.type,
+        move_source: moveSource,
+      };
+    }
 
     if (prevList.type === ListTypes.TRASH) {
       prevListId = null;
@@ -295,6 +327,13 @@ export function* updateCard(id, data) {
   }
 
   yield put(actions.updateCard.success(card));
+
+  if (moveTrackingProperties) {
+    yield call(trackPendoEvent, 'card_moved', {
+      ...moveTrackingProperties,
+      is_closed: !!card.isClosed,
+    });
+  }
 }
 
 export function* updateCurrentCard(data) {
@@ -420,8 +459,9 @@ export function* moveCurrentCardToTrash() {
   yield call(moveCurrentCard, trashListId, undefined, true);
 }
 
-export function* transferCard(id, boardId, listId, index) {
+export function* transferCard(id, boardId, listId, index, method = 'move') {
   const { cardId: currentCardId, boardId: currentBoardId } = yield select(selectors.selectPath);
+  const sourceCard = yield select(selectors.selectCardById, id);
 
   // TODO: hack?
   if (id === currentCardId) {
@@ -440,6 +480,14 @@ export function* transferCard(id, boardId, listId, index) {
   }
 
   const typeState = LIST_TYPE_STATE_BY_TYPE[list.type];
+
+  const transferTrackingProperties = {
+    card_id: id,
+    source_board_id: sourceCard ? sourceCard.boardId : null,
+    target_board_id: boardId,
+    target_list_type: list.type,
+    method,
+  };
 
   yield put(
     actions.transferCard(id, {
@@ -508,6 +556,12 @@ export function* transferCard(id, boardId, listId, index) {
       type: ToastTypes.SOURCE_CARD_NOT_MOVABLE,
     });
 
+    yield call(trackPendoEvent, 'card_transferred', {
+      ...transferTrackingProperties,
+      success: false,
+      error_code: getErrorCode(updateError),
+    });
+
     return;
   }
 
@@ -525,6 +579,11 @@ export function* transferCard(id, boardId, listId, index) {
       customFieldValues,
     ),
   );
+
+  yield call(trackPendoEvent, 'card_transferred', {
+    ...transferTrackingProperties,
+    success: true,
+  });
 }
 
 export function* transferCurrentCard(boardId, listId, index) {
@@ -533,7 +592,7 @@ export function* transferCurrentCard(boardId, listId, index) {
   yield call(transferCard, cardId, boardId, listId, index);
 }
 
-export function* duplicateCard(id, data) {
+export function* duplicateCard(id, data, method = 'duplicate') {
   const localId = yield call(createLocalId);
   const { cardId: currentCardId } = yield select(selectors.selectPath);
   const sourceCard = yield select(selectors.selectCardById, id);
@@ -633,6 +692,16 @@ export function* duplicateCard(id, data) {
       customFieldValues,
     ),
   );
+
+  yield call(trackPendoEvent, 'card_duplicated', {
+    source_card_id: id,
+    card_id: card.id,
+    is_cross_board: !sourceCard || boardId !== sourceCard.boardId,
+    method,
+    task_list_count: taskLists ? taskLists.length : 0,
+    attachment_count: attachments ? attachments.length : 0,
+    custom_field_group_count: customFieldGroups ? customFieldGroups.length : 0,
+  });
 }
 
 export function* duplicateCurrentCard(data) {
@@ -667,13 +736,13 @@ export function* pasteCard(listId) {
       data.position = yield select(selectors.selectNextCardPosition, listId);
     }
 
-    yield call(duplicateCard, clipboard.cardId, data);
+    yield call(duplicateCard, clipboard.cardId, data, 'copy_paste');
   } else if (clipboard.type === ClipboardTypes.CUT) {
     if (sourceCard && listId === sourceCard.listId) {
       return;
     }
 
-    yield call(transferCard, clipboard.cardId, list.boardId, list.id);
+    yield call(transferCard, clipboard.cardId, list.boardId, list.id, undefined, 'cut_paste');
   }
 }
 

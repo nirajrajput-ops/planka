@@ -10,6 +10,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import i18n from '../../../i18n';
 import { setAccessToken } from '../../../utils/access-token-storage';
+import { getErrorCode, getErrorMessage, trackPendoEvent } from '../../../utils/pendo-track';
 import AccessTokenSteps from '../../../constants/AccessTokenSteps';
 
 export function* initializeLogin() {
@@ -30,11 +31,28 @@ export function* authenticate(data) {
       ({ item: terms } = yield call(api.getTerms, i18n.resolvedLanguage));
     }
 
+    // A terms or TOTP step is the next part of the login flow, not a failure.
+    if (!error.step) {
+      yield call(trackPendoEvent, 'login_failed', {
+        error_step: 'credentials',
+        error_code: getErrorCode(error),
+        error_message: getErrorMessage(error),
+      });
+    }
+
     yield put(actions.authenticate.failure(error, terms));
     return;
   }
 
   yield call(setAccessToken, accessToken);
+
+  // Tracked before the success action, which ends the login saga.
+  yield call(trackPendoEvent, 'login_completed', {
+    completion_step: 'credentials',
+    totp_required: false,
+    terms_accepted: false,
+  });
+
   yield put(actions.authenticate.success(accessToken));
 }
 
@@ -55,11 +73,25 @@ export function* acceptTerms(signature) {
       initialLanguage: i18n.resolvedLanguage,
     }));
   } catch (error) {
+    yield call(trackPendoEvent, 'login_failed', {
+      error_step: AccessTokenSteps.ACCEPT_TERMS,
+      error_code: getErrorCode(error),
+      error_message: getErrorMessage(error),
+    });
+
     yield put(actions.acceptTerms.failure(error));
     return;
   }
 
   yield call(setAccessToken, accessToken);
+
+  // Tracked before the success action, which ends the login saga.
+  yield call(trackPendoEvent, 'login_completed', {
+    completion_step: AccessTokenSteps.ACCEPT_TERMS,
+    totp_required: false,
+    terms_accepted: true,
+  });
+
   yield put(actions.acceptTerms.success(accessToken));
 }
 
@@ -106,11 +138,25 @@ export function* verifyTotp(data) {
       pendingToken,
     }));
   } catch (error) {
+    yield call(trackPendoEvent, 'login_failed', {
+      error_step: AccessTokenSteps.VERIFY_TOTP,
+      error_code: getErrorCode(error),
+      error_message: getErrorMessage(error),
+    });
+
     yield put(actions.verifyTotp.failure(error));
     return;
   }
 
   yield call(setAccessToken, accessToken);
+
+  // Tracked before the success action, which ends the login saga.
+  yield call(trackPendoEvent, 'login_completed', {
+    completion_step: AccessTokenSteps.VERIFY_TOTP,
+    totp_required: true,
+    terms_accepted: false,
+  });
+
   yield put(actions.verifyTotp.success(accessToken));
 }
 
