@@ -7,7 +7,7 @@ import debounce from 'lodash/debounce';
 import React, { useCallback, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector, useStore } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { Icon } from 'semantic-ui-react';
 import { useDidUpdate } from '../../../lib/hooks';
@@ -17,6 +17,7 @@ import { Input, Tooltip } from '../../../lib/custom-ui';
 import selectors from '../../../selectors';
 import entryActions from '../../../entry-actions';
 import { useNestedRef } from '../../../hooks';
+import { trackPendoEvent } from '../../../utils/pendo-track';
 import { BoardViews, LabelFilterModes } from '../../../constants/Enums';
 import UserAvatar from '../../users/UserAvatar';
 import BoardMembershipsStep from '../../board-memberships/BoardMembershipsStep';
@@ -77,6 +78,7 @@ const Filters = React.memo(() => {
   );
 
   const dispatch = useDispatch();
+  const store = useStore();
   const [t] = useTranslation();
   const [search, setSearch] = useState(board.search);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -90,8 +92,26 @@ const Filters = React.memo(() => {
     () =>
       debounce((nextSearch) => {
         dispatch(entryActions.searchInCurrentBoard(nextSearch));
+
+        if (nextSearch && nextSearch.trim()) {
+          // Read from the store at fire time, since this debounced callback outlives renders
+          const state = store.getState();
+          const currentBoard = selectors.selectCurrentBoard(state);
+
+          trackPendoEvent('board_search_performed', {
+            boardId: currentBoard ? currentBoard.id : 'unknown',
+            searchLength: nextSearch.trim().length,
+            boardView: currentBoard ? currentBoard.view : 'unknown',
+            filterUserCount: selectors.selectFilterUserIdsForCurrentBoard(state).length,
+            filterLabelCount: selectors.selectFilterLabelIdsForCurrentBoard(state).length,
+            filterExcludedLabelCount:
+              selectors.selectFilterExcludedLabelIdsForCurrentBoard(state).length,
+            filterListCount: selectors.selectFilterListIdsForCurrentBoard(state).length,
+            noMemberFilter: !!(currentBoard && currentBoard.filterNoMember),
+          });
+        }
       }, 400),
-    [dispatch],
+    [dispatch, store],
   );
 
   const [searchFieldRef, handleSearchFieldRef] = useNestedRef('inputRef');
@@ -401,10 +421,23 @@ const Filters = React.memo(() => {
 
   const handleSaveFilter = useCallback(
     (name) => {
-      addSavedFilter(currentUserId, board.id, {
+      const savedFilter = addSavedFilter(currentUserId, board.id, {
         name,
         ...currentFilter,
       });
+
+      if (savedFilter) {
+        trackPendoEvent('board_filter_saved', {
+          boardId: board.id,
+          userFilterCount: (savedFilter.userIds || []).length,
+          labelFilterCount: (savedFilter.labelIds || []).length,
+          excludedLabelFilterCount: (savedFilter.excludedLabelIds || []).length,
+          listFilterCount: (savedFilter.listIds || []).length,
+          noMember: !!savedFilter.noMember,
+          hasSearch: !!savedFilter.search,
+          savedFilterCount: readSavedFilters(currentUserId, board.id).length,
+        });
+      }
 
       setStorageRev((prevStorageRev) => prevStorageRev + 1);
     },

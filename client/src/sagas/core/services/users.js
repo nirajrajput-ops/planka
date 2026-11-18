@@ -13,6 +13,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import { setAccessToken } from '../../../utils/access-token-storage';
 import mergeRecords from '../../../utils/merge-records';
+import { getErrorCode, trackPendoEvent } from '../../../utils/pendo-track';
 import { isUserAdminOrProjectOwner } from '../../../utils/record-helpers';
 import { UserRoles } from '../../../constants/Enums';
 
@@ -35,10 +36,25 @@ export function* createUser(data) {
     ({ item: user } = yield call(request, api.createUser, data));
   } catch (error) {
     yield put(actions.createUser.failure(error));
+
+    yield call(trackPendoEvent, 'user_created', {
+      role: data.role,
+      hasUsername: !!data.username,
+      success: false,
+      errorCode: getErrorCode(error),
+    });
+
     return;
   }
 
   yield put(actions.createUser.success(user));
+
+  yield call(trackPendoEvent, 'user_created', {
+    userId: user.id,
+    role: user.role,
+    hasUsername: !!user.username,
+    success: true,
+  });
 }
 
 export function* handleUserCreate(user) {
@@ -428,6 +444,10 @@ export function* enableUserTotp(id, data) {
   }
 
   yield put(actions.enableUserTotp.success(user, recoveryCodes));
+
+  yield call(trackPendoEvent, 'two_factor_enabled', {
+    recoveryCodeCount: recoveryCodes ? recoveryCodes.length : 0,
+  });
 }
 
 export function* enableCurrentUserTotp(data) {
