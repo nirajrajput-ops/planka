@@ -16,12 +16,15 @@ import actions from '../../../actions';
 import api from '../../../api';
 import i18n from '../../../i18n';
 import { createLocalId } from '../../../utils/local-id';
+import pendo from '../../../utils/pendo';
 import { isListArchiveOrTrash, isListFinite } from '../../../utils/record-helpers';
 import ActionTypes from '../../../constants/ActionTypes';
 import ClipboardTypes from '../../../constants/ClipboardTypes';
 import ToastTypes from '../../../constants/ToastTypes';
 import { BoardViews, ListTypes, ListTypeStates } from '../../../constants/Enums';
 import LIST_TYPE_STATE_BY_TYPE from '../../../constants/ListTypeStateByType';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 // eslint-disable-next-line no-underscore-dangle
 const _preloadImage = (url) =>
@@ -33,6 +36,25 @@ const _preloadImage = (url) =>
 
     image.src = url;
   });
+
+// Whole days since a date the server set, or null when the card has none
+const getDaysSince = (date) =>
+  date ? Math.floor((Date.now() - new Date(date).getTime()) / DAY_MS) : null;
+
+// `prevCard` and `prevList` are as they were before the move. Either can be missing when a cut
+// card is pasted from a board that is no longer loaded.
+const trackCardMoved = (card, list, prevCard, prevList, isCrossBoard) => {
+  pendo.track('card_moved', {
+    boardId: card.boardId,
+    fromListType: prevList ? prevList.type : null,
+    toListType: list.type,
+    isClosed: card.isClosed,
+    isCrossBoard,
+    cardType: card.type,
+    cardAgeDays: prevCard ? getDaysSince(prevCard.createdAt) : null,
+    daysInPreviousList: prevCard ? getDaysSince(prevCard.listChangedAt) : null,
+  });
+};
 
 export function* fetchCards(listId) {
   const { boardId, lastCard } = yield select(selectors.selectListById, listId);
@@ -177,6 +199,16 @@ export function* createCard(listId, data, index, autoOpen) {
   const filterUserIds = yield select(selectors.selectFilterUserIdsForCurrentBoard);
   const filterLabelIds = yield select(selectors.selectFilterLabelIdsForCurrentBoard);
 
+  pendo.track('card_created', {
+    boardId: list.boardId,
+    listType: list.type,
+    cardType: card.type,
+    autoOpen: !!autoOpen,
+    insertedAtTop: index === 0,
+    inheritedFilterUserCount: filterUserIds.length,
+    inheritedFilterLabelCount: filterLabelIds.length,
+  });
+
   yield all([
     ...filterUserIds.map((userId) => call(addUserToCard, userId, card.id)),
     ...filterLabelIds.map((labelId) => call(addLabelToCard, labelId, card.id)),
@@ -246,14 +278,17 @@ export function* handleCardCreate(card) {
 }
 
 export function* updateCard(id, data) {
+  // Taken before the optimistic update below rewrites its list, stopwatch and listChangedAt
+  const prevCard = yield select(selectors.selectCardById, id);
+
+  let list;
+  let prevList;
   let prevListId;
   let isClosed;
 
   if (data.listId) {
-    const list = yield select(selectors.selectListById, data.listId);
-
-    const card = yield select(selectors.selectCardById, id);
-    const prevList = yield select(selectors.selectListById, card.listId);
+    list = yield select(selectors.selectListById, data.listId);
+    prevList = yield select(selectors.selectListById, prevCard.listId);
 
     if (prevList.type === ListTypes.TRASH) {
       prevListId = null;
@@ -265,7 +300,7 @@ export function* updateCard(id, data) {
 
     const typeState = LIST_TYPE_STATE_BY_TYPE[list.type];
 
-    if (card.isClosed) {
+    if (prevCard.isClosed) {
       if (typeState === ListTypeStates.OPENED) {
         isClosed = false;
       }
@@ -295,6 +330,27 @@ export function* updateCard(id, data) {
   }
 
   yield put(actions.updateCard.success(card));
+
+  // Reordering within a list sends its listId as well, so only a different list is a move
+  if (list && list.id !== prevList.id) {
+    trackCardMoved(card, list, prevCard, prevList, false);
+  }
+
+  // Start and stop are the same control, so a stop is a running stopwatch saved as stopped
+  if (
+    data.stopwatch &&
+    !data.stopwatch.startedAt &&
+    prevCard &&
+    prevCard.stopwatch &&
+    prevCard.stopwatch.startedAt
+  ) {
+    pendo.track('card_time_logged', {
+      cardId: id,
+      boardId: prevCard.boardId,
+      sessionSeconds: data.stopwatch.total - prevCard.stopwatch.total,
+      totalSeconds: data.stopwatch.total,
+    });
+  }
 }
 
 export function* updateCurrentCard(data) {
@@ -421,6 +477,15 @@ export function* moveCurrentCardToTrash() {
 }
 
 export function* transferCard(id, boardId, listId, index) {
+  // Taken before the optimistic update below moves the card. A cut card pasted from a board that
+  // is no longer loaded isn't in the store at all.
+  const prevCard = yield select(selectors.selectCardById, id);
+
+  let prevList;
+  if (prevCard) {
+    prevList = yield select(selectors.selectListById, prevCard.listId);
+  }
+
   const { cardId: currentCardId, boardId: currentBoardId } = yield select(selectors.selectPath);
 
   // TODO: hack?
@@ -525,6 +590,8 @@ export function* transferCard(id, boardId, listId, index) {
       customFieldValues,
     ),
   );
+
+  trackCardMoved(card, list, prevCard, prevList, prevCard ? boardId !== prevCard.boardId : null);
 }
 
 export function* transferCurrentCard(boardId, listId, index) {
@@ -533,7 +600,8 @@ export function* transferCurrentCard(boardId, listId, index) {
   yield call(transferCard, cardId, boardId, listId, index);
 }
 
-export function* duplicateCard(id, data) {
+// `source` is only for tracking: 'duplicate_action', or 'clipboard_paste' from pasteCard
+export function* duplicateCard(id, data, source = 'duplicate_action') {
   const localId = yield call(createLocalId);
   const { cardId: currentCardId } = yield select(selectors.selectPath);
   const sourceCard = yield select(selectors.selectCardById, id);
@@ -633,6 +701,17 @@ export function* duplicateCard(id, data) {
       customFieldValues,
     ),
   );
+
+  pendo.track('card_duplicated', {
+    boardId,
+    // A copied card pasted from a board that is no longer loaded can't be compared
+    isCrossBoard: sourceCard ? boardId !== sourceCard.boardId : null,
+    source,
+    taskListsCount: taskLists.length,
+    attachmentsCount: attachments.length,
+    customFieldGroupsCount: customFieldGroups.length,
+    cardLabelsCount: cardLabels.length,
+  });
 }
 
 export function* duplicateCurrentCard(data) {
@@ -667,7 +746,7 @@ export function* pasteCard(listId) {
       data.position = yield select(selectors.selectNextCardPosition, listId);
     }
 
-    yield call(duplicateCard, clipboard.cardId, data);
+    yield call(duplicateCard, clipboard.cardId, data, 'clipboard_paste');
   } else if (clipboard.type === ClipboardTypes.CUT) {
     if (sourceCard && listId === sourceCard.listId) {
       return;

@@ -27,6 +27,7 @@ const AddAttachmentStep = React.memo(({ onClose }) => {
             file,
             type: AttachmentTypes.FILE,
             name: file.name,
+            source: 'picker',
           }),
         );
       });

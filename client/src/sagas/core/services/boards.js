@@ -13,6 +13,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
 import { rememberBoardView } from '../../../utils/board-view-memory';
+import pendo from '../../../utils/pendo';
 import ActionTypes from '../../../constants/ActionTypes';
 import ModalTypes from '../../../constants/ModalTypes';
 
@@ -59,10 +60,30 @@ export function* createBoard(projectId, { import: boardImport, ...data }) {
       : call(request, api.createBoard, projectId, nextData));
   } catch (error) {
     yield put(actions.createBoard.failure(localId, error));
+
+    // The server only rejects an import once it has received and parsed the file
+    if (boardImport) {
+      pendo.track('board_import_failed', {
+        projectId,
+        importType: boardImport.type,
+        importFileSize: boardImport.file.size,
+        errorMessage: error.message || null,
+      });
+    }
+
     return;
   }
 
   yield put(actions.createBoard.success(localId, board, boardMemberships));
+
+  // Also the outcome of a successful import, when one was attached
+  pendo.track('board_created', {
+    projectId,
+    boardId: board.id,
+    importType: boardImport ? boardImport.type : null,
+    importFileSize: boardImport ? boardImport.file.size : null,
+    boardMembershipsCount: boardMemberships.length,
+  });
 
   if (watchForCreateBoardActionTask.isRunning()) {
     yield call(goToBoard, board.id);

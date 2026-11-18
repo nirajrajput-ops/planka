@@ -13,6 +13,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
 import mergeRecords from '../../../utils/merge-records';
+import pendo from '../../../utils/pendo';
 
 export function* createBoardMembership(boardId, data) {
   const localId = yield call(createLocalId);
@@ -34,6 +35,16 @@ export function* createBoardMembership(boardId, data) {
   }
 
   yield put(actions.createBoardMembership.success(localId, boardMembership));
+
+  const currentUserId = yield select(selectors.selectCurrentUserId);
+
+  pendo.track('board_member_added', {
+    boardId,
+    projectId: boardMembership.projectId,
+    role: boardMembership.role,
+    canComment: boardMembership.canComment,
+    isCurrentUser: data.userId === currentUserId,
+  });
 }
 
 export function* createMembershipInCurrentBoard(data) {
@@ -166,6 +177,9 @@ export function* handleBoardMembershipCreate(boardMembership, users) {
 }
 
 export function* updateBoardMembership(id, data) {
+  // Taken before the optimistic update below overwrites the role
+  const prevBoardMembership = yield select(selectors.selectBoardMembershipById, id);
+
   yield put(actions.updateBoardMembership(id, data));
 
   let boardMembership;
@@ -177,6 +191,13 @@ export function* updateBoardMembership(id, data) {
   }
 
   yield put(actions.updateBoardMembership.success(boardMembership));
+
+  pendo.track('board_member_role_changed', {
+    boardId: boardMembership.boardId,
+    previousRole: prevBoardMembership ? prevBoardMembership.role : null,
+    role: boardMembership.role,
+    canComment: boardMembership.canComment,
+  });
 }
 
 export function* handleBoardMembershipUpdate(boardMembership) {

@@ -13,10 +13,13 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import pendo from '../../../utils/pendo';
 import { AttachmentTypes } from '../../../constants/Enums';
 import ToastTypes from '../../../constants/ToastTypes';
 
-export function* createAttachment(cardId, data) {
+// `source` says how the attachment arrived ('picker', 'drop', 'paste' or 'text_snippet'). It is
+// only for tracking, so it is taken out here and never reaches the API.
+export function* createAttachment(cardId, { source, ...data }) {
   const localId = yield call(createLocalId);
   const currentUserId = yield select(selectors.selectCurrentUserId);
 
@@ -44,8 +47,8 @@ export function* createAttachment(cardId, data) {
   } catch (error) {
     yield put(actions.createAttachment.failure(localId, error));
 
+    let toastType;
     if (error.code === 'E_UNPROCESSABLE_ENTITY') {
-      let toastType;
       if (error.message.startsWith('Upload limit')) {
         toastType = ToastTypes.FILE_IS_TOO_BIG;
       } else if (error.message === 'Storage limit reached') {
@@ -59,10 +62,28 @@ export function* createAttachment(cardId, data) {
       }
     }
 
+    pendo.track('attachment_upload_failed', {
+      cardId,
+      type: nextData.type,
+      fileSize: nextData.file ? nextData.file.size : null,
+      errorCode: error.code || null,
+      // NOT_ENOUGH_STORAGE means the instance has hit its storage quota
+      reason: toastType || 'other',
+    });
+
     return;
   }
 
   yield put(actions.createAttachment.success(localId, attachment));
+
+  pendo.track('attachment_added', {
+    cardId,
+    type: attachment.type,
+    mimeType: attachment.data.mimeType || null,
+    size: attachment.data.size || null,
+    hasImagePreview: !!attachment.data.thumbnailUrls,
+    source: source || null,
+  });
 }
 
 export function* createAttachmentInCurrentCard(data) {
