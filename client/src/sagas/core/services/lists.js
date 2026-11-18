@@ -12,6 +12,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import trackEvent from '../../../utils/track-event';
 import ToastTypes from '../../../constants/ToastTypes';
 
 export function* createList(boardId, data) {
@@ -181,6 +182,15 @@ export function* moveListCards(id, nextId) {
     return;
   }
 
+  const nextList = yield select(selectors.selectListById, nextId);
+
+  const trackingProperties = {
+    sourceListId: id,
+    targetListId: nextId,
+    targetListType: nextList ? nextList.type : null,
+    cardsCount: cardIds.length,
+  };
+
   yield put(actions.moveListCards(id, nextId, cardIds));
 
   let list;
@@ -196,10 +206,22 @@ export function* moveListCards(id, nextId) {
     }));
   } catch (error) {
     yield put(actions.moveListCards.failure(id, error));
+
+    yield call(trackEvent, 'list_cards_bulk_moved', {
+      ...trackingProperties,
+      success: false,
+    });
+
     return;
   }
 
   yield put(actions.moveListCards.success(list, cards, activities));
+
+  yield call(trackEvent, 'list_cards_bulk_moved', {
+    ...trackingProperties,
+    cardsCount: cards ? cards.length : trackingProperties.cardsCount,
+    success: true,
+  });
 }
 
 export function* moveListCardsToArchiveList(id) {
@@ -209,7 +231,15 @@ export function* moveListCardsToArchiveList(id) {
 }
 
 export function* clearTrashListInCurrentBoard() {
+  const { boardId } = yield select(selectors.selectPath);
   const trashListId = yield select(selectors.selectTrashListIdForCurrentBoard);
+  const trashCardIds = yield select(selectors.selectCardIdsByListId, trashListId);
+
+  const trackingProperties = {
+    boardId,
+    trashListId,
+    cardsCount: trashCardIds ? trashCardIds.length : 0,
+  };
 
   yield put(actions.clearList(trashListId));
 
@@ -225,10 +255,21 @@ export function* clearTrashListInCurrentBoard() {
     ({ item: list } = yield call(request, api.clearList, trashListId));
   } catch (error) {
     yield put(actions.clearList.failure(trashListId, error));
+
+    yield call(trackEvent, 'trash_emptied', {
+      ...trackingProperties,
+      success: false,
+    });
+
     return;
   }
 
   yield put(actions.clearList.success(list));
+
+  yield call(trackEvent, 'trash_emptied', {
+    ...trackingProperties,
+    success: true,
+  });
 }
 
 export function* handleListClear(list) {

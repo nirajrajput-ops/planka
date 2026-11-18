@@ -7,7 +7,7 @@ import debounce from 'lodash/debounce';
 import React, { useCallback, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector, useStore } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { Icon } from 'semantic-ui-react';
 import { useDidUpdate } from '../../../lib/hooks';
@@ -17,6 +17,7 @@ import { Input, Tooltip } from '../../../lib/custom-ui';
 import selectors from '../../../selectors';
 import entryActions from '../../../entry-actions';
 import { useNestedRef } from '../../../hooks';
+import trackEvent from '../../../utils/track-event';
 import { BoardViews, LabelFilterModes } from '../../../constants/Enums';
 import UserAvatar from '../../users/UserAvatar';
 import BoardMembershipsStep from '../../board-memberships/BoardMembershipsStep';
@@ -77,6 +78,7 @@ const Filters = React.memo(() => {
   );
 
   const dispatch = useDispatch();
+  const store = useStore();
   const [t] = useTranslation();
   const [search, setSearch] = useState(board.search);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -90,8 +92,25 @@ const Filters = React.memo(() => {
     () =>
       debounce((nextSearch) => {
         dispatch(entryActions.searchInCurrentBoard(nextSearch));
+
+        const searchLength = nextSearch ? nextSearch.trim().length : 0;
+
+        if (searchLength > 0) {
+          // Read after the dispatch so the count reflects the search just applied.
+          const state = store.getState();
+          const currentBoard = selectors.selectCurrentBoard(state);
+          const filteredCardIds = selectors.selectFilteredCardIdsForCurrentBoard(state);
+
+          trackEvent('board_cards_searched', {
+            boardId: currentBoard ? currentBoard.id : null,
+            boardView: currentBoard ? currentBoard.view : null,
+            searchLength,
+            currentListId: selectors.selectCurrentListId(state) || null,
+            resultsCount: filteredCardIds ? filteredCardIds.length : 0,
+          });
+        }
       }, 400),
-    [dispatch],
+    [dispatch, store],
   );
 
   const [searchFieldRef, handleSearchFieldRef] = useNestedRef('inputRef');
@@ -382,13 +401,27 @@ const Filters = React.memo(() => {
   // board turns it off instead, so the same row toggles both ways.
   const handleSavedFilterApply = useCallback(
     (item) => {
+      const isDeactivating = item.id === activeSavedFilterId;
+
       clearCurrentFilter();
 
-      if (item.id !== activeSavedFilterId) {
+      if (!isDeactivating) {
         applyFilter(item);
       }
+
+      trackEvent('saved_board_filter_applied', {
+        boardId: board.id,
+        action: isDeactivating ? 'deactivate' : 'apply',
+        savedFiltersCount: savedFilters.length,
+        userIdsCount: (item.userIds || []).length,
+        labelIdsCount: (item.labelIds || []).length,
+        excludedLabelIdsCount: (item.excludedLabelIds || []).length,
+        listIdsCount: (item.listIds || []).length,
+        noMember: !!item.noMember,
+        hasSearch: !!item.search,
+      });
     },
-    [activeSavedFilterId, applyFilter, clearCurrentFilter],
+    [activeSavedFilterId, applyFilter, board.id, clearCurrentFilter, savedFilters.length],
   );
 
   const handleSavedFilterRemove = useCallback(
@@ -401,14 +434,31 @@ const Filters = React.memo(() => {
 
   const handleSaveFilter = useCallback(
     (name) => {
-      addSavedFilter(currentUserId, board.id, {
+      const overwroteExisting = savedFilters.some((item) => item.name === name.trim());
+
+      const entry = addSavedFilter(currentUserId, board.id, {
         name,
         ...currentFilter,
       });
 
       setStorageRev((prevStorageRev) => prevStorageRev + 1);
+
+      if (entry) {
+        trackEvent('saved_board_filter_created', {
+          boardId: board.id,
+          boardView: board.view,
+          userIdsCount: entry.userIds.length,
+          labelIdsCount: entry.labelIds.length,
+          excludedLabelIdsCount: entry.excludedLabelIds.length,
+          listIdsCount: entry.listIds.length,
+          noMember: entry.noMember,
+          hasSearch: entry.search.length > 0,
+          savedFiltersCount: readSavedFilters(currentUserId, board.id).length,
+          overwroteExisting,
+        });
+      }
     },
-    [board.id, currentFilter, currentUserId],
+    [board.id, board.view, currentFilter, currentUserId, savedFilters],
   );
 
   useDidUpdate(() => {

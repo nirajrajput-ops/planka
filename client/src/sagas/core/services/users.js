@@ -14,6 +14,7 @@ import api from '../../../api';
 import { setAccessToken } from '../../../utils/access-token-storage';
 import mergeRecords from '../../../utils/merge-records';
 import { isUserAdminOrProjectOwner } from '../../../utils/record-helpers';
+import trackEvent from '../../../utils/track-event';
 import { UserRoles } from '../../../constants/Enums';
 
 export function* handleUsersReset() {
@@ -35,10 +36,22 @@ export function* createUser(data) {
     ({ item: user } = yield call(request, api.createUser, data));
   } catch (error) {
     yield put(actions.createUser.failure(error));
+
+    yield call(trackEvent, 'user_created', {
+      role: data.role,
+      success: false,
+      errorCode: (error && error.code) || 'unknown',
+    });
+
     return;
   }
 
   yield put(actions.createUser.success(user));
+
+  yield call(trackEvent, 'user_created', {
+    role: user.role,
+    success: true,
+  });
 }
 
 export function* handleUserCreate(user) {
@@ -428,6 +441,11 @@ export function* enableUserTotp(id, data) {
   }
 
   yield put(actions.enableUserTotp.success(user, recoveryCodes));
+
+  yield call(trackEvent, 'two_factor_enabled', {
+    userId: user.id,
+    recoveryCodesCount: recoveryCodes ? recoveryCodes.length : 0,
+  });
 }
 
 export function* enableCurrentUserTotp(data) {

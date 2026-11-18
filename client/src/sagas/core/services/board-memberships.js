@@ -13,6 +13,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
 import mergeRecords from '../../../utils/merge-records';
+import trackEvent from '../../../utils/track-event';
 
 export function* createBoardMembership(boardId, data) {
   const localId = yield call(createLocalId);
@@ -34,6 +35,13 @@ export function* createBoardMembership(boardId, data) {
   }
 
   yield put(actions.createBoardMembership.success(localId, boardMembership));
+
+  yield call(trackEvent, 'board_member_added', {
+    boardId,
+    projectId: boardMembership.projectId,
+    role: boardMembership.role,
+    canComment: !!boardMembership.canComment,
+  });
 }
 
 export function* createMembershipInCurrentBoard(data) {

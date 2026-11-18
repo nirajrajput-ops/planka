@@ -9,6 +9,7 @@ import request from '../request';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import trackEvent from '../../../utils/track-event';
 
 export function* createWebhook(data) {
   const localId = yield call(createLocalId);
@@ -33,6 +34,11 @@ export function* createWebhook(data) {
   }
 
   yield put(actions.createWebhook.success(localId, webhook));
+
+  yield call(trackEvent, 'webhook_created', {
+    eventsCount: data.events ? data.events.length : 0,
+    excludedEventsCount: data.excludedEvents ? data.excludedEvents.length : 0,
+  });
 }
 
 export function* handleWebhookCreate(webhook) {

@@ -10,6 +10,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import trackEvent from '../../../utils/track-event';
 
 export function* createNotificationServiceInCurrentUser(data) {
   const localId = yield call(createLocalId);
@@ -37,6 +38,11 @@ export function* createNotificationServiceInCurrentUser(data) {
   }
 
   yield put(actions.createNotificationService.success(localId, notificationService));
+
+  yield call(trackEvent, 'notification_service_created', {
+    scope: 'user',
+    format: notificationService.format,
+  });
 }
 
 export function* createNotificationServiceInBoard(boardId, data) {
@@ -64,6 +70,12 @@ export function* createNotificationServiceInBoard(boardId, data) {
   }
 
   yield put(actions.createNotificationService.success(localId, notificationService));
+
+  yield call(trackEvent, 'notification_service_created', {
+    scope: 'board',
+    boardId,
+    format: notificationService.format,
+  });
 }
 
 export function* handleNotificationServiceCreate(notificationService) {
