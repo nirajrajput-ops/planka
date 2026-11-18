@@ -12,5 +12,17 @@ import Root from './components/common/Root';
 
 import './i18n';
 
+// Boot Pendo once with an anonymous visitor; the signed-in user is identified after core loads.
+// The URL fragment is cleared from recorded URLs: routing is path-based, and in demo mode the
+// login page reads credentials from the hash (see components/common/Login/Content.jsx).
+window.pendo.initialize({
+  visitor: {
+    id: '',
+  },
+  location: {
+    transforms: [{ attr: 'hash', action: 'Clear' }],
+  },
+});
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(React.createElement(Root, { store, history }));
