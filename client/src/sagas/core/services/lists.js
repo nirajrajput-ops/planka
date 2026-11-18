@@ -12,6 +12,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import { trackPendoEvent } from '../../../utils/pendo-track';
 import ToastTypes from '../../../constants/ToastTypes';
 
 export function* createList(boardId, data) {
@@ -181,6 +182,16 @@ export function* moveListCards(id, nextId) {
     return;
   }
 
+  const sourceList = yield select(selectors.selectListById, id);
+  const targetList = yield select(selectors.selectListById, nextId);
+
+  const moveListCardsProperties = {
+    sourceListId: id,
+    targetListId: nextId,
+    targetListType: targetList ? targetList.type : 'unknown',
+    boardId: sourceList ? sourceList.boardId : 'unknown',
+  };
+
   yield put(actions.moveListCards(id, nextId, cardIds));
 
   let list;
@@ -196,10 +207,23 @@ export function* moveListCards(id, nextId) {
     }));
   } catch (error) {
     yield put(actions.moveListCards.failure(id, error));
+
+    yield call(trackPendoEvent, 'list_cards_moved', {
+      ...moveListCardsProperties,
+      cardCount: cardIds.length,
+      success: false,
+    });
+
     return;
   }
 
   yield put(actions.moveListCards.success(list, cards, activities));
+
+  yield call(trackPendoEvent, 'list_cards_moved', {
+    ...moveListCardsProperties,
+    cardCount: cards ? cards.length : cardIds.length,
+    success: true,
+  });
 }
 
 export function* moveListCardsToArchiveList(id) {
@@ -210,6 +234,15 @@ export function* moveListCardsToArchiveList(id) {
 
 export function* clearTrashListInCurrentBoard() {
   const trashListId = yield select(selectors.selectTrashListIdForCurrentBoard);
+  const trashList = yield select(selectors.selectListById, trashListId);
+  // Counts the trash cards loaded in the client, since the trash list loads lazily
+  const trashCardIds = yield select(selectors.selectCardIdsByListId, trashListId);
+
+  const trashProperties = {
+    boardId: trashList ? trashList.boardId : 'unknown',
+    trashListId,
+    cardCount: trashCardIds.length,
+  };
 
   yield put(actions.clearList(trashListId));
 
@@ -225,10 +258,21 @@ export function* clearTrashListInCurrentBoard() {
     ({ item: list } = yield call(request, api.clearList, trashListId));
   } catch (error) {
     yield put(actions.clearList.failure(trashListId, error));
+
+    yield call(trackPendoEvent, 'trash_emptied', {
+      ...trashProperties,
+      success: false,
+    });
+
     return;
   }
 
   yield put(actions.clearList.success(list));
+
+  yield call(trackPendoEvent, 'trash_emptied', {
+    ...trashProperties,
+    success: true,
+  });
 }
 
 export function* handleListClear(list) {

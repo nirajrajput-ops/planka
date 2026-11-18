@@ -9,6 +9,7 @@ import request from '../request';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import { trackPendoEvent } from '../../../utils/pendo-track';
 
 export function* createWebhook(data) {
   const localId = yield call(createLocalId);
@@ -20,6 +21,12 @@ export function* createWebhook(data) {
     }),
   );
 
+  const webhookProperties = {
+    eventCount: data.events ? data.events.length : 0,
+    excludedEventCount: data.excludedEvents ? data.excludedEvents.length : 0,
+    hasAccessToken: !!data.accessToken,
+  };
+
   let webhook;
   try {
     ({ item: webhook } = yield call(request, api.createWebhook, {
@@ -29,10 +36,22 @@ export function* createWebhook(data) {
     }));
   } catch (error) {
     yield put(actions.createWebhook.failure(localId, error));
+
+    yield call(trackPendoEvent, 'webhook_created', {
+      ...webhookProperties,
+      success: false,
+    });
+
     return;
   }
 
   yield put(actions.createWebhook.success(localId, webhook));
+
+  yield call(trackPendoEvent, 'webhook_created', {
+    ...webhookProperties,
+    webhookId: webhook.id,
+    success: true,
+  });
 }
 
 export function* handleWebhookCreate(webhook) {
