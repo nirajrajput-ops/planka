@@ -10,6 +10,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import { trackPendoEvent } from '../../../utils/pendo';
 
 export function* createNotificationServiceInCurrentUser(data) {
   const localId = yield call(createLocalId);
@@ -37,6 +38,14 @@ export function* createNotificationServiceInCurrentUser(data) {
   }
 
   yield put(actions.createNotificationService.success(localId, notificationService));
+
+  // Pendo: notification service was created for the current user
+  yield call(trackPendoEvent, 'notification_service_created', {
+    notificationServiceId: notificationService.id,
+    scope: 'user',
+    boardId: null,
+    format: notificationService.format,
+  });
 }
 
 export function* createNotificationServiceInBoard(boardId, data) {
@@ -64,6 +73,14 @@ export function* createNotificationServiceInBoard(boardId, data) {
   }
 
   yield put(actions.createNotificationService.success(localId, notificationService));
+
+  // Pendo: notification service was created for a board
+  yield call(trackPendoEvent, 'notification_service_created', {
+    notificationServiceId: notificationService.id,
+    scope: 'board',
+    boardId,
+    format: notificationService.format,
+  });
 }
 
 export function* handleNotificationServiceCreate(notificationService) {

@@ -10,6 +10,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import i18n from '../../../i18n';
 import { setAccessToken } from '../../../utils/access-token-storage';
+import { trackPendoEvent } from '../../../utils/pendo';
 import AccessTokenSteps from '../../../constants/AccessTokenSteps';
 
 export function* initializeLogin() {
@@ -35,6 +36,15 @@ export function* authenticate(data) {
   }
 
   yield call(setAccessToken, accessToken);
+
+  // Pendo: sign-in succeeded at the password step
+  yield call(trackPendoEvent, 'login_completed', {
+    completedStep: 'password',
+    totpRequired: false,
+    termsAccepted: false,
+    language: i18n.resolvedLanguage,
+  });
+
   yield put(actions.authenticate.success(accessToken));
 }
 
@@ -60,6 +70,15 @@ export function* acceptTerms(signature) {
   }
 
   yield call(setAccessToken, accessToken);
+
+  // Pendo: sign-in succeeded after the terms acceptance step
+  yield call(trackPendoEvent, 'login_completed', {
+    completedStep: 'terms',
+    totpRequired: false,
+    termsAccepted: true,
+    language: i18n.resolvedLanguage,
+  });
+
   yield put(actions.acceptTerms.success(accessToken));
 }
 
@@ -111,6 +130,15 @@ export function* verifyTotp(data) {
   }
 
   yield call(setAccessToken, accessToken);
+
+  // Pendo: sign-in succeeded after the TOTP step
+  yield call(trackPendoEvent, 'login_completed', {
+    completedStep: 'totp',
+    totpRequired: true,
+    termsAccepted: false,
+    language: i18n.resolvedLanguage,
+  });
+
   yield put(actions.verifyTotp.success(accessToken));
 }
 
