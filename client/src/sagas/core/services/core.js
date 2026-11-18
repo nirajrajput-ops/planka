@@ -14,6 +14,41 @@ import i18n from '../../../i18n';
 import { removeAccessToken } from '../../../utils/access-token-storage';
 import { forgetBoardViews } from '../../../utils/board-view-memory';
 
+const identifyNovusVisitor = (user) => {
+  window.pendo.identify({
+    visitor: {
+      id: user.id,
+      email: user.email,
+      full_name: user.name,
+      role: user.role,
+      username: user.username,
+      organization: user.organization,
+      language: user.language,
+      isDeactivated: user.isDeactivated,
+      isTotpEnabled: user.isTotpEnabled,
+      totpEnabledAt: user.totpEnabledAt,
+      subscribeToOwnCards: user.subscribeToOwnCards,
+      subscribeToCardWhenCommenting: user.subscribeToCardWhenCommenting,
+      turnOffRecentCardHighlighting: user.turnOffRecentCardHighlighting,
+      enableFavoritesByDefault: user.enableFavoritesByDefault,
+      defaultEditorMode: user.defaultEditorMode,
+      defaultHomeView: user.defaultHomeView,
+      defaultProjectsOrder: user.defaultProjectsOrder,
+      autoLogoutMode: user.autoLogoutMode,
+      termsAcceptedAt: user.termsAcceptedAt,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    },
+  });
+};
+
+const clearNovusSession = () => {
+  // clearSession isn't stubbed by the install snippet, so skip it if the agent hasn't loaded.
+  if (window.pendo && typeof window.pendo.clearSession === 'function') {
+    window.pendo.clearSession();
+  }
+};
+
 export function* initializeCore() {
   const { item: bootstrap } = yield call(request, api.getBootstrap); // TODO: handle error
 
@@ -45,6 +80,8 @@ export function* initializeCore() {
     notifications,
     notificationServices,
   } = yield call(requests.fetchCore); // TODO: handle error
+
+  yield call(identifyNovusVisitor, user);
 
   yield call(i18n.changeLanguage, user.language);
   yield call(i18n.loadCoreLocale);
@@ -118,6 +155,7 @@ export function* updateHomeView(value) {
 
 export function* logout(revokeAccessToken) {
   yield call(removeAccessToken);
+  yield call(clearNovusSession);
   // Everything this window was holding about the boards it had open. None of it
   // belongs to the next person to sign in here.
   yield call(forgetBoardViews);
