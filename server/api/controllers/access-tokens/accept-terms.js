@@ -198,6 +198,16 @@ module.exports = {
 
     ({ user } = await User.qm.updateOne(user.id, values));
 
+    // Pendo: the server records terms acceptance for the user
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      user,
+      event: 'Terms accepted',
+      properties: {
+        terms_type: sails.config.custom.termsType,
+        language: user.language || undefined,
+      },
+    });
+
     const internalConfig = await InternalConfig.qm.getOneMain();
 
     if (!internalConfig.isInitialized) {

@@ -77,6 +77,18 @@ module.exports = {
         user: inputs.actorUser,
       });
 
+      // Pendo: the account and related data are removed
+      sails.helpers.utils.sendPendoTrackEvent.with({
+        event: 'User deleted',
+        user: inputs.actorUser,
+        properties: {
+          deleted_user_id: user.id,
+          deleted_user_role: user.role,
+          board_memberships_count: boardMemberships.length,
+          project_managers_count: projectManagers.length,
+        },
+      });
+
       sails.sockets.leaveAll(`@user:${user.id}`);
 
       const projectIds = await sails.helpers.utils.mapRecords(projectManagers, 'projectId', true);

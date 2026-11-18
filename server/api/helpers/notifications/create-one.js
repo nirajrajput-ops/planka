@@ -281,9 +281,15 @@ module.exports = {
       withDeactivated: false,
     });
 
+    let notificationServicesCount = 0;
+    let isEmailSent = false;
+
     if (notifiableUser) {
       const notificationServices = await NotificationService.qm.getByUserId(notification.userId);
       const { transporter } = await sails.helpers.utils.makeSmtpTransporter();
+
+      notificationServicesCount = notificationServices.length;
+      isEmailSent = !!transporter;
 
       if (notificationServices.length > 0 || transporter) {
         const t = sails.helpers.utils.makeTranslator(notifiableUser.language);
@@ -316,6 +322,19 @@ module.exports = {
         }
       }
     }
+
+    // Pendo: a notification is created and sent in-app, by email, through Apprise services, and to webhooks
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Notification delivered',
+      user: notifiableUser || { id: notification.userId },
+      properties: {
+        notification_type: notification.type,
+        board_id: notification.boardId,
+        card_id: notification.cardId,
+        email_sent: isEmailSent,
+        services_count: notificationServicesCount,
+      },
+    });
 
     return notification;
   },

@@ -67,6 +67,26 @@ module.exports = {
       user: inputs.actorUser,
     });
 
+    let eventsFilter = 'all';
+    if (webhook.events) {
+      eventsFilter = 'included';
+    } else if (webhook.excludedEvents) {
+      eventsFilter = 'excluded';
+    }
+
+    // Pendo: a webhook is saved and starts receiving events
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Webhook created',
+      user: inputs.actorUser,
+      properties: {
+        webhook_id: webhook.id,
+        events_filter: eventsFilter,
+        webhooks_total: webhooks.length,
+        project_scoped: !!webhook.projectId,
+        board_scoped: !!webhook.boardId,
+      },
+    });
+
     return webhook;
   },
 };

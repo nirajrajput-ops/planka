@@ -55,6 +55,16 @@ module.exports = {
       user: inputs.actorUser,
     });
 
+    // Pendo: a new project is saved and its creator becomes a manager
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Project created',
+      user: inputs.actorUser,
+      properties: {
+        project_id: project.id,
+        project_type: project.ownerProjectManagerId ? 'private' : 'shared',
+      },
+    });
+
     return {
       project,
       projectManager,

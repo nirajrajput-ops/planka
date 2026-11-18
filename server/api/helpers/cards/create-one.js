@@ -112,6 +112,20 @@ module.exports = {
       user: values.creatorUser,
     });
 
+    // Pendo: a new card is saved on the board
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Card created',
+      user: values.creatorUser,
+      properties: {
+        project_id: inputs.project.id,
+        board_id: card.boardId,
+        card_id: card.id,
+        card_type: card.type,
+        list_type: values.list.type,
+        has_due_date: !!card.dueDate,
+      },
+    });
+
     if (values.creatorUser.subscribeToOwnCards) {
       try {
         await CardSubscription.qm.createOne({

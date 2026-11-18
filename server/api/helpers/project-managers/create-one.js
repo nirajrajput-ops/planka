@@ -87,6 +87,18 @@ module.exports = {
       user: inputs.actorUser,
     });
 
+    // Pendo: the user becomes a manager of the project
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Project manager added',
+      user: inputs.actorUser,
+      properties: {
+        project_id: values.project.id,
+        manager_user_id: values.user.id,
+        manager_user_role: values.user.role,
+        is_self: values.user.id === inputs.actorUser.id,
+      },
+    });
+
     return projectManager;
   },
 };

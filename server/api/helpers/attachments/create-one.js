@@ -65,6 +65,20 @@ module.exports = {
       user: values.creatorUser,
     });
 
+    // Pendo: a file or link attachment is stored on the card
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Attachment uploaded',
+      user: values.creatorUser,
+      properties: {
+        project_id: inputs.project.id,
+        board_id: inputs.board.id,
+        card_id: values.card.id,
+        attachment_type: attachment.type,
+        is_image: !!(attachment.data && attachment.data.image),
+        mime_type: (attachment.data && attachment.data.mimeType) || undefined,
+      },
+    });
+
     if (!values.card.coverAttachmentId) {
       if (attachment.type === Attachment.Types.FILE && attachment.data.image) {
         await sails.helpers.cards.updateOne.with({
