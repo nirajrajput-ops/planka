@@ -10,6 +10,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import i18n from '../../../i18n';
 import { setAccessToken } from '../../../utils/access-token-storage';
+import trackPendoEvent from '../../../utils/track-pendo-event';
 import AccessTokenSteps from '../../../constants/AccessTokenSteps';
 
 export function* initializeLogin() {
@@ -30,12 +31,28 @@ export function* authenticate(data) {
       ({ item: terms } = yield call(api.getTerms, i18n.resolvedLanguage));
     }
 
+    // Pendo: password request failed or returned a pending step (accept terms or TOTP)
+    yield call(trackPendoEvent, 'login_failed', {
+      error_code: (error && error.code) || 'unknown',
+      step: (error && error.step) || 'none',
+      login_method: 'password',
+      login_stage: 'password',
+    });
+
     yield put(actions.authenticate.failure(error, terms));
     return;
   }
 
   yield call(setAccessToken, accessToken);
   yield put(actions.authenticate.success(accessToken));
+
+  // Pendo: sign-in finished directly after the password step
+  yield call(trackPendoEvent, 'login_succeeded', {
+    login_method: 'password',
+    completed_step: 'password',
+    required_terms_acceptance: false,
+    required_totp: false,
+  });
 }
 
 export function* clearAuthenticateError() {
@@ -55,12 +72,28 @@ export function* acceptTerms(signature) {
       initialLanguage: i18n.resolvedLanguage,
     }));
   } catch (error) {
+    // Pendo: terms acceptance request failed or returned a pending step (TOTP)
+    yield call(trackPendoEvent, 'login_failed', {
+      error_code: (error && error.code) || 'unknown',
+      step: (error && error.step) || 'none',
+      login_method: 'password',
+      login_stage: 'accept_terms',
+    });
+
     yield put(actions.acceptTerms.failure(error));
     return;
   }
 
   yield call(setAccessToken, accessToken);
   yield put(actions.acceptTerms.success(accessToken));
+
+  // Pendo: sign-in finished after the terms acceptance step
+  yield call(trackPendoEvent, 'login_succeeded', {
+    login_method: 'password',
+    completed_step: 'accept_terms',
+    required_terms_acceptance: true,
+    required_totp: false,
+  });
 }
 
 export function* cancelTerms() {
@@ -106,12 +139,28 @@ export function* verifyTotp(data) {
       pendingToken,
     }));
   } catch (error) {
+    // Pendo: TOTP challenge request failed
+    yield call(trackPendoEvent, 'login_failed', {
+      error_code: (error && error.code) || 'unknown',
+      step: (error && error.step) || AccessTokenSteps.VERIFY_TOTP,
+      login_method: 'password',
+      login_stage: 'verify_totp',
+    });
+
     yield put(actions.verifyTotp.failure(error));
     return;
   }
 
   yield call(setAccessToken, accessToken);
   yield put(actions.verifyTotp.success(accessToken));
+
+  // Pendo: sign-in finished after the TOTP challenge step
+  yield call(trackPendoEvent, 'login_succeeded', {
+    login_method: 'password',
+    completed_step: 'verify_totp',
+    required_totp: true,
+    is_trusted_device: Boolean(data.trustDevice),
+  });
 }
 
 export function* cancelTotpChallenge() {
