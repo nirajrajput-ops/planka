@@ -87,6 +87,17 @@ module.exports = {
       user: inputs.actorUser,
     });
 
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Project manager added',
+      visitorId: inputs.actorUser.id,
+      properties: {
+        project_id: values.project.id,
+        manager_user_id: values.user.id,
+        manager_role: values.user.role,
+        is_self_assigned: values.user.id === inputs.actorUser.id,
+      },
+    });
+
     return projectManager;
   },
 };

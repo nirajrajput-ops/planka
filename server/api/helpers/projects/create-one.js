@@ -55,6 +55,16 @@ module.exports = {
       user: inputs.actorUser,
     });
 
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Project created',
+      visitorId: inputs.actorUser.id,
+      properties: {
+        project_id: project.id,
+        user_role: inputs.actorUser.role,
+        is_private: !!project.ownerProjectManagerId,
+      },
+    });
+
     return {
       project,
       projectManager,

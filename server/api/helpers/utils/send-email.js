@@ -21,13 +21,23 @@ module.exports = {
       type: 'string',
       required: true,
     },
+    userId: {
+      type: 'string',
+    },
   },
 
   async fn(inputs) {
+    const { userId, ...mailOptions } = inputs;
+
     try {
-      const info = await inputs.transporter.sendMail(inputs);
+      const info = await inputs.transporter.sendMail(mailOptions);
 
       sails.log.info(`Email sent: ${info.messageId}`);
+
+      sails.helpers.utils.sendPendoTrackEvent.with({
+        event: 'Email notification sent',
+        visitorId: userId,
+      });
     } catch (error) {
       sails.log.error(`Error sending email: ${error}`);
     }

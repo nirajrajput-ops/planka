@@ -81,6 +81,20 @@ module.exports = {
       }
     }
 
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Attachment uploaded',
+      visitorId: values.creatorUser.id,
+      properties: {
+        project_id: inputs.project.id,
+        board_id: inputs.board.id,
+        card_id: attachment.cardId,
+        attachment_type: attachment.type,
+        is_image: !!(attachment.data && attachment.data.image),
+        mime_type: (attachment.data && attachment.data.mimeType) || null,
+        size_in_bytes: (attachment.data && attachment.data.size) || null,
+      },
+    });
+
     return attachment;
   },
 };

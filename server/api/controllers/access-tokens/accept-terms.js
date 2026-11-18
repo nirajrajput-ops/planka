@@ -227,6 +227,16 @@ module.exports = {
       );
     }
 
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Terms accepted',
+      visitorId: user.id,
+      properties: {
+        user_role: user.role,
+        terms_type: sails.config.custom.termsType,
+        language: user.language,
+      },
+    });
+
     return {
       item: accessToken,
     };

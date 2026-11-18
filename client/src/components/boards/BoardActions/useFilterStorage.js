@@ -206,10 +206,30 @@ export const addSavedFilter = (userId, boardId, { name, ...filter }) => {
   };
 
   const current = readSavedFilters(userId, boardId);
+  const nextEntries = current.filter((item) => item.name !== cleanName);
 
   // Newest first, and re-saving under an existing name overwrites that
   // entry rather than adding a duplicate.
-  writeSavedFilters(userId, boardId, [entry, ...current.filter((item) => item.name !== cleanName)]);
+  writeSavedFilters(userId, boardId, [entry, ...nextEntries]);
+
+  // Pendo Track Event: named filter written to the user's saved filters for this board
+  if (window.pendo && typeof window.pendo.track === 'function') {
+    try {
+      window.pendo.track('Filter saved', {
+        board_id: boardId,
+        is_overwrite: nextEntries.length !== current.length,
+        saved_filters_count: nextEntries.length + 1,
+        users_count: cleanFilter.userIds.length,
+        labels_count: cleanFilter.labelIds.length,
+        excluded_labels_count: cleanFilter.excludedLabelIds.length,
+        lists_count: cleanFilter.listIds.length,
+        has_search: cleanFilter.search.length > 0,
+        no_member: cleanFilter.noMember,
+      });
+    } catch {
+      // Tracking must never break saving a filter.
+    }
+  }
 
   return entry;
 };

@@ -224,7 +224,7 @@ module.exports = {
         : Errors.INVALID_CREDENTIALS;
     }
 
-    return sails.helpers.accessTokens.handleSteps
+    const result = await sails.helpers.accessTokens.handleSteps
       .with({
         user,
         remoteAddress,
@@ -241,5 +241,18 @@ module.exports = {
       .intercept('totpVerificationRequired', (error) => ({
         totpVerificationRequired: error.raw,
       }));
+
+    // Only reached when an access token was issued (pending steps throw above)
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Logged in',
+      visitorId: user.id,
+      properties: {
+        user_role: user.role,
+        with_http_only_token: !!inputs.withHttpOnlyToken,
+        is_two_factor_enabled: !!user.isTotpEnabled,
+      },
+    });
+
+    return result;
   },
 };
