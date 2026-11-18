@@ -10,6 +10,11 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import { mentionMarkupToText } from '../../../utils/mentions';
+import trackPendoEvent from '../../../utils/pendo';
+
+// Mentions are stored as `@[username](userId)` markup
+const MENTION_MARKUP_REGEX = /@\[(.*?)\]\((.*?)\)/g;
 
 export function* fetchComments(cardId) {
   const { lastCommentId } = yield select(selectors.selectCardById, cardId);
@@ -60,6 +65,17 @@ export function* createComment(cardId, data) {
     yield put(actions.createComment.failure(localId, error));
     return;
   }
+
+  const card = yield select(selectors.selectCardById, cardId);
+  const text = data.text || '';
+
+  // Comment confirmed by the server (button or keyboard shortcut)
+  yield call(trackPendoEvent, 'comment_posted', {
+    cardId,
+    boardId: card ? card.boardId : null,
+    mentionCount: (text.match(MENTION_MARKUP_REGEX) || []).length,
+    textLength: mentionMarkupToText(text).length,
+  });
 
   yield put(actions.createComment.success(localId, comment));
 }
