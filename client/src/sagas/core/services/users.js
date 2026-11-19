@@ -13,6 +13,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import { setAccessToken } from '../../../utils/access-token-storage';
 import mergeRecords from '../../../utils/merge-records';
+import { trackPendoEvent } from '../../../utils/pendo';
 import { isUserAdminOrProjectOwner } from '../../../utils/record-helpers';
 import { UserRoles } from '../../../constants/Enums';
 
@@ -35,10 +36,25 @@ export function* createUser(data) {
     ({ item: user } = yield call(request, api.createUser, data));
   } catch (error) {
     yield put(actions.createUser.failure(error));
+
+    // Server rejected the account, for example a duplicate email or username
+    yield call(trackPendoEvent, 'user_created', {
+      role: data.role || null,
+      success: false,
+      errorCode: (error && error.code) || null,
+    });
+
     return;
   }
 
   yield put(actions.createUser.success(user));
+
+  // Server confirmed the new account
+  yield call(trackPendoEvent, 'user_created', {
+    role: user.role,
+    success: true,
+    errorCode: null,
+  });
 }
 
 export function* handleUserCreate(user) {
@@ -428,6 +444,11 @@ export function* enableUserTotp(id, data) {
   }
 
   yield put(actions.enableUserTotp.success(user, recoveryCodes));
+
+  // Server accepted the verification code and turned on two-factor authentication
+  yield call(trackPendoEvent, 'two_factor_enabled', {
+    recoveryCodeCount: recoveryCodes ? recoveryCodes.length : 0,
+  });
 }
 
 export function* enableCurrentUserTotp(data) {
