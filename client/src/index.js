@@ -12,5 +12,23 @@ import Root from './components/common/Root';
 
 import './i18n';
 
+// Boot Novus by Pendo once with an anonymous visitor. The signed-in user is identified
+// in the core saga once the current user has been fetched.
+window.pendo.initialize({
+  visitor: {
+    id: '',
+  },
+  location: {
+    transforms: [
+      // In demo mode the login page reads `emailOrUsername` and `password` from the URL hash.
+      // The app uses browser history routing, so the hash carries no page identity.
+      {
+        attr: 'hash',
+        action: 'Clear',
+      },
+    ],
+  },
+});
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(React.createElement(Root, { store, history }));
