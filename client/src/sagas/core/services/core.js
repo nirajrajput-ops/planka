@@ -46,6 +46,32 @@ export function* initializeCore() {
     notificationServices,
   } = yield call(requests.fetchCore); // TODO: handle error
 
+  window.pendo.identify({
+    visitor: {
+      id: user.id,
+      email: user.email,
+      full_name: user.name,
+      username: user.username,
+      role: user.role,
+      organization: user.organization,
+      language: user.language,
+      isDeactivated: user.isDeactivated,
+      isDefaultAdmin: user.isDefaultAdmin,
+      isTotpEnabled: user.isTotpEnabled,
+      totpEnabledAt: user.totpEnabledAt,
+      createdAt: user.createdAt,
+      termsAcceptedAt: user.termsAcceptedAt,
+      autoLogoutMode: user.autoLogoutMode,
+      defaultEditorMode: user.defaultEditorMode,
+      defaultHomeView: user.defaultHomeView,
+      defaultProjectsOrder: user.defaultProjectsOrder,
+      subscribeToOwnCards: user.subscribeToOwnCards,
+      subscribeToCardWhenCommenting: user.subscribeToCardWhenCommenting,
+      turnOffRecentCardHighlighting: user.turnOffRecentCardHighlighting,
+      enableFavoritesByDefault: user.enableFavoritesByDefault,
+    },
+  });
+
   yield call(i18n.changeLanguage, user.language);
   yield call(i18n.loadCoreLocale);
 
@@ -118,6 +144,11 @@ export function* updateHomeView(value) {
 
 export function* logout(revokeAccessToken) {
   yield call(removeAccessToken);
+  // Reset Novus by Pendo to a fresh anonymous visitor so the next person to sign
+  // in here isn't tracked under this user's identity.
+  // clearSession isn't stubbed by the install snippet, so it's only available
+  // once the agent script has loaded.
+  window.pendo?.clearSession?.();
   // Everything this window was holding about the boards it had open. None of it
   // belongs to the next person to sign in here.
   yield call(forgetBoardViews);
