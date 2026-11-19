@@ -25,26 +25,32 @@ const AddAttachmentZone = React.memo(({ children }) => {
   const [modal, openModal, handleModalClose] = useModal();
 
   const submitFile = useCallback(
-    (file) => {
+    (file, source) => {
       dispatch(
-        entryActions.createAttachmentInCurrentCard({
-          file,
-          type: AttachmentTypes.FILE,
-          name: file.name,
-        }),
+        entryActions.createAttachmentInCurrentCard(
+          {
+            file,
+            type: AttachmentTypes.FILE,
+            name: file.name,
+          },
+          source,
+        ),
       );
     },
     [dispatch],
   );
 
   const submitLink = useCallback(
-    (url) => {
+    (url, source) => {
       dispatch(
-        entryActions.createAttachmentInCurrentCard({
-          url,
-          type: AttachmentTypes.LINK,
-          name: url,
-        }),
+        entryActions.createAttachmentInCurrentCard(
+          {
+            url,
+            type: AttachmentTypes.LINK,
+            name: url,
+          },
+          source,
+        ),
       );
     },
     [dispatch],
@@ -53,7 +59,7 @@ const AddAttachmentZone = React.memo(({ children }) => {
   const handleDropAccepted = useCallback(
     (files) => {
       files.forEach((file) => {
-        submitFile(file);
+        submitFile(file, 'drop');
       });
     },
     [submitFile],
@@ -67,7 +73,7 @@ const AddAttachmentZone = React.memo(({ children }) => {
 
   const handleFileCreate = useCallback(
     (file) => {
-      submitFile(file);
+      submitFile(file, 'paste');
     },
     [submitFile],
   );
@@ -82,7 +88,7 @@ const AddAttachmentZone = React.memo(({ children }) => {
 
       if (files.length > 0) {
         [...files].forEach((file) => {
-          submitFile(file);
+          submitFile(file, 'paste');
         });
 
         return;
@@ -99,7 +105,7 @@ const AddAttachmentZone = React.memo(({ children }) => {
 
         items[0].getAsString((content) => {
           if (isUrl(content)) {
-            submitLink(content);
+            submitLink(content, 'paste');
           } else {
             closePopup();
 
@@ -117,7 +123,7 @@ const AddAttachmentZone = React.memo(({ children }) => {
           return;
         }
 
-        submitFile(item.getAsFile());
+        submitFile(item.getAsFile(), 'paste');
       });
     };
 

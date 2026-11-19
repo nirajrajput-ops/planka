@@ -23,11 +23,14 @@ const AddAttachmentStep = React.memo(({ onClose }) => {
     (files) => {
       files.forEach((file) => {
         dispatch(
-          entryActions.createAttachmentInCurrentCard({
-            file,
-            type: AttachmentTypes.FILE,
-            name: file.name,
-          }),
+          entryActions.createAttachmentInCurrentCard(
+            {
+              file,
+              type: AttachmentTypes.FILE,
+              name: file.name,
+            },
+            'popup',
+          ),
         );
       });
 

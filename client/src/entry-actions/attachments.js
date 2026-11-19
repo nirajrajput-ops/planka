@@ -5,10 +5,11 @@
 
 import EntryActionTypes from '../constants/EntryActionTypes';
 
-const createAttachmentInCurrentCard = (data) => ({
+const createAttachmentInCurrentCard = (data, source) => ({
   type: EntryActionTypes.ATTACHMENT_IN_CURRENT_CARD_CREATE,
   payload: {
     data,
+    source,
   },
 });
 

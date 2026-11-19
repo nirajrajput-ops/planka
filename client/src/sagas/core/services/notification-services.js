@@ -10,6 +10,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import { getErrorCode, pendoTrack } from '../../../utils/pendo-track';
 
 export function* createNotificationServiceInCurrentUser(data) {
   const localId = yield call(createLocalId);
@@ -89,15 +90,36 @@ export function* handleNotificationServiceUpdate(notificationService) {
 }
 
 export function* testNotificationService(id) {
+  const existingNotificationService = yield select(selectors.selectNotificationServiceById, id);
+
+  const trackingProperties = {
+    scope: existingNotificationService && existingNotificationService.boardId ? 'board' : 'user',
+    format: existingNotificationService ? existingNotificationService.format : null,
+  };
+
   yield put(actions.testNotificationService(id));
 
   let notificationService;
   try {
     ({ item: notificationService } = yield call(request, api.testNotificationService, id));
   } catch (error) {
+    // Pendo: the server couldn't deliver the test notification
+    yield call(pendoTrack, 'notification_service_test_completed', {
+      ...trackingProperties,
+      success: false,
+      error_code: getErrorCode(error),
+    });
+
     yield put(actions.testNotificationService.failure(id, error));
     return;
   }
+
+  // Pendo: the server delivered the test notification
+  yield call(pendoTrack, 'notification_service_test_completed', {
+    ...trackingProperties,
+    success: true,
+    error_code: null,
+  });
 
   yield put(actions.testNotificationService.success(notificationService));
 }

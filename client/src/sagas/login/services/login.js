@@ -10,6 +10,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import i18n from '../../../i18n';
 import { setAccessToken } from '../../../utils/access-token-storage';
+import { getErrorCode, pendoTrack } from '../../../utils/pendo-track';
 import AccessTokenSteps from '../../../constants/AccessTokenSteps';
 
 export function* initializeLogin() {
@@ -25,6 +26,13 @@ export function* authenticate(data) {
   try {
     ({ item: accessToken } = yield call(api.createAccessToken, data));
   } catch (error) {
+    // Pendo: the server rejected the credentials or sent the visitor to another login step
+    yield call(pendoTrack, 'login_failed', {
+      error_step: (error && error.step) || 'rejected',
+      error_code: getErrorCode(error),
+      flow: 'credentials',
+    });
+
     let terms;
     if (error.step === AccessTokenSteps.ACCEPT_TERMS) {
       ({ item: terms } = yield call(api.getTerms, i18n.resolvedLanguage));
@@ -35,6 +43,15 @@ export function* authenticate(data) {
   }
 
   yield call(setAccessToken, accessToken);
+
+  // Pendo: an access token was issued directly from credentials
+  yield call(pendoTrack, 'login_succeeded', {
+    completion_step: 'credentials',
+    terms_accepted: false,
+    totp_verified: false,
+    language: i18n.resolvedLanguage,
+  });
+
   yield put(actions.authenticate.success(accessToken));
 }
 
@@ -60,6 +77,15 @@ export function* acceptTerms(signature) {
   }
 
   yield call(setAccessToken, accessToken);
+
+  // Pendo: an access token was issued after the visitor accepted the terms
+  yield call(pendoTrack, 'login_succeeded', {
+    completion_step: 'accept_terms',
+    terms_accepted: true,
+    totp_verified: false,
+    language: i18n.resolvedLanguage,
+  });
+
   yield put(actions.acceptTerms.success(accessToken));
 }
 
@@ -106,11 +132,27 @@ export function* verifyTotp(data) {
       pendingToken,
     }));
   } catch (error) {
+    // Pendo: the server rejected the TOTP challenge
+    yield call(pendoTrack, 'login_failed', {
+      error_step: (error && error.step) || 'rejected',
+      error_code: getErrorCode(error),
+      flow: 'verify_totp',
+    });
+
     yield put(actions.verifyTotp.failure(error));
     return;
   }
 
   yield call(setAccessToken, accessToken);
+
+  // Pendo: an access token was issued after the visitor passed the TOTP challenge
+  yield call(pendoTrack, 'login_succeeded', {
+    completion_step: 'verify_totp',
+    terms_accepted: false,
+    totp_verified: true,
+    language: i18n.resolvedLanguage,
+  });
+
   yield put(actions.verifyTotp.success(accessToken));
 }
 

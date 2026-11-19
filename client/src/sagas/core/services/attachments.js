@@ -13,10 +13,11 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import { getErrorCode, pendoTrack } from '../../../utils/pendo-track';
 import { AttachmentTypes } from '../../../constants/Enums';
 import ToastTypes from '../../../constants/ToastTypes';
 
-export function* createAttachment(cardId, data) {
+export function* createAttachment(cardId, data, source = 'unknown') {
   const localId = yield call(createLocalId);
   const currentUserId = yield select(selectors.selectCurrentUserId);
 
@@ -36,6 +37,13 @@ export function* createAttachment(cardId, data) {
     }),
   );
 
+  const trackingProperties = {
+    attachment_type: nextData.type,
+    file_size: nextData.file ? nextData.file.size : null,
+    mime_type: (nextData.file && nextData.file.type) || null,
+    source,
+  };
+
   let attachment;
   try {
     ({ item: attachment } = yield nextData.type === AttachmentTypes.FILE
@@ -44,31 +52,45 @@ export function* createAttachment(cardId, data) {
   } catch (error) {
     yield put(actions.createAttachment.failure(localId, error));
 
+    let toastType;
     if (error.code === 'E_UNPROCESSABLE_ENTITY') {
-      let toastType;
       if (error.message.startsWith('Upload limit')) {
         toastType = ToastTypes.FILE_IS_TOO_BIG;
       } else if (error.message === 'Storage limit reached') {
         toastType = ToastTypes.NOT_ENOUGH_STORAGE;
       }
+    }
 
-      if (toastType) {
-        yield call(toast, {
-          type: toastType,
-        });
-      }
+    // Pendo: the attachment request finished with an error
+    yield call(pendoTrack, 'attachment_added', {
+      ...trackingProperties,
+      success: false,
+      failure_reason: toastType || getErrorCode(error),
+    });
+
+    if (toastType) {
+      yield call(toast, {
+        type: toastType,
+      });
     }
 
     return;
   }
 
   yield put(actions.createAttachment.success(localId, attachment));
+
+  // Pendo: the attachment request finished successfully
+  yield call(pendoTrack, 'attachment_added', {
+    ...trackingProperties,
+    success: true,
+    failure_reason: null,
+  });
 }
 
-export function* createAttachmentInCurrentCard(data) {
+export function* createAttachmentInCurrentCard(data, source) {
   const { cardId } = yield select(selectors.selectPath);
 
-  yield call(createAttachment, cardId, data);
+  yield call(createAttachment, cardId, data, source);
 }
 
 export function* handleAttachmentCreate(attachment, requestId) {
