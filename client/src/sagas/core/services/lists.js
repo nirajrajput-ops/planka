@@ -12,7 +12,9 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import pendoTrack from '../../../utils/pendo-track';
 import ToastTypes from '../../../constants/ToastTypes';
+import { SortOrders } from '../../../constants/Enums';
 
 export function* createList(boardId, data) {
   const localId = yield call(createLocalId);
@@ -172,6 +174,15 @@ export function* sortList(id, data) {
   }
 
   yield put(actions.sortList.success(list, cards));
+
+  // Pendo: list cards reordered on the server
+  yield call(pendoTrack, 'list_sorted', {
+    list_id: list.id,
+    board_id: list.boardId,
+    sort_field_name: data.fieldName,
+    sort_order: data.order || SortOrders.ASC,
+    card_count: cards ? cards.length : 0,
+  });
 }
 
 export function* moveListCards(id, nextId) {
@@ -200,6 +211,16 @@ export function* moveListCards(id, nextId) {
   }
 
   yield put(actions.moveListCards.success(list, cards, activities));
+
+  // Pendo: all cards of a list moved to another list or to the archive
+  const destinationList = yield select(selectors.selectListById, nextId);
+
+  yield call(pendoTrack, 'list_cards_moved', {
+    source_list_id: id,
+    destination_list_id: nextId,
+    destination_list_type: destinationList ? destinationList.type : null,
+    card_count: cards ? cards.length : cardIds.length,
+  });
 }
 
 export function* moveListCardsToArchiveList(id) {
@@ -210,6 +231,8 @@ export function* moveListCardsToArchiveList(id) {
 
 export function* clearTrashListInCurrentBoard() {
   const trashListId = yield select(selectors.selectTrashListIdForCurrentBoard);
+  const trashList = yield select(selectors.selectListById, trashListId);
+  const trashCardIds = yield select(selectors.selectCardIdsByListId, trashListId);
 
   yield put(actions.clearList(trashListId));
 
@@ -229,6 +252,15 @@ export function* clearTrashListInCurrentBoard() {
   }
 
   yield put(actions.clearList.success(list));
+
+  // Pendo: board trash emptied and its cards permanently deleted.
+  // Trash cards load in pages, so the count covers loaded cards only.
+  yield call(pendoTrack, 'trash_emptied', {
+    board_id: list.boardId,
+    trash_list_id: trashListId,
+    deleted_card_count: trashCardIds ? trashCardIds.length : 0,
+    is_card_count_complete: !!(trashList && trashList.isAllCardsFetched),
+  });
 }
 
 export function* handleListClear(list) {
