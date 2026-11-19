@@ -13,6 +13,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import pendoTrack from '../../../utils/pendo-track';
 import { AttachmentTypes } from '../../../constants/Enums';
 import ToastTypes from '../../../constants/ToastTypes';
 
@@ -35,6 +36,13 @@ export function* createAttachment(cardId, data) {
       creatorUserId: currentUserId,
     }),
   );
+
+  const attachmentTrackingProperties = {
+    card_id: cardId,
+    attachment_type: nextData.type,
+    file_size: nextData.file ? nextData.file.size : null,
+    mime_type: nextData.file ? nextData.file.type : null,
+  };
 
   let attachment;
   try {
@@ -59,10 +67,35 @@ export function* createAttachment(cardId, data) {
       }
     }
 
+    // Pendo: upload or link attachment rejected by the server
+    let failureReason = 'unknown';
+    if (error.code === 'E_UNPROCESSABLE_ENTITY' && error.message.startsWith('Upload limit')) {
+      failureReason = 'upload_limit';
+    } else if (
+      error.code === 'E_UNPROCESSABLE_ENTITY' &&
+      error.message === 'Storage limit reached'
+    ) {
+      failureReason = 'storage_limit';
+    } else if (error.code) {
+      failureReason = error.code;
+    }
+
+    yield call(pendoTrack, 'attachment_added', {
+      ...attachmentTrackingProperties,
+      success: false,
+      failure_reason: failureReason,
+    });
+
     return;
   }
 
   yield put(actions.createAttachment.success(localId, attachment));
+
+  // Pendo: upload or link attachment stored on the card
+  yield call(pendoTrack, 'attachment_added', {
+    ...attachmentTrackingProperties,
+    success: true,
+  });
 }
 
 export function* createAttachmentInCurrentCard(data) {

@@ -13,6 +13,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import { setAccessToken } from '../../../utils/access-token-storage';
 import mergeRecords from '../../../utils/merge-records';
+import pendoTrack from '../../../utils/pendo-track';
 import { isUserAdminOrProjectOwner } from '../../../utils/record-helpers';
 import { UserRoles } from '../../../constants/Enums';
 
@@ -35,10 +36,24 @@ export function* createUser(data) {
     ({ item: user } = yield call(request, api.createUser, data));
   } catch (error) {
     yield put(actions.createUser.failure(error));
+
+    // Pendo: user creation rejected by the server
+    yield call(pendoTrack, 'user_created', {
+      role: data.role,
+      success: false,
+      error_code: error.message || error.code || 'unknown',
+    });
+
     return;
   }
 
   yield put(actions.createUser.success(user));
+
+  // Pendo: user created by an administrator
+  yield call(pendoTrack, 'user_created', {
+    role: user.role,
+    success: true,
+  });
 }
 
 export function* handleUserCreate(user) {
@@ -281,6 +296,14 @@ export function* updateUserPassword(id, data) {
   }
 
   yield put(actions.updateUserPassword.success(user, accessToken));
+
+  // Pendo: password change accepted by the server
+  const currentUserId = yield select(selectors.selectCurrentUserId);
+
+  yield call(pendoTrack, 'password_changed', {
+    is_current_user: id === currentUserId,
+    access_token_rotated: !!accessToken,
+  });
 }
 
 export function* updateCurrentUserPassword(data) {
@@ -366,6 +389,13 @@ export function* createUserApiKey(id) {
   }
 
   yield put(actions.createUserApiKey.success(user, apiKey));
+
+  // Pendo: API key generated. Only the outcome is tracked, never the key value.
+  const currentUserId = yield select(selectors.selectCurrentUserId);
+
+  yield call(pendoTrack, 'api_key_created', {
+    is_current_user: id === currentUserId,
+  });
 }
 
 export function* deleteUserApiKey(id) {
@@ -424,10 +454,23 @@ export function* enableUserTotp(id, data) {
     } = yield call(request, api.enableUserTotp, id, data));
   } catch (error) {
     yield put(actions.enableUserTotp.failure(id, error));
+
+    // Pendo: verification code rejected during two-factor setup
+    yield call(pendoTrack, 'two_factor_enabled', {
+      recovery_code_count: 0,
+      success: false,
+    });
+
     return;
   }
 
   yield put(actions.enableUserTotp.success(user, recoveryCodes));
+
+  // Pendo: two-factor authentication turned on for the account
+  yield call(pendoTrack, 'two_factor_enabled', {
+    recovery_code_count: recoveryCodes ? recoveryCodes.length : 0,
+    success: true,
+  });
 }
 
 export function* enableCurrentUserTotp(data) {
