@@ -10,7 +10,29 @@ import actions from '../../../actions';
 import api from '../../../api';
 import i18n from '../../../i18n';
 import { setAccessToken } from '../../../utils/access-token-storage';
+import trackPendoEvent from '../../../utils/track-pendo-event';
 import AccessTokenSteps from '../../../constants/AccessTokenSteps';
+
+const LoginMethods = {
+  PASSWORD: 'password',
+  TOTP: 'totp',
+  TERMS_ACCEPTANCE: 'terms_acceptance',
+};
+
+const trackLoginSucceeded = (method) =>
+  trackPendoEvent('login_succeeded', {
+    method,
+    requiredTotp: method === LoginMethods.TOTP,
+    requiredTermsAcceptance: method === LoginMethods.TERMS_ACCEPTANCE,
+    language: i18n.resolvedLanguage,
+  });
+
+const trackLoginFailed = (method, errorStep, error) =>
+  trackPendoEvent('login_failed', {
+    method,
+    errorStep,
+    errorMessage: ((error && error.message) || 'Unknown error').substring(0, 100),
+  });
 
 export function* initializeLogin() {
   const { item: bootstrap } = yield call(api.getBootstrap); // TODO: handle error
@@ -30,11 +52,17 @@ export function* authenticate(data) {
       ({ item: terms } = yield call(api.getTerms, i18n.resolvedLanguage));
     }
 
+    // An error with a step asks for terms acceptance or a TOTP code, so the login isn't failed yet
+    if (!error.step) {
+      yield call(trackLoginFailed, LoginMethods.PASSWORD, 'password', error);
+    }
+
     yield put(actions.authenticate.failure(error, terms));
     return;
   }
 
   yield call(setAccessToken, accessToken);
+  yield call(trackLoginSucceeded, LoginMethods.PASSWORD);
   yield put(actions.authenticate.success(accessToken));
 }
 
@@ -55,11 +83,18 @@ export function* acceptTerms(signature) {
       initialLanguage: i18n.resolvedLanguage,
     }));
   } catch (error) {
+    yield call(
+      trackLoginFailed,
+      LoginMethods.TERMS_ACCEPTANCE,
+      AccessTokenSteps.ACCEPT_TERMS,
+      error,
+    );
     yield put(actions.acceptTerms.failure(error));
     return;
   }
 
   yield call(setAccessToken, accessToken);
+  yield call(trackLoginSucceeded, LoginMethods.TERMS_ACCEPTANCE);
   yield put(actions.acceptTerms.success(accessToken));
 }
 
@@ -106,11 +141,13 @@ export function* verifyTotp(data) {
       pendingToken,
     }));
   } catch (error) {
+    yield call(trackLoginFailed, LoginMethods.TOTP, AccessTokenSteps.VERIFY_TOTP, error);
     yield put(actions.verifyTotp.failure(error));
     return;
   }
 
   yield call(setAccessToken, accessToken);
+  yield call(trackLoginSucceeded, LoginMethods.TOTP);
   yield put(actions.verifyTotp.success(accessToken));
 }
 

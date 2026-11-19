@@ -10,6 +10,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import trackPendoEvent from '../../../utils/track-pendo-event';
 
 export function* createNotificationServiceInCurrentUser(data) {
   const localId = yield call(createLocalId);
@@ -37,6 +38,12 @@ export function* createNotificationServiceInCurrentUser(data) {
   }
 
   yield put(actions.createNotificationService.success(localId, notificationService));
+
+  yield call(trackPendoEvent, 'notification_service_created', {
+    scope: 'user',
+    boardId: null,
+    format: notificationService.format,
+  });
 }
 
 export function* createNotificationServiceInBoard(boardId, data) {
@@ -64,6 +71,12 @@ export function* createNotificationServiceInBoard(boardId, data) {
   }
 
   yield put(actions.createNotificationService.success(localId, notificationService));
+
+  yield call(trackPendoEvent, 'notification_service_created', {
+    scope: 'board',
+    boardId,
+    format: notificationService.format,
+  });
 }
 
 export function* handleNotificationServiceCreate(notificationService) {
@@ -89,6 +102,10 @@ export function* handleNotificationServiceUpdate(notificationService) {
 }
 
 export function* testNotificationService(id) {
+  const existingNotificationService = yield select(selectors.selectNotificationServiceById, id);
+  const scope =
+    existingNotificationService && existingNotificationService.boardId ? 'board' : 'user';
+
   yield put(actions.testNotificationService(id));
 
   let notificationService;
@@ -96,10 +113,23 @@ export function* testNotificationService(id) {
     ({ item: notificationService } = yield call(request, api.testNotificationService, id));
   } catch (error) {
     yield put(actions.testNotificationService.failure(id, error));
+
+    yield call(trackPendoEvent, 'notification_service_tested', {
+      notificationServiceId: id,
+      scope,
+      success: false,
+    });
+
     return;
   }
 
   yield put(actions.testNotificationService.success(notificationService));
+
+  yield call(trackPendoEvent, 'notification_service_tested', {
+    notificationServiceId: id,
+    scope,
+    success: true,
+  });
 }
 
 export function* deleteNotificationService(id) {

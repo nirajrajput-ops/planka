@@ -8,6 +8,7 @@ import { call, put } from 'redux-saga/effects';
 import request from '../request';
 import actions from '../../../actions';
 import api from '../../../api';
+import trackPendoEvent from '../../../utils/track-pendo-event';
 
 export function* updateConfig(data) {
   yield put(actions.updateConfig(data));
@@ -31,15 +32,22 @@ export function* testSmtpConfig() {
   yield put(actions.testSmtpConfig());
 
   let logs;
+  let isSucceeded = true;
   try {
     ({
       included: { logs },
     } = yield call(request, api.testSmtpConfig));
   } catch (error) {
+    isSucceeded = false;
     yield put(actions.testSmtpConfig.failure(error));
   }
 
   yield put(actions.testSmtpConfig.success(logs));
+
+  yield call(trackPendoEvent, 'smtp_test_completed', {
+    success: isSucceeded,
+    logCount: logs ? logs.length : 0,
+  });
 }
 
 export default {

@@ -12,6 +12,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import trackPendoEvent from '../../../utils/track-pendo-event';
 import ToastTypes from '../../../constants/ToastTypes';
 
 export function* createList(boardId, data) {
@@ -200,6 +201,15 @@ export function* moveListCards(id, nextId) {
   }
 
   yield put(actions.moveListCards.success(list, cards, activities));
+
+  const targetList = yield select(selectors.selectListById, nextId);
+
+  yield call(trackPendoEvent, 'list_cards_moved', {
+    listId: id,
+    targetListId: nextId,
+    targetListType: targetList ? targetList.type : null,
+    cardCount: cards ? cards.length : cardIds.length,
+  });
 }
 
 export function* moveListCardsToArchiveList(id) {
@@ -210,6 +220,9 @@ export function* moveListCardsToArchiveList(id) {
 
 export function* clearTrashListInCurrentBoard() {
   const trashListId = yield select(selectors.selectTrashListIdForCurrentBoard);
+  const trashList = yield select(selectors.selectListById, trashListId);
+  // Trash cards load page by page, so this counts the cards loaded in the client
+  const trashCardIds = yield select(selectors.selectCardIdsByListId, trashListId);
 
   yield put(actions.clearList(trashListId));
 
@@ -229,6 +242,12 @@ export function* clearTrashListInCurrentBoard() {
   }
 
   yield put(actions.clearList.success(list));
+
+  yield call(trackPendoEvent, 'trash_emptied', {
+    boardId: trashList ? trashList.boardId : null,
+    listId: trashListId,
+    cardCount: trashCardIds.length,
+  });
 }
 
 export function* handleListClear(list) {
