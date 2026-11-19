@@ -10,7 +10,36 @@ import actions from '../../../actions';
 import api from '../../../api';
 import i18n from '../../../i18n';
 import { setAccessToken } from '../../../utils/access-token-storage';
+import { trackPendoEvent } from '../../../utils/pendo';
 import AccessTokenSteps from '../../../constants/AccessTokenSteps';
+
+// Steps the current sign-in attempt went through. Reset each time the password is submitted.
+const signInSteps = {
+  requiredTerms: false,
+  requiredTotp: false,
+};
+
+const rememberSignInStep = (error) => {
+  if (!error) {
+    return;
+  }
+
+  if (error.step === AccessTokenSteps.ACCEPT_TERMS) {
+    signInSteps.requiredTerms = true;
+  } else if (error.step === AccessTokenSteps.VERIFY_TOTP) {
+    signInSteps.requiredTotp = true;
+  }
+};
+
+// Sign-in finished and an access token was issued
+const trackSignInCompleted = (completionStep) => {
+  trackPendoEvent('sign_in_completed', {
+    completionStep,
+    requiredTerms: signInSteps.requiredTerms,
+    requiredTotp: signInSteps.requiredTotp,
+    language: i18n.resolvedLanguage || null,
+  });
+};
 
 export function* initializeLogin() {
   const { item: bootstrap } = yield call(api.getBootstrap); // TODO: handle error
@@ -21,10 +50,15 @@ export function* initializeLogin() {
 export function* authenticate(data) {
   yield put(actions.authenticate(data));
 
+  signInSteps.requiredTerms = false;
+  signInSteps.requiredTotp = false;
+
   let accessToken;
   try {
     ({ item: accessToken } = yield call(api.createAccessToken, data));
   } catch (error) {
+    rememberSignInStep(error);
+
     let terms;
     if (error.step === AccessTokenSteps.ACCEPT_TERMS) {
       ({ item: terms } = yield call(api.getTerms, i18n.resolvedLanguage));
@@ -35,6 +69,7 @@ export function* authenticate(data) {
   }
 
   yield call(setAccessToken, accessToken);
+  yield call(trackSignInCompleted, 'password');
   yield put(actions.authenticate.success(accessToken));
 }
 
@@ -55,11 +90,13 @@ export function* acceptTerms(signature) {
       initialLanguage: i18n.resolvedLanguage,
     }));
   } catch (error) {
+    rememberSignInStep(error);
     yield put(actions.acceptTerms.failure(error));
     return;
   }
 
   yield call(setAccessToken, accessToken);
+  yield call(trackSignInCompleted, 'terms');
   yield put(actions.acceptTerms.success(accessToken));
 }
 
@@ -111,6 +148,7 @@ export function* verifyTotp(data) {
   }
 
   yield call(setAccessToken, accessToken);
+  yield call(trackSignInCompleted, 'totp');
   yield put(actions.verifyTotp.success(accessToken));
 }
 

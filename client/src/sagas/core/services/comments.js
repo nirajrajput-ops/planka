@@ -10,6 +10,8 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import { hasMentionMarkup } from '../../../utils/mentions';
+import { trackPendoEvent } from '../../../utils/pendo';
 
 export function* fetchComments(cardId) {
   const { lastCommentId } = yield select(selectors.selectCardById, cardId);
@@ -62,6 +64,18 @@ export function* createComment(cardId, data) {
   }
 
   yield put(actions.createComment.success(localId, comment));
+
+  // Server saved the comment. Only the text length is sent, never the text.
+  const card = yield select(selectors.selectCardById, cardId);
+  const text = comment.text || '';
+
+  yield call(trackPendoEvent, 'comment_posted', {
+    cardId,
+    boardId: card ? card.boardId : null,
+    commentId: comment.id,
+    textLength: text.length,
+    hasMention: hasMentionMarkup(text),
+  });
 }
 
 export function* createCommentInCurrentCard(data) {

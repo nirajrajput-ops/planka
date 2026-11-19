@@ -22,4 +22,6 @@ export const mentionTextToMarkup = (text, userByUsername) =>
 export const mentionMarkupToText = (markup) =>
   markup.replace(MENTION_MARKUP_REGEX, (_, username) => `@${username}`);
 
+export const hasMentionMarkup = (markup) => new RegExp(MENTION_MARKUP_REGEX.source).test(markup);
+
 export const isUsernameChar = (char) => USERNAME_CHAR_REGEX.test(char);

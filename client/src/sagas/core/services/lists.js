@@ -12,6 +12,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import { trackPendoEvent } from '../../../utils/pendo';
 import ToastTypes from '../../../constants/ToastTypes';
 
 export function* createList(boardId, data) {
@@ -200,6 +201,17 @@ export function* moveListCards(id, nextId) {
   }
 
   yield put(actions.moveListCards.success(list, cards, activities));
+
+  // Server finished the bulk move, such as archiving a whole list
+  const targetList = yield select(selectors.selectListById, nextId);
+
+  yield call(trackPendoEvent, 'list_cards_moved', {
+    sourceListId: id,
+    targetListId: nextId,
+    targetListType: targetList ? targetList.type : null,
+    cardCount: cards ? cards.length : cardIds.length,
+    boardId: list.boardId,
+  });
 }
 
 export function* moveListCardsToArchiveList(id) {
