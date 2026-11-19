@@ -10,6 +10,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import { trackPendoEvent } from '../../../utils/pendo';
 
 export function* createNotificationServiceInCurrentUser(data) {
   const localId = yield call(createLocalId);
@@ -37,6 +38,11 @@ export function* createNotificationServiceInCurrentUser(data) {
   }
 
   yield put(actions.createNotificationService.success(localId, notificationService));
+
+  yield call(trackPendoEvent, 'notification_service_connected', {
+    scope: 'user',
+    format: notificationService.format,
+  });
 }
 
 export function* createNotificationServiceInBoard(boardId, data) {
@@ -64,6 +70,12 @@ export function* createNotificationServiceInBoard(boardId, data) {
   }
 
   yield put(actions.createNotificationService.success(localId, notificationService));
+
+  yield call(trackPendoEvent, 'notification_service_connected', {
+    scope: 'board',
+    board_id: boardId,
+    format: notificationService.format,
+  });
 }
 
 export function* handleNotificationServiceCreate(notificationService) {
@@ -95,9 +107,24 @@ export function* testNotificationService(id) {
   try {
     ({ item: notificationService } = yield call(request, api.testNotificationService, id));
   } catch (error) {
+    const prevNotificationService = yield select(selectors.selectNotificationServiceById, id);
+
+    yield call(trackPendoEvent, 'notification_service_test_completed', {
+      notification_service_id: id,
+      format: prevNotificationService ? prevNotificationService.format : 'unknown',
+      outcome: 'failure',
+      error_code: error.code || 'unknown',
+    });
+
     yield put(actions.testNotificationService.failure(id, error));
     return;
   }
+
+  yield call(trackPendoEvent, 'notification_service_test_completed', {
+    notification_service_id: id,
+    format: notificationService.format,
+    outcome: 'success',
+  });
 
   yield put(actions.testNotificationService.success(notificationService));
 }

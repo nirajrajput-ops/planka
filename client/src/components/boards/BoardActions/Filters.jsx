@@ -7,7 +7,7 @@ import debounce from 'lodash/debounce';
 import React, { useCallback, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector, useStore } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { Icon } from 'semantic-ui-react';
 import { useDidUpdate } from '../../../lib/hooks';
@@ -17,6 +17,7 @@ import { Input, Tooltip } from '../../../lib/custom-ui';
 import selectors from '../../../selectors';
 import entryActions from '../../../entry-actions';
 import { useNestedRef } from '../../../hooks';
+import { trackPendoEvent } from '../../../utils/pendo';
 import { BoardViews, LabelFilterModes } from '../../../constants/Enums';
 import UserAvatar from '../../users/UserAvatar';
 import BoardMembershipsStep from '../../board-memberships/BoardMembershipsStep';
@@ -76,6 +77,7 @@ const Filters = React.memo(() => {
     (state) => !!selectors.selectCurrentUserMembershipForCurrentBoard(state),
   );
 
+  const store = useStore();
   const dispatch = useDispatch();
   const [t] = useTranslation();
   const [search, setSearch] = useState(board.search);
@@ -86,12 +88,40 @@ const Filters = React.memo(() => {
   // arrives uninvited.
   const [storageRev, setStorageRev] = useState(0);
 
+  // Reads the board state right after the search is applied, so the event reports the filters
+  // that were active and how many cards matched.
+  const trackBoardSearch = useCallback(
+    (nextSearch, isRestoredFilter) => {
+      if (!nextSearch || !nextSearch.trim()) {
+        return;
+      }
+
+      const state = store.getState();
+      const currentBoard = selectors.selectCurrentBoard(state);
+      const filteredCardIds = selectors.selectFilteredCardIdsForCurrentBoard(state);
+
+      trackPendoEvent('board_search_performed', {
+        board_id: currentBoard ? currentBoard.id : 'unknown',
+        query_length: nextSearch.trim().length,
+        matched_card_count: filteredCardIds ? filteredCardIds.length : 0,
+        active_user_filter_count: selectors.selectFilterUserIdsForCurrentBoard(state).length,
+        active_label_filter_count:
+          selectors.selectFilterLabelIdsForCurrentBoard(state).length +
+          selectors.selectFilterExcludedLabelIdsForCurrentBoard(state).length,
+        active_list_filter_count: selectors.selectFilterListIdsForCurrentBoard(state).length,
+        is_restored_filter: isRestoredFilter,
+      });
+    },
+    [store],
+  );
+
   const debouncedSearch = useMemo(
     () =>
       debounce((nextSearch) => {
         dispatch(entryActions.searchInCurrentBoard(nextSearch));
+        trackBoardSearch(nextSearch, false);
       }, 400),
-    [dispatch],
+    [dispatch, trackBoardSearch],
   );
 
   const [searchFieldRef, handleSearchFieldRef] = useNestedRef('inputRef');
@@ -359,9 +389,10 @@ const Filters = React.memo(() => {
         debouncedSearch.cancel();
         setSearch(filter.search);
         dispatch(entryActions.searchInCurrentBoard(filter.search));
+        trackBoardSearch(filter.search, true);
       }
     },
-    [debouncedSearch, dispatch],
+    [debouncedSearch, dispatch, trackBoardSearch],
   );
 
   // Clearing everything at once leaves the snapshot behind, so the very next

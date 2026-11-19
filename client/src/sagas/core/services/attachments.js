@@ -13,6 +13,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import { trackPendoEvent } from '../../../utils/pendo';
 import { AttachmentTypes } from '../../../constants/Enums';
 import ToastTypes from '../../../constants/ToastTypes';
 
@@ -44,14 +45,30 @@ export function* createAttachment(cardId, data) {
   } catch (error) {
     yield put(actions.createAttachment.failure(localId, error));
 
+    let toastType;
     if (error.code === 'E_UNPROCESSABLE_ENTITY') {
-      let toastType;
       if (error.message.startsWith('Upload limit')) {
         toastType = ToastTypes.FILE_IS_TOO_BIG;
       } else if (error.message === 'Storage limit reached') {
         toastType = ToastTypes.NOT_ENOUGH_STORAGE;
       }
+    }
 
+    let failureReason = 'other';
+    if (toastType === ToastTypes.FILE_IS_TOO_BIG) {
+      failureReason = 'file_too_big';
+    } else if (toastType === ToastTypes.NOT_ENOUGH_STORAGE) {
+      failureReason = 'not_enough_storage';
+    }
+
+    yield call(trackPendoEvent, 'attachment_upload_failed', {
+      card_id: cardId,
+      attachment_type: nextData.type,
+      failure_reason: failureReason,
+      error_code: error.code || 'unknown',
+    });
+
+    if (error.code === 'E_UNPROCESSABLE_ENTITY') {
       if (toastType) {
         yield call(toast, {
           type: toastType,
@@ -63,6 +80,13 @@ export function* createAttachment(cardId, data) {
   }
 
   yield put(actions.createAttachment.success(localId, attachment));
+
+  yield call(trackPendoEvent, 'attachment_added', {
+    card_id: cardId,
+    attachment_type: nextData.type,
+    mime_type: (nextData.file && nextData.file.type) || 'none',
+    file_size: nextData.file ? nextData.file.size : 0,
+  });
 }
 
 export function* createAttachmentInCurrentCard(data) {

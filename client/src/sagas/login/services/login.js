@@ -10,7 +10,35 @@ import actions from '../../../actions';
 import api from '../../../api';
 import i18n from '../../../i18n';
 import { setAccessToken } from '../../../utils/access-token-storage';
+import { trackPendoEvent } from '../../../utils/pendo';
 import AccessTokenSteps from '../../../constants/AccessTokenSteps';
+
+// Remembers whether the current sign-in went through the TOTP step, so login_completed can report
+// it even when the terms step finishes the sign-in.
+let isTotpChallenged = false;
+
+function* trackLoginCompleted(completedStep) {
+  yield call(trackPendoEvent, 'login_completed', {
+    completed_step: completedStep,
+    totp_required: isTotpChallenged,
+    terms_accepted: completedStep === 'terms',
+    language: i18n.resolvedLanguage,
+  });
+
+  isTotpChallenged = false;
+}
+
+function* trackLoginFailed(error, flow) {
+  if (error && error.step === AccessTokenSteps.VERIFY_TOTP) {
+    isTotpChallenged = true;
+  }
+
+  yield call(trackPendoEvent, 'login_failed', {
+    error_step: (error && error.step) || 'none',
+    error_message: ((error && error.message) || 'unknown').substring(0, 100),
+    flow,
+  });
+}
 
 export function* initializeLogin() {
   const { item: bootstrap } = yield call(api.getBootstrap); // TODO: handle error
@@ -21,10 +49,14 @@ export function* initializeLogin() {
 export function* authenticate(data) {
   yield put(actions.authenticate(data));
 
+  isTotpChallenged = false;
+
   let accessToken;
   try {
     ({ item: accessToken } = yield call(api.createAccessToken, data));
   } catch (error) {
+    yield call(trackLoginFailed, error, 'password');
+
     let terms;
     if (error.step === AccessTokenSteps.ACCEPT_TERMS) {
       ({ item: terms } = yield call(api.getTerms, i18n.resolvedLanguage));
@@ -35,6 +67,7 @@ export function* authenticate(data) {
   }
 
   yield call(setAccessToken, accessToken);
+  yield call(trackLoginCompleted, 'password');
   yield put(actions.authenticate.success(accessToken));
 }
 
@@ -60,6 +93,7 @@ export function* acceptTerms(signature) {
   }
 
   yield call(setAccessToken, accessToken);
+  yield call(trackLoginCompleted, 'terms');
   yield put(actions.acceptTerms.success(accessToken));
 }
 
@@ -106,11 +140,13 @@ export function* verifyTotp(data) {
       pendingToken,
     }));
   } catch (error) {
+    yield call(trackLoginFailed, error, 'totp');
     yield put(actions.verifyTotp.failure(error));
     return;
   }
 
   yield call(setAccessToken, accessToken);
+  yield call(trackLoginCompleted, 'totp');
   yield put(actions.verifyTotp.success(accessToken));
 }
 

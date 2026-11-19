@@ -13,6 +13,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import { setAccessToken } from '../../../utils/access-token-storage';
 import mergeRecords from '../../../utils/merge-records';
+import { trackPendoEvent } from '../../../utils/pendo';
 import { isUserAdminOrProjectOwner } from '../../../utils/record-helpers';
 import { UserRoles } from '../../../constants/Enums';
 
@@ -39,6 +40,11 @@ export function* createUser(data) {
   }
 
   yield put(actions.createUser.success(user));
+
+  yield call(trackPendoEvent, 'user_created', {
+    role: user.role,
+    has_username: !!user.username,
+  });
 }
 
 export function* handleUserCreate(user) {
@@ -281,6 +287,13 @@ export function* updateUserPassword(id, data) {
   }
 
   yield put(actions.updateUserPassword.success(user, accessToken));
+
+  const currentUserId = yield select(selectors.selectCurrentUserId);
+
+  yield call(trackPendoEvent, 'password_changed', {
+    is_current_user: id === currentUserId,
+    access_token_rotated: !!accessToken,
+  });
 }
 
 export function* updateCurrentUserPassword(data) {
@@ -428,6 +441,13 @@ export function* enableUserTotp(id, data) {
   }
 
   yield put(actions.enableUserTotp.success(user, recoveryCodes));
+
+  const currentUserId = yield select(selectors.selectCurrentUserId);
+
+  yield call(trackPendoEvent, 'two_factor_enabled', {
+    recovery_code_count: recoveryCodes ? recoveryCodes.length : 0,
+    is_current_user: id === currentUserId,
+  });
 }
 
 export function* enableCurrentUserTotp(data) {
