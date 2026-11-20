@@ -10,6 +10,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import { getErrorCode, trackPendoEvent } from '../../../utils/pendo-track';
 
 export function* createNotificationServiceInCurrentUser(data) {
   const localId = yield call(createLocalId);
@@ -89,6 +90,14 @@ export function* handleNotificationServiceUpdate(notificationService) {
 }
 
 export function* testNotificationService(id) {
+  const prevNotificationService = yield select(selectors.selectNotificationServiceById, id);
+
+  const testTrackProperties = {
+    notification_service_id: id,
+    scope: prevNotificationService && prevNotificationService.boardId ? 'board' : 'user',
+    format: prevNotificationService ? prevNotificationService.format : null,
+  };
+
   yield put(actions.testNotificationService(id));
 
   let notificationService;
@@ -96,10 +105,24 @@ export function* testNotificationService(id) {
     ({ item: notificationService } = yield call(request, api.testNotificationService, id));
   } catch (error) {
     yield put(actions.testNotificationService.failure(id, error));
+
+    // Test notification delivery failed
+    yield call(trackPendoEvent, 'notification_service_tested', {
+      ...testTrackProperties,
+      success: false,
+      error_code: getErrorCode(error),
+    });
+
     return;
   }
 
   yield put(actions.testNotificationService.success(notificationService));
+
+  // Test notification sent through the configured service
+  yield call(trackPendoEvent, 'notification_service_tested', {
+    ...testTrackProperties,
+    success: true,
+  });
 }
 
 export function* deleteNotificationService(id) {

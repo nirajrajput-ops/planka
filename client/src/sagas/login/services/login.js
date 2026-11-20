@@ -10,6 +10,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import i18n from '../../../i18n';
 import { setAccessToken } from '../../../utils/access-token-storage';
+import { getErrorCode, trackPendoEvent } from '../../../utils/pendo-track';
 import AccessTokenSteps from '../../../constants/AccessTokenSteps';
 
 export function* initializeLogin() {
@@ -31,11 +32,29 @@ export function* authenticate(data) {
     }
 
     yield put(actions.authenticate.failure(error, terms));
+
+    // Sign-in failed or stopped at a pending step (terms acceptance or TOTP challenge)
+    yield call(trackPendoEvent, 'login_completed', {
+      login_step: 'credentials',
+      success: false,
+      next_step: error.step || null,
+      error_code: error.step ? null : getErrorCode(error),
+      with_totp: false,
+    });
+
     return;
   }
 
   yield call(setAccessToken, accessToken);
   yield put(actions.authenticate.success(accessToken));
+
+  // Sign-in succeeded with credentials only
+  yield call(trackPendoEvent, 'login_completed', {
+    login_step: 'credentials',
+    success: true,
+    next_step: null,
+    with_totp: false,
+  });
 }
 
 export function* clearAuthenticateError() {
@@ -56,11 +75,29 @@ export function* acceptTerms(signature) {
     }));
   } catch (error) {
     yield put(actions.acceptTerms.failure(error));
+
+    // Sign-in failed or stopped at another pending step after the terms step
+    yield call(trackPendoEvent, 'login_completed', {
+      login_step: 'accept_terms',
+      success: false,
+      next_step: error.step || null,
+      error_code: error.step ? null : getErrorCode(error),
+      with_totp: false,
+    });
+
     return;
   }
 
   yield call(setAccessToken, accessToken);
   yield put(actions.acceptTerms.success(accessToken));
+
+  // Sign-in succeeded after accepting the terms
+  yield call(trackPendoEvent, 'login_completed', {
+    login_step: 'accept_terms',
+    success: true,
+    next_step: null,
+    with_totp: false,
+  });
 }
 
 export function* cancelTerms() {
@@ -107,11 +144,29 @@ export function* verifyTotp(data) {
     }));
   } catch (error) {
     yield put(actions.verifyTotp.failure(error));
+
+    // Sign-in failed at the TOTP challenge
+    yield call(trackPendoEvent, 'login_completed', {
+      login_step: 'verify_totp',
+      success: false,
+      next_step: error.step || null,
+      error_code: getErrorCode(error),
+      with_totp: true,
+    });
+
     return;
   }
 
   yield call(setAccessToken, accessToken);
   yield put(actions.verifyTotp.success(accessToken));
+
+  // Sign-in succeeded after the TOTP challenge
+  yield call(trackPendoEvent, 'login_completed', {
+    login_step: 'verify_totp',
+    success: true,
+    next_step: null,
+    with_totp: true,
+  });
 }
 
 export function* cancelTotpChallenge() {
