@@ -13,6 +13,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import mergeRecords from '../../../utils/merge-records';
+import { trackPendoEvent } from '../../../utils/pendo';
 import { UserRoles } from '../../../constants/Enums';
 
 export function* searchProjects(value) {
@@ -54,6 +55,14 @@ export function* createProject(data) {
   }
 
   yield put(actions.createProject.success(project, projectManagers));
+
+  // Pendo: project created on the server, tracked before the redirect
+  yield call(trackPendoEvent, 'project_created', {
+    projectId: project.id,
+    type: data.type || null,
+    hasDescription: !!(data.description && data.description.trim()),
+  });
+
   yield call(goToProject, project.id);
 }
 

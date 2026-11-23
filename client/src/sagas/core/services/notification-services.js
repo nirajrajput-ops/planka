@@ -10,6 +10,7 @@ import selectors from '../../../selectors';
 import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
+import { trackPendoEvent } from '../../../utils/pendo';
 
 export function* createNotificationServiceInCurrentUser(data) {
   const localId = yield call(createLocalId);
@@ -37,6 +38,14 @@ export function* createNotificationServiceInCurrentUser(data) {
   }
 
   yield put(actions.createNotificationService.success(localId, notificationService));
+
+  // Pendo: notification service created for the current user
+  yield call(trackPendoEvent, 'notification_service_created', {
+    notificationServiceId: notificationService.id,
+    scope: 'user',
+    boardId: null,
+    format: notificationService.format,
+  });
 }
 
 export function* createNotificationServiceInBoard(boardId, data) {
@@ -64,6 +73,14 @@ export function* createNotificationServiceInBoard(boardId, data) {
   }
 
   yield put(actions.createNotificationService.success(localId, notificationService));
+
+  // Pendo: notification service created for a board
+  yield call(trackPendoEvent, 'notification_service_created', {
+    notificationServiceId: notificationService.id,
+    scope: 'board',
+    boardId,
+    format: notificationService.format,
+  });
 }
 
 export function* handleNotificationServiceCreate(notificationService) {
@@ -89,6 +106,16 @@ export function* handleNotificationServiceUpdate(notificationService) {
 }
 
 export function* testNotificationService(id) {
+  const existingNotificationService = yield select(selectors.selectNotificationServiceById, id);
+
+  // Pendo: test notification finished, either delivered or failed
+  const trackNotificationServiceTested = (outcome) =>
+    call(trackPendoEvent, 'notification_service_tested', {
+      notificationServiceId: id,
+      format: existingNotificationService ? existingNotificationService.format : null,
+      outcome,
+    });
+
   yield put(actions.testNotificationService(id));
 
   let notificationService;
@@ -96,10 +123,12 @@ export function* testNotificationService(id) {
     ({ item: notificationService } = yield call(request, api.testNotificationService, id));
   } catch (error) {
     yield put(actions.testNotificationService.failure(id, error));
+    yield trackNotificationServiceTested('failure');
     return;
   }
 
   yield put(actions.testNotificationService.success(notificationService));
+  yield trackNotificationServiceTested('success');
 }
 
 export function* deleteNotificationService(id) {
