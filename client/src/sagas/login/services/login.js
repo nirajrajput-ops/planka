@@ -10,7 +10,49 @@ import actions from '../../../actions';
 import api from '../../../api';
 import i18n from '../../../i18n';
 import { setAccessToken } from '../../../utils/access-token-storage';
+import { trackPendoEvent, truncateForPendo } from '../../../utils/pendo';
 import AccessTokenSteps from '../../../constants/AccessTokenSteps';
+
+const LoginSteps = {
+  AUTHENTICATE: 'authenticate',
+  ACCEPT_TERMS: AccessTokenSteps.ACCEPT_TERMS,
+  VERIFY_TOTP: AccessTokenSteps.VERIFY_TOTP,
+};
+
+// Remembers which extra steps the current sign-in attempt required
+const loginFlowState = {
+  requiredTermsAcceptance: false,
+  requiredTotp: false,
+};
+
+const rememberRequiredStep = (error) => {
+  if (error.step === AccessTokenSteps.ACCEPT_TERMS) {
+    loginFlowState.requiredTermsAcceptance = true;
+  } else if (error.step === AccessTokenSteps.VERIFY_TOTP) {
+    loginFlowState.requiredTotp = true;
+  }
+};
+
+// Pendo: sign-in finished and an access token was stored
+const trackLoginCompleted = (completedStep) => {
+  trackPendoEvent('login_completed', {
+    completedStep,
+    requiredTermsAcceptance: loginFlowState.requiredTermsAcceptance,
+    requiredTotp: loginFlowState.requiredTotp,
+    initialLanguage: i18n.resolvedLanguage,
+  });
+};
+
+// Pendo: a sign-in step was rejected by the server
+const trackLoginFailed = (failedStep, error) => {
+  rememberRequiredStep(error);
+
+  trackPendoEvent('login_failed', {
+    failedStep,
+    errorStep: error.step || null,
+    errorMessage: truncateForPendo(error.message) || null,
+  });
+};
 
 export function* initializeLogin() {
   const { item: bootstrap } = yield call(api.getBootstrap); // TODO: handle error
@@ -19,6 +61,9 @@ export function* initializeLogin() {
 }
 
 export function* authenticate(data) {
+  loginFlowState.requiredTermsAcceptance = false;
+  loginFlowState.requiredTotp = false;
+
   yield put(actions.authenticate(data));
 
   let accessToken;
@@ -31,10 +76,13 @@ export function* authenticate(data) {
     }
 
     yield put(actions.authenticate.failure(error, terms));
+    yield call(trackLoginFailed, LoginSteps.AUTHENTICATE, error);
     return;
   }
 
   yield call(setAccessToken, accessToken);
+  // Track before the success action, which stops the login watchers
+  yield call(trackLoginCompleted, LoginSteps.AUTHENTICATE);
   yield put(actions.authenticate.success(accessToken));
 }
 
@@ -56,10 +104,13 @@ export function* acceptTerms(signature) {
     }));
   } catch (error) {
     yield put(actions.acceptTerms.failure(error));
+    yield call(trackLoginFailed, LoginSteps.ACCEPT_TERMS, error);
     return;
   }
 
   yield call(setAccessToken, accessToken);
+  // Track before the success action, which stops the login watchers
+  yield call(trackLoginCompleted, LoginSteps.ACCEPT_TERMS);
   yield put(actions.acceptTerms.success(accessToken));
 }
 
@@ -107,10 +158,13 @@ export function* verifyTotp(data) {
     }));
   } catch (error) {
     yield put(actions.verifyTotp.failure(error));
+    yield call(trackLoginFailed, LoginSteps.VERIFY_TOTP, error);
     return;
   }
 
   yield call(setAccessToken, accessToken);
+  // Track before the success action, which stops the login watchers
+  yield call(trackLoginCompleted, LoginSteps.VERIFY_TOTP);
   yield put(actions.verifyTotp.success(accessToken));
 }
 

@@ -13,6 +13,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import { setAccessToken } from '../../../utils/access-token-storage';
 import mergeRecords from '../../../utils/merge-records';
+import { trackPendoEvent } from '../../../utils/pendo';
 import { isUserAdminOrProjectOwner } from '../../../utils/record-helpers';
 import { UserRoles } from '../../../constants/Enums';
 
@@ -30,15 +31,34 @@ export function* handleUsersReset() {
 export function* createUser(data) {
   yield put(actions.createUser(data));
 
+  // Pendo: outcome of an admin creating a user account
+  const trackUserCreated = (outcome, properties) =>
+    call(trackPendoEvent, 'user_created', {
+      role: data.role || null,
+      hasUsername: !!data.username,
+      outcome,
+      ...properties,
+    });
+
   let user;
   try {
     ({ item: user } = yield call(request, api.createUser, data));
   } catch (error) {
     yield put(actions.createUser.failure(error));
+
+    yield trackUserCreated('failure', {
+      userId: null,
+      failureReason: error.code || 'unknown',
+    });
+
     return;
   }
 
   yield put(actions.createUser.success(user));
+
+  yield trackUserCreated('success', {
+    userId: user.id,
+  });
 }
 
 export function* handleUserCreate(user) {
@@ -366,6 +386,14 @@ export function* createUserApiKey(id) {
   }
 
   yield put(actions.createUserApiKey.success(user, apiKey));
+
+  const currentUserId = yield select(selectors.selectCurrentUserId);
+
+  // Pendo: API key generated for a user (the key value is never sent)
+  yield call(trackPendoEvent, 'api_key_created', {
+    userId: user.id,
+    isCurrentUser: user.id === currentUserId,
+  });
 }
 
 export function* deleteUserApiKey(id) {
@@ -428,6 +456,15 @@ export function* enableUserTotp(id, data) {
   }
 
   yield put(actions.enableUserTotp.success(user, recoveryCodes));
+
+  const currentUserId = yield select(selectors.selectCurrentUserId);
+
+  // Pendo: TOTP setup verified and turned on by the server
+  yield call(trackPendoEvent, 'two_factor_enabled', {
+    userId: user.id,
+    isCurrentUser: user.id === currentUserId,
+    recoveryCodeCount: recoveryCodes ? recoveryCodes.length : 0,
+  });
 }
 
 export function* enableCurrentUserTotp(data) {
