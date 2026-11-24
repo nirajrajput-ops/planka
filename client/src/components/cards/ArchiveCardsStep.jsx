@@ -23,6 +23,7 @@ const ArchiveCardsStep = React.memo(({ listId, onBack, onClose }) => {
       title="common.archiveCards"
       content="common.areYouSureYouWantToArchiveCards"
       buttonContent="action.archiveCards"
+      confirmTestId="list-archive-cards-confirm"
       onConfirm={handleConfirm}
       onBack={onBack}
     />

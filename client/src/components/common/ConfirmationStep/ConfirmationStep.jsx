@@ -26,6 +26,7 @@ const ConfirmationStep = React.memo(
     buttonContent,
     typeValue,
     typeContent,
+    confirmTestId,
     onConfirm,
     onBack,
     onClose,
@@ -97,6 +98,7 @@ const ConfirmationStep = React.memo(
                 [buttonType]: true,
               }}
               fluid
+              data-testid={confirmTestId}
               content={t(buttonContent)}
             />
           </Form>
@@ -113,6 +115,7 @@ ConfirmationStep.propTypes = {
   buttonContent: PropTypes.string.isRequired,
   typeValue: PropTypes.string,
   typeContent: PropTypes.string,
+  confirmTestId: PropTypes.string,
   onConfirm: PropTypes.func.isRequired,
   onBack: PropTypes.func,
   onClose: PropTypes.func,
@@ -122,6 +125,7 @@ ConfirmationStep.defaultProps = {
   buttonType: ButtonTypes.NEGATIVE,
   typeValue: undefined,
   typeContent: undefined,
+  confirmTestId: undefined,
   onBack: undefined,
   onClose: undefined,
 };

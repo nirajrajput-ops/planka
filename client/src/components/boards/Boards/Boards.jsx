@@ -79,7 +79,11 @@ const Boards = React.memo(() => {
                 {canAdd && (
                   <AddBoardPopup>
                     <Tooltip content={t('action.createBoard')}>
-                      <Button icon="plus" className={styles.addButton} />
+                      <Button
+                        data-testid="board-add-open"
+                        icon="plus"
+                        className={styles.addButton}
+                      />
                     </Tooltip>
                   </AddBoardPopup>
                 )}

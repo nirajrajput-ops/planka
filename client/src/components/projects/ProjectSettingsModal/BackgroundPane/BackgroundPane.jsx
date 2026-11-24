@@ -59,6 +59,7 @@ const BackgroundPane = React.memo(() => {
               type="button"
               value={type}
               active={type === activeType}
+              data-testid="project-background-switch-type"
               onClick={handleActiveTypeChange}
             >
               {t(TITLE_BY_TYPE[type])}

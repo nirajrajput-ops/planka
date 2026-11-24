@@ -35,7 +35,13 @@ const ImportStep = React.memo(({ onSelect, onBack }) => {
       </Popup.Header>
       <Popup.Content>
         <FilePicker accept=".json" onSelect={(file) => handleFileSelect('trello', file)}>
-          <Button fluid content={t('common.fromTrello')} icon="trello" className={styles.button} />
+          <Button
+            data-testid="board-import-trello-upload"
+            fluid
+            content={t('common.fromTrello')}
+            icon="trello"
+            className={styles.button}
+          />
         </FilePicker>
       </Popup.Content>
     </>

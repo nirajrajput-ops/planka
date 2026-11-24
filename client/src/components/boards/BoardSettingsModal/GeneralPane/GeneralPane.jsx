@@ -48,9 +48,10 @@ const GeneralPane = React.memo(() => {
           buttonContent="action.deleteBoard"
           typeValue={board.name}
           typeContent="common.typeTitleToConfirm"
+          confirmTestId="board-settings-delete-confirm"
           onConfirm={handleDeleteConfirm}
         >
-          <Button className={styles.actionButton}>
+          <Button data-testid="board-settings-delete" className={styles.actionButton}>
             {t(`action.deleteBoard`, {
               context: 'title',
             })}

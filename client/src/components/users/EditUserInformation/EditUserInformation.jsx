@@ -99,7 +99,12 @@ const EditUserInformation = React.memo(({ id, onUpdate }) => {
         className={styles.field}
         onChange={handleFieldChange}
       />
-      <Button positive disabled={dequal(cleanData, defaultData)} content={t('action.save')} />
+      <Button
+        data-testid="account-profile-save"
+        positive
+        disabled={dequal(cleanData, defaultData)}
+        content={t('action.save')}
+      />
     </Form>
   );
 });

@@ -118,7 +118,11 @@ const Header = React.memo(() => {
               {project.name}
               {canEditProject && (
                 <Tooltip content={t('common.openProjectSettings')}>
-                  <Button className={styles.editButton} onClick={handleProjectSettingsClick}>
+                  <Button
+                    className={styles.editButton}
+                    data-testid="header-open-project-settings"
+                    onClick={handleProjectSettingsClick}
+                  >
                     <Icon fitted name="pencil" size="small" />
                   </Button>
                 </Tooltip>
@@ -133,6 +137,7 @@ const Header = React.memo(() => {
             >
               <Menu.Item
                 className={classNames(styles.item, styles.itemHoverable)}
+                data-testid="header-toggle-favorites"
                 onClick={handleToggleFavoritesClick}
               >
                 <Icon
@@ -149,6 +154,7 @@ const Header = React.memo(() => {
             >
               <Menu.Item
                 className={classNames(styles.item, styles.itemHoverable)}
+                data-testid="header-toggle-edit-mode"
                 onClick={handleToggleEditModeClick}
               >
                 <Icon
@@ -161,7 +167,10 @@ const Header = React.memo(() => {
           )}
           <NotificationsPopup>
             <Tooltip content={t('common.openNotifications')}>
-              <Menu.Item className={classNames(styles.item, styles.itemHoverable)}>
+              <Menu.Item
+                data-testid="header-open-notifications"
+                className={classNames(styles.item, styles.itemHoverable)}
+              >
                 <Icon fitted name="bell" />
                 {notificationIds.length > 0 && (
                   <span className={styles.notification}>{notificationIds.length}</span>

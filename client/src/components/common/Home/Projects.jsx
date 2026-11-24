@@ -52,6 +52,7 @@ const Projects = React.memo(({ ids, title, titleIcon, withTypeIndicator, onAdd }
             <button
               type="button"
               className={classNames(styles.card, styles.addButton)}
+              data-testid="project-add-open"
               onClick={onAdd}
             >
               <div className={styles.addButtonCover} />

@@ -168,6 +168,7 @@ const Edit = React.memo(({ commentId, onClose }) => {
         <Button
           {...clickAwayProps} // eslint-disable-line react/jsx-props-no-spreading
           positive
+          data-testid="comment-edit-save"
           ref={handleSubmitButtonRef}
           content={t('action.save')}
         />
@@ -176,6 +177,7 @@ const Edit = React.memo(({ commentId, onClose }) => {
           ref={handleCancelButtonRef}
           type="button"
           content={t('action.cancel')}
+          data-testid="comment-edit-cancel"
           onClick={handleCancelClick}
         />
       </div>

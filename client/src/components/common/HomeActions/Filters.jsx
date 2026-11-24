@@ -82,6 +82,7 @@ const Filters = React.memo(() => {
     <Input
       ref={handleSearchFieldRef}
       value={search}
+      data-testid="home-search-projects"
       placeholder={t('common.searchProjects')}
       maxLength={128}
       icon={

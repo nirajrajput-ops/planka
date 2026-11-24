@@ -74,6 +74,7 @@ const Item = React.memo(({ id, index, isCompletedVisible, onCompletedVisibleTogg
                         >
                           <Button
                             className={styles.button}
+                            data-testid="task-list-toggle-completed-visible"
                             onClick={handleToggleCompletedVisibleClick}
                           >
                             <Icon
@@ -87,7 +88,7 @@ const Item = React.memo(({ id, index, isCompletedVisible, onCompletedVisibleTogg
                       {canEdit && (
                         <EditPopup taskListId={taskList.id}>
                           <Tooltip content={t('action.edit', { context: 'title' })}>
-                            <Button className={styles.button}>
+                            <Button data-testid="task-list-open-actions" className={styles.button}>
                               <Icon fitted name="pencil" size="small" />
                             </Button>
                           </Tooltip>

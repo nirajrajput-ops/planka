@@ -18,7 +18,7 @@ const Communication = React.memo(() => {
   const panes = [
     {
       menuItem: (
-        <Menu.Item key="comments" className={styles.menuItem}>
+        <Menu.Item data-testid="card-tab-comments" key="comments" className={styles.menuItem}>
           {t('common.comments', {
             context: 'title',
           })}
@@ -28,7 +28,7 @@ const Communication = React.memo(() => {
     },
     {
       menuItem: (
-        <Menu.Item key="actions" className={styles.menuItem}>
+        <Menu.Item data-testid="card-tab-activity" key="actions" className={styles.menuItem}>
           {t('common.actions', {
             context: 'title',
           })}

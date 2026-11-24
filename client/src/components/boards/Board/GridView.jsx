@@ -73,6 +73,7 @@ const GridView = React.memo(
                     type="button"
                     disabled={!onCardCreate}
                     className={styles.addCardButton}
+                    data-testid="card-add-open"
                     onClick={handleAddCardClick}
                   >
                     <PlusMathIcon className={styles.addCardButtonIcon} />
@@ -86,6 +87,7 @@ const GridView = React.memo(
                         type="button"
                         disabled={!onCardCreate}
                         className={classNames(styles.addCardButton, styles.paste)}
+                        data-testid="card-paste"
                         onClick={onCardPaste}
                       >
                         <Icon fitted name="paste" />

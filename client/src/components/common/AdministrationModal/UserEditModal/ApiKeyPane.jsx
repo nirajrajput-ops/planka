@@ -66,7 +66,11 @@ const ApiKeyPane = React.memo(({ userId, onClose }) => {
     return (
       <Tab.Pane attached={false} className={styles.pane}>
         <p>{t('common.areYouSureYouWantToRegenerateThisApiKey')}</p>
-        <Button content={t('action.regenerateApiKey')} onClick={handleRegenerateConfirm} />
+        <Button
+          content={t('action.regenerateApiKey')}
+          data-testid="api-key-regenerate-confirm"
+          onClick={handleRegenerateConfirm}
+        />
         <Button content={t('action.cancel')} onClick={handleCancelConfirm} />
       </Tab.Pane>
     );
@@ -76,7 +80,12 @@ const ApiKeyPane = React.memo(({ userId, onClose }) => {
     return (
       <Tab.Pane attached={false} className={styles.pane}>
         <p>{t('common.areYouSureYouWantToDeleteThisApiKey')}</p>
-        <Button negative content={t('action.deleteApiKey')} onClick={handleDeleteConfirm} />
+        <Button
+          negative
+          content={t('action.deleteApiKey')}
+          data-testid="api-key-delete-confirm"
+          onClick={handleDeleteConfirm}
+        />
         <Button content={t('action.cancel')} onClick={handleCancelConfirm} />
       </Tab.Pane>
     );
@@ -96,7 +105,11 @@ const ApiKeyPane = React.memo(({ userId, onClose }) => {
                 />
                 <div className={styles.valueWrapper}>
                   <Input fluid readOnly value={user.apiKeyState.value} className={styles.value} />
-                  <Button className={styles.copyButton} onClick={handleCopyClick}>
+                  <Button
+                    className={styles.copyButton}
+                    data-testid="api-key-copy"
+                    onClick={handleCopyClick}
+                  >
                     <Icon fitted name={isCopied ? 'check' : 'copy'} />
                   </Button>
                 </div>
@@ -113,12 +126,14 @@ const ApiKeyPane = React.memo(({ userId, onClose }) => {
             content={t('action.regenerateApiKey')}
             loading={user.apiKeyState.isCreating}
             disabled={user.apiKeyState.isCreating}
+            data-testid="api-key-regenerate-open"
             className={styles.actionButton}
             onClick={handleGenerateClick}
           />
           <Button
             fluid
             content={t('action.deleteApiKey')}
+            data-testid="api-key-delete-open"
             className={styles.actionButton}
             onClick={handleDeleteClick}
           />
@@ -132,6 +147,7 @@ const ApiKeyPane = React.memo(({ userId, onClose }) => {
             content={t('action.createApiKey')}
             loading={user.apiKeyState.isCreating}
             disabled={user.apiKeyState.isCreating}
+            data-testid="api-key-create"
             onClick={handleGenerateClick}
           />
         </>

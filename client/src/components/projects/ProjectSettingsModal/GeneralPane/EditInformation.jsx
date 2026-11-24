@@ -93,7 +93,12 @@ const EditInformation = React.memo(() => {
         onKeyDown={handleDescriptionKeyDown}
         onChange={handleFieldChange}
       />
-      <Button positive disabled={dequal(cleanData, defaultData)} content={t('action.save')} />
+      <Button
+        data-testid="project-settings-save-info"
+        positive
+        disabled={dequal(cleanData, defaultData)}
+        content={t('action.save')}
+      />
     </Form>
   );
 });

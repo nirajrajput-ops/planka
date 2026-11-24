@@ -58,6 +58,7 @@ const Item = React.memo(({ id, index }) => {
               <>
                 <Link
                   to={Paths.BOARDS.replace(':id', id)}
+                  data-testid="board-tab-open"
                   title={board.name}
                   className={styles.link}
                 >
@@ -68,7 +69,11 @@ const Item = React.memo(({ id, index }) => {
                 </Link>
                 {canEdit && (
                   <Tooltip content={t('action.edit', { context: 'title' })}>
-                    <Button className={styles.editButton} onClick={handleEditClick}>
+                    <Button
+                      className={styles.editButton}
+                      data-testid="board-tab-open-settings"
+                      onClick={handleEditClick}
+                    >
                       <Icon fitted name="pencil" size="small" />
                     </Button>
                   </Tooltip>

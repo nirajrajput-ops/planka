@@ -107,6 +107,7 @@ const TotpChallengeModal = React.memo(() => {
           floated="left"
           loading={isCancelling}
           disabled={isSubmitting || isCancelling}
+          data-testid="totp-challenge-cancel"
           onClick={handleCancelClick}
         />
         <Button
@@ -114,6 +115,7 @@ const TotpChallengeModal = React.memo(() => {
           content={t('action.verify')}
           loading={isSubmitting}
           disabled={isSubmitting || isCancelling || !code}
+          data-testid="totp-challenge-verify"
           onClick={handleSubmit}
         />
       </Modal.Actions>

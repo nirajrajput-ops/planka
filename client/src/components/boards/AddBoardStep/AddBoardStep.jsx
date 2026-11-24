@@ -104,10 +104,16 @@ const AddBoardStep = React.memo(({ onClose }) => {
             onChange={handleFieldChange}
           />
           <div className={styles.controls}>
-            <Button positive content={t('action.createBoard')} className={styles.button} />
+            <Button
+              data-testid="board-create-submit"
+              positive
+              content={t('action.createBoard')}
+              className={styles.button}
+            />
             <Button
               type="button"
               className={classNames(styles.button, styles.importButton)}
+              data-testid="board-create-import-open"
               onClick={handleImportClick}
             >
               <Icon

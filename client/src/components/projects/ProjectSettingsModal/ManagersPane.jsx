@@ -76,6 +76,7 @@ const ManagersPane = React.memo(() => {
           onConfirm={handleToggleSharedConfirm}
         >
           <Button
+            data-testid="project-settings-toggle-shared"
             disabled={isShared && projectManagers.length !== 1}
             className={styles.actionButton}
           >

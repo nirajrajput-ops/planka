@@ -70,7 +70,11 @@ const Item = React.memo(({ id, onClose }) => {
         >
           <span className={styles.author}>{creatorUserName}</span>
           {' moved '}
-          <Link to={Paths.CARDS.replace(':id', notification.cardId)} onClick={onClose}>
+          <Link
+            to={Paths.CARDS.replace(':id', notification.cardId)}
+            data-testid="notification-open"
+            onClick={onClose}
+          >
             {cardName}
           </Link>
           {' from '}
@@ -96,7 +100,11 @@ const Item = React.memo(({ id, onClose }) => {
         >
           <span className={styles.author}>{creatorUserName}</span>
           {` left a new comment «${commentText}» to `}
-          <Link to={Paths.CARDS.replace(':id', notification.cardId)} onClick={onClose}>
+          <Link
+            to={Paths.CARDS.replace(':id', notification.cardId)}
+            data-testid="notification-open"
+            onClick={onClose}
+          >
             {cardName}
           </Link>
         </Trans>
@@ -115,7 +123,11 @@ const Item = React.memo(({ id, onClose }) => {
         >
           <span className={styles.author}>{creatorUserName}</span>
           {` added you to `}
-          <Link to={Paths.CARDS.replace(':id', notification.cardId)} onClick={onClose}>
+          <Link
+            to={Paths.CARDS.replace(':id', notification.cardId)}
+            data-testid="notification-open"
+            onClick={onClose}
+          >
             {cardName}
           </Link>
         </Trans>
@@ -136,7 +148,11 @@ const Item = React.memo(({ id, onClose }) => {
         >
           <span className={styles.author}>{creatorUserName}</span>
           {` mentioned you in «${commentText}» on `}
-          <Link to={Paths.CARDS.replace(':id', notification.cardId)} onClick={onClose}>
+          <Link
+            to={Paths.CARDS.replace(':id', notification.cardId)}
+            data-testid="notification-open"
+            onClick={onClose}
+          >
             {cardName}
           </Link>
         </Trans>
@@ -161,6 +177,7 @@ const Item = React.memo(({ id, onClose }) => {
         type="button"
         icon="trash alternate outline"
         className={styles.button}
+        data-testid="notification-dismiss"
         onClick={handleDeleteClick}
       />
     </div>

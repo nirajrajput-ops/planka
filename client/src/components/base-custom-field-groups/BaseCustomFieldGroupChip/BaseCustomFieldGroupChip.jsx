@@ -45,6 +45,7 @@ const BaseCustomFieldGroupChip = React.memo(({ id, size, onClick }) => {
       type="button"
       disabled={!baseCustomFieldGroup.isPersisted}
       className={styles.button}
+      data-testid="base-custom-field-group-open"
       onClick={onClick}
     >
       {contentNode}

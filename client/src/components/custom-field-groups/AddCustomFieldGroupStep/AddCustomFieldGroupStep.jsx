@@ -125,7 +125,11 @@ const AddCustomFieldGroupStep = React.memo(({ onCreate, onBack, onClose }) => {
             data={data}
             onFieldChange={handleFieldChange}
           />
-          <Button positive content={t('action.addCustomFieldGroup')} />
+          <Button
+            data-testid="custom-field-group-add-submit"
+            positive
+            content={t('action.addCustomFieldGroup')}
+          />
         </Form>
       </Popup.Content>
     </>

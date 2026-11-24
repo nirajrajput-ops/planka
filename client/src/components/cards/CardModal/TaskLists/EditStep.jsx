@@ -85,6 +85,7 @@ const EditStep = React.memo(({ taskListId, onClose }) => {
         title="common.deleteTaskList"
         content="common.areYouSureYouWantToDeleteThisTaskList"
         buttonContent="action.deleteTaskList"
+        confirmTestId="task-list-delete-confirm"
         onConfirm={handleDeleteConfirm}
         onBack={handleBack}
       />
@@ -101,11 +102,12 @@ const EditStep = React.memo(({ taskListId, onClose }) => {
       <Popup.Content>
         <Form onSubmit={handleSubmit}>
           <TaskListEditor ref={taskListEditorRef} data={data} onFieldChange={handleFieldChange} />
-          <Button positive content={t('action.save')} />
+          <Button data-testid="task-list-edit-save" positive content={t('action.save')} />
         </Form>
         <Button
           content={t('action.delete')}
           className={styles.deleteButton}
+          data-testid="task-list-delete"
           onClick={handleDeleteClick}
         />
       </Popup.Content>

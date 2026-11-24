@@ -76,6 +76,7 @@ const SelectPermissionsStep = React.memo(
                   value={role}
                   active={role === data.role}
                   className={styles.menuItem}
+                  data-testid="board-member-select-role"
                   onClick={handleSelectRoleClick}
                 >
                   <Icon name={BoardMembershipRoleIcons[role]} className={styles.menuItemIcon} />
@@ -88,6 +89,7 @@ const SelectPermissionsStep = React.memo(
               <Segment basic className={styles.settings}>
                 <Radio
                   toggle
+                  data-testid="board-member-toggle-comment"
                   name="canComment"
                   checked={data.canComment}
                   label={t('common.canComment')}
@@ -96,7 +98,11 @@ const SelectPermissionsStep = React.memo(
                 />
               </Segment>
             )}
-            <Button positive content={t(buttonContent)} />
+            <Button
+              data-testid="board-member-permissions-submit"
+              positive
+              content={t(buttonContent)}
+            />
           </Form>
         </Popup.Content>
       </>

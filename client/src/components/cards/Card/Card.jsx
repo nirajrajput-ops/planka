@@ -147,6 +147,7 @@ const Card = React.memo(({ id, isInline }) => {
             )}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleCardMouseLeave}
+            data-testid="card-open"
             onClick={handleClick}
             onContextMenu={handleContextMenu}
           >
@@ -155,7 +156,7 @@ const Card = React.memo(({ id, isInline }) => {
           {canUseActions && (
             <CardActionsPopup ref={actionsPopupRef} cardId={id} onNameEdit={handleNameEdit}>
               <Tooltip content={t('common.openCardActions')}>
-                <Button className={styles.actionsButton}>
+                <Button data-testid="card-open-actions-menu" className={styles.actionsButton}>
                   <Icon fitted name="pencil" size="small" />
                 </Button>
               </Tooltip>

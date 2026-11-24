@@ -110,6 +110,7 @@ const EditName = React.memo(({ cardId, onClose }) => {
         <Button
           {...clickAwayProps} // eslint-disable-line react/jsx-props-no-spreading
           positive
+          data-testid="card-inline-edit-title-save"
           ref={handleButtonRef}
           content={t('action.save')}
           className={styles.submitButton}

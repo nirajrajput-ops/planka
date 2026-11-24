@@ -237,6 +237,7 @@ const AddStep = React.memo(({ onClose }) => {
           <div className={styles.controls}>
             <Button
               positive
+              data-testid="admin-user-add-submit"
               content={t('action.addUser')}
               loading={isSubmitting}
               disabled={isSubmitting}
@@ -245,6 +246,7 @@ const AddStep = React.memo(({ onClose }) => {
             <Button
               type="button"
               className={classNames(styles.button, styles.selectRoleButton)}
+              data-testid="admin-user-add-select-role"
               onClick={handleSelectRoleClick}
             >
               <Icon name={UserRoleIcons[data.role]} className={styles.selectRoleButtonIcon} />

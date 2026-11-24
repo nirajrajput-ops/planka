@@ -63,6 +63,7 @@ const SelectListTypeStep = React.memo(
                   value={type}
                   active={type === value}
                   className={styles.menuItem}
+                  data-testid="list-type-select"
                   onClick={handleSelectClick}
                 >
                   <Icon name={ListTypeIcons[type]} className={styles.menuItemIcon} />
@@ -71,7 +72,9 @@ const SelectListTypeStep = React.memo(
                 </Menu.Item>
               ))}
             </Menu>
-            {withButton && <Button positive content={t(buttonContent)} />}
+            {withButton && (
+              <Button positive data-testid="list-type-save" content={t(buttonContent)} />
+            )}
           </Form>
         </Popup.Content>
       </>

@@ -49,6 +49,7 @@ const DefaultView = React.memo(() => {
           value={view}
           active={view === board.defaultView}
           className={styles.menuItem}
+          data-testid="board-settings-select-default-view"
           onClick={handleSelectClick}
         >
           <Icon name={BoardViewIcons[view]} className={styles.menuItemIcon} />

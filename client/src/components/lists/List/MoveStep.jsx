@@ -113,7 +113,12 @@ const MoveStep = React.memo(({ id, onBack, onClose }) => {
               />
             </>
           )}
-          <Button positive content={t('action.move')} disabled={!selectedBoard} />
+          <Button
+            data-testid="list-move-submit"
+            positive
+            content={t('action.move')}
+            disabled={!selectedBoard}
+          />
         </Form>
       </Popup.Content>
     </>

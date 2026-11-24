@@ -92,6 +92,7 @@ const Item = React.memo(
                   mode === LabelFilterModes.EXCLUDE && styles.nameExcluded,
                   globalStyles[`background${upperFirst(camelCase(label.color))}`],
                 )}
+                data-testid="label-toggle"
                 onClick={handleToggleClick}
               >
                 {label.name}
@@ -104,6 +105,7 @@ const Item = React.memo(
                     floated="right"
                     disabled={!label.isPersisted}
                     className={styles.editButton}
+                    data-testid="label-edit-open"
                     onClick={handleEditClick}
                   />
                 </Tooltip>

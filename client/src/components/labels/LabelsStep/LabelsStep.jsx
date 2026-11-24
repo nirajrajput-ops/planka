@@ -191,6 +191,7 @@ const LabelsStep = React.memo(
               fluid
               content={t('action.createNewLabel')}
               className={styles.addButton}
+              data-testid="label-add-open"
               onClick={handleAddClick}
             />
           )}

@@ -172,11 +172,17 @@ const TotpSetupWizard = React.memo(({ onClose }) => {
             content={t('action.continue')}
             loading={isSettingUp}
             disabled={isSettingUp || !password}
+            data-testid="security-enable-2fa-password-continue"
             onClick={handlePasswordSubmit}
           />
         )}
         {step === STEPS.SCAN && (
-          <Button positive content={t('action.continue')} onClick={handleProceedToVerify} />
+          <Button
+            positive
+            content={t('action.continue')}
+            data-testid="security-enable-2fa-scan-continue"
+            onClick={handleProceedToVerify}
+          />
         )}
         {step === STEPS.VERIFY && (
           <>
@@ -186,6 +192,7 @@ const TotpSetupWizard = React.memo(({ onClose }) => {
               content={t('action.verify')}
               loading={isEnabling}
               disabled={isEnabling || !code}
+              data-testid="security-enable-2fa-verify"
               onClick={handleVerifySubmit}
             />
           </>
@@ -195,6 +202,7 @@ const TotpSetupWizard = React.memo(({ onClose }) => {
             positive
             content={t('action.done')}
             disabled={!savedConfirmed}
+            data-testid="security-enable-2fa-done"
             onClick={handleDone}
           />
         )}

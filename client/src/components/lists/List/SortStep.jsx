@@ -65,6 +65,7 @@ const SortStep = React.memo(({ listId, onBack, onClose }) => {
                 key={type}
                 value={type}
                 className={styles.menuItem}
+                data-testid="list-sort-select"
                 onClick={handleSelectTypeClick}
               >
                 {t(`common.${type}`)}

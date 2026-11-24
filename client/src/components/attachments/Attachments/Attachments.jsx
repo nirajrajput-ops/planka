@@ -102,6 +102,7 @@ const Attachments = React.memo(({ hideImagesWhenNotAllVisible }) => {
                 })
           }
           className={styles.toggleButton}
+          data-testid="attachment-toggle-show-all"
           onClick={handleToggleAllVisibleClick}
         />
       )}

@@ -75,6 +75,7 @@ const EditStep = React.memo(({ labelId, onBack }) => {
         title="common.deleteLabel"
         content="common.areYouSureYouWantToDeleteThisLabel"
         buttonContent="action.deleteLabel"
+        confirmTestId="label-delete-confirm"
         onConfirm={handleDeleteConfirm}
         onBack={handleBack}
       />
@@ -92,11 +93,12 @@ const EditStep = React.memo(({ labelId, onBack }) => {
         <Form onSubmit={handleSubmit}>
           <Editor data={data} onFieldChange={handleFieldChange} />
           <div className={styles.actions}>
-            <Button positive content={t('action.save')} />
+            <Button data-testid="label-edit-save" positive content={t('action.save')} />
             <Button
               type="button"
               content={t('action.delete')}
               className={styles.deleteButton}
+              data-testid="label-delete"
               onClick={handleDeleteClick}
             />
           </div>

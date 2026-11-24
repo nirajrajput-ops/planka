@@ -126,6 +126,7 @@ const PromoBanner = React.memo(() => {
   return (
     <div ref={wrapperRef} className={styles.wrapper}>
       <a
+        data-testid="promo-banner-link"
         href={href}
         target="_blank"
         rel="noopener noreferrer"
@@ -138,6 +139,7 @@ const PromoBanner = React.memo(() => {
         type="button"
         title={t('common.dismissProBannerFor30Days')}
         className={styles.closeButton}
+        data-testid="promo-banner-dismiss"
         onClick={handleDismiss}
       >
         ×

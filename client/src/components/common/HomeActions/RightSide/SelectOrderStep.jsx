@@ -47,6 +47,7 @@ const SelectOrderStep = React.memo(({ value, onSelect, onClose }) => {
               value={order}
               active={order === value}
               className={styles.menuItem}
+              data-testid="home-select-order"
               onClick={handleSelectClick}
             >
               <Icon name={ProjectOrderIcons[order]} className={styles.menuItemIcon} />

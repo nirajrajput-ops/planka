@@ -38,6 +38,7 @@ const SelectCardType = React.memo(({ value, onSelect }) => {
           value={type}
           active={type === value}
           className={styles.menuItem}
+          data-testid="card-type-select"
           onClick={handleSelectClick}
         >
           <Icon name={CardTypeIcons[type]} className={styles.menuItemIcon} />

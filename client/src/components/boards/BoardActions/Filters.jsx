@@ -433,7 +433,11 @@ const Filters = React.memo(() => {
           onUserSelect={handleUserSelect}
           onUserDeselect={handleUserDeselect}
         >
-          <button type="button" className={styles.filterButton}>
+          <button
+            data-testid="board-filter-members-open"
+            type="button"
+            className={styles.filterButton}
+          >
             <span className={styles.filterTitle}>{`${t('common.members')}:`}</span>
             {userIds.length === 0 && <span className={styles.filterLabel}>{t('common.all')}</span>}
           </button>
@@ -441,13 +445,19 @@ const Filters = React.memo(() => {
         <button
           type="button"
           className={classNames(styles.filterButton, styles.filterLabel)}
+          data-testid="board-filter-no-member"
           onClick={handleNoMemberClick}
         >
           {t('common.noMember')}
         </button>
         {userIds.length === 0 && withCurrentUserSelector && (
           <Tooltip content={t('action.filterByCurrentUser')}>
-            <button type="button" className={styles.filterButton} onClick={handleCurrentUserSelect}>
+            <button
+              type="button"
+              className={styles.filterButton}
+              data-testid="board-filter-current-user"
+              onClick={handleCurrentUserSelect}
+            >
               <span className={styles.filterLabel}>
                 <Icon fitted name="target" className={styles.filterLabelIcon} />
               </span>
@@ -468,7 +478,11 @@ const Filters = React.memo(() => {
           title="common.filterByLabels"
           onModeChange={handleLabelModeChange}
         >
-          <button type="button" className={styles.filterButton}>
+          <button
+            data-testid="board-filter-labels-open"
+            type="button"
+            className={styles.filterButton}
+          >
             <span className={styles.filterTitle}>{`${t('common.labels')}:`}</span>
             {labelIds.length === 0 && excludedLabelIds.length === 0 && (
               <span className={styles.filterLabel}>{t('common.all')}</span>
@@ -494,7 +508,11 @@ const Filters = React.memo(() => {
             onSelect={handleListSelect}
             onDeselect={handleListDeselect}
           >
-            <button type="button" className={styles.filterButton}>
+            <button
+              data-testid="board-filter-lists-open"
+              type="button"
+              className={styles.filterButton}
+            >
               <span className={styles.filterTitle}>{`${t('common.lists')}:`}</span>
               {listIds.length === 0 && (
                 <span className={styles.filterLabel}>{t('common.all')}</span>
@@ -510,6 +528,7 @@ const Filters = React.memo(() => {
         <Input
           ref={handleSearchFieldRef}
           value={search}
+          data-testid="board-search-cards"
           placeholder={t('common.searchCards')}
           maxLength={128}
           icon={
@@ -529,7 +548,12 @@ const Filters = React.memo(() => {
       <span className={styles.filter}>
         {hasFilter && (
           <Tooltip content={t('common.clearFilter')}>
-            <button type="button" className={styles.filterButton} onClick={handleClearClick}>
+            <button
+              type="button"
+              className={styles.filterButton}
+              data-testid="board-filter-clear"
+              onClick={handleClearClick}
+            >
               <span className={styles.filterLabel}>
                 <Icon fitted name="close" className={styles.filterLabelIcon} />
               </span>
@@ -540,7 +564,12 @@ const Filters = React.memo(() => {
             only while there is something to put back. */}
         {!hasFilter && !!lastFilter && (
           <Tooltip content={t('common.restoreFilter')}>
-            <button type="button" className={styles.filterButton} onClick={handleRestoreClick}>
+            <button
+              type="button"
+              className={styles.filterButton}
+              data-testid="board-filter-restore"
+              onClick={handleRestoreClick}
+            >
               <span className={styles.filterLabel}>
                 <Icon fitted name="undo" className={styles.filterLabelIcon} />
               </span>
@@ -554,6 +583,7 @@ const Filters = React.memo(() => {
           <SaveFilterPopup onSave={handleSaveFilter}>
             <button
               type="button"
+              data-testid="board-filter-save-open"
               title={t('common.saveFilter', {
                 context: 'title',
               })}
@@ -573,6 +603,7 @@ const Filters = React.memo(() => {
         >
           <button
             type="button"
+            data-testid="board-saved-filters-open"
             title={t('common.savedFilters', {
               context: 'title',
             })}

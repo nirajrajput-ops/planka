@@ -197,18 +197,21 @@ const UnbasedContent = React.memo(({ id, onBack }) => {
           fluid
           content={t('action.addCustomField')}
           className={styles.actionButton}
+          data-testid="custom-field-group-add-field-open"
           onClick={handleCustomFieldAddClick}
         />
         <Button
           fluid
           content={t('action.editGroup')}
           className={styles.actionButton}
+          data-testid="custom-field-group-edit-open"
           onClick={handleEditClick}
         />
         <Button
           fluid
           content={t('action.deleteGroup')}
           className={styles.actionButton}
+          data-testid="custom-field-group-delete"
           onClick={handleDeleteClick}
         />
       </Popup.Content>

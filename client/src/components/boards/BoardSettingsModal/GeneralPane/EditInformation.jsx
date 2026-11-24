@@ -67,7 +67,12 @@ const EditInformation = React.memo(() => {
         className={styles.field}
         onChange={handleFieldChange}
       />
-      <Button positive disabled={dequal(cleanData, defaultData)} content={t('action.save')} />
+      <Button
+        data-testid="board-settings-save-name"
+        positive
+        disabled={dequal(cleanData, defaultData)}
+        content={t('action.save')}
+      />
     </Form>
   );
 });

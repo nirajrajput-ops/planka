@@ -49,7 +49,9 @@ const SelectCardTypeStep = React.memo(
         <Popup.Content>
           <Form onSubmit={handleSubmit}>
             <SelectCardType value={value} onSelect={handleSelect} />
-            {withButton && <Button positive content={t(buttonContent)} />}
+            {withButton && (
+              <Button positive data-testid="card-type-save" content={t(buttonContent)} />
+            )}
           </Form>
         </Popup.Content>
       </>

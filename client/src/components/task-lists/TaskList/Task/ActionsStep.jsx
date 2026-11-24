@@ -49,6 +49,7 @@ const ActionsStep = React.memo(({ taskId, onNameEdit, onClose }) => {
         title="common.deleteTask"
         content="common.areYouSureYouWantToDeleteThisTask"
         buttonContent="action.deleteTask"
+        confirmTestId="task-delete-confirm"
         onConfirm={handleDeleteConfirm}
         onBack={handleBack}
       />
@@ -65,14 +66,22 @@ const ActionsStep = React.memo(({ taskId, onNameEdit, onClose }) => {
       <Popup.Content>
         <Menu secondary vertical className={styles.menu}>
           {!task.linkedCardId && (
-            <Menu.Item className={styles.menuItem} onClick={handleEditNameClick}>
+            <Menu.Item
+              className={styles.menuItem}
+              data-testid="task-edit-name"
+              onClick={handleEditNameClick}
+            >
               <Icon name="align left" className={styles.menuItemIcon} />
               {t('action.editDescription', {
                 context: 'title',
               })}
             </Menu.Item>
           )}
-          <Menu.Item className={styles.menuItem} onClick={handleDeleteClick}>
+          <Menu.Item
+            className={styles.menuItem}
+            data-testid="task-delete"
+            onClick={handleDeleteClick}
+          >
             <Icon name="trash alternate outline" className={styles.menuItemIcon} />
             {t('action.deleteTask', {
               context: 'title',

@@ -49,6 +49,7 @@ const Item = React.memo(({ name }) => {
         styles.wrapper,
         globalStyles[`background${upperFirst(camelCase(name))}`],
       )}
+      data-testid="project-background-select-gradient"
       onClick={handleClick}
     >
       {isActive && (

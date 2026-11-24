@@ -67,6 +67,7 @@ const TotpAdminResetModal = React.memo(({ userId, onClose }) => {
           content={t('action.reset2fa')}
           loading={isDisabling}
           disabled={isDisabling || !password}
+          data-testid="admin-user-reset-2fa-confirm"
           onClick={handleSubmit}
         />
       </Modal.Actions>

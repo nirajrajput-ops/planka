@@ -126,6 +126,7 @@ const ActionsStep = React.memo(({ projectManagerId, onClose }) => {
           fluid
           content={t('action.assignAsOwner')}
           className={styles.button}
+          data-testid="project-manager-assign-owner"
           onClick={handleAssignAsOwnerClick}
         />
       )}
@@ -134,6 +135,7 @@ const ActionsStep = React.memo(({ projectManagerId, onClose }) => {
           fluid
           content={isCurrentUser ? t('action.leaveProject') : t('action.removeFromProject')}
           className={styles.button}
+          data-testid="project-manager-remove"
           onClick={handleDeleteClick}
         />
       )}

@@ -199,6 +199,7 @@ const EditUserEmailStep = React.memo(({ id, onBack, onClose }) => {
           )}
           <Button
             positive
+            data-testid="account-email-save"
             content={t('action.save')}
             loading={isSubmitting}
             disabled={isSubmitting}

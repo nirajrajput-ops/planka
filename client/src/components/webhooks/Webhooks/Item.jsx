@@ -98,7 +98,12 @@ const Item = React.memo(({ id, projects, boards, users }) => {
 
   return (
     <>
-      <Accordion.Title active={isOpened} className={styles.title} onClick={handleOpenClick}>
+      <Accordion.Title
+        active={isOpened}
+        className={styles.title}
+        data-testid="webhook-open-edit"
+        onClick={handleOpenClick}
+      >
         <Icon name="dropdown" />
         {defaultData.name}
       </Accordion.Title>
@@ -117,6 +122,7 @@ const Item = React.memo(({ id, projects, boards, users }) => {
             <div className={styles.controls}>
               <Button
                 positive
+                data-testid="webhook-save"
                 disabled={dequal(cleanData, defaultData)}
                 content={t('action.save')}
               />
@@ -124,10 +130,12 @@ const Item = React.memo(({ id, projects, boards, users }) => {
                 title="common.deleteWebhook"
                 content="common.areYouSureYouWantToDeleteThisWebhook"
                 buttonContent="action.deleteWebhook"
+                confirmTestId="webhook-delete-confirm"
                 onConfirm={handleDeleteConfirm}
               >
                 <Button
                   type="button"
+                  data-testid="webhook-delete"
                   disabled={!webhook.isPersisted}
                   className={styles.deleteButton}
                 >

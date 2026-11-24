@@ -23,7 +23,13 @@ const User = React.memo(({ id, isActive, onSelect }) => {
   }, [id, onSelect]);
 
   return (
-    <button type="button" disabled={isActive} className={styles.menuItem} onClick={handleClick}>
+    <button
+      type="button"
+      disabled={isActive}
+      data-testid="board-member-add-select-user"
+      className={styles.menuItem}
+      onClick={handleClick}
+    >
       <span className={styles.user}>
         <UserAvatar id={id} />
       </span>

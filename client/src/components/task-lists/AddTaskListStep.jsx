@@ -54,7 +54,7 @@ const AddTaskListStep = React.memo(({ onClose }) => {
       <Popup.Content>
         <Form onSubmit={handleSubmit}>
           <TaskListEditor ref={taskListEditorRef} data={data} onFieldChange={handleFieldChange} />
-          <Button positive content={t('action.addTaskList')} />
+          <Button data-testid="task-list-add-submit" positive content={t('action.addTaskList')} />
         </Form>
       </Popup.Content>
     </>

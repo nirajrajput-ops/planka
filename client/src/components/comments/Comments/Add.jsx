@@ -193,6 +193,7 @@ const Add = React.memo(({ initialText, onInitialTextConsumed }) => {
             {...clickAwayProps} // eslint-disable-line react/jsx-props-no-spreading
             positive
             ref={handleButtonRef}
+            data-testid="comment-add-submit"
             content={t('action.addComment')}
             className={styles.button}
           />

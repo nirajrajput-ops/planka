@@ -124,6 +124,7 @@ const ActionsStep = React.memo(({ userId, onEdit, onClose }) => {
             title="common.deactivateUser"
             content="common.areYouSureYouWantToDeactivateThisUser"
             buttonContent="action.deactivateUser"
+            confirmTestId="admin-user-deactivate-confirm"
             onConfirm={handleDeactivateConfirm}
             onBack={handleBack}
           />
@@ -136,6 +137,7 @@ const ActionsStep = React.memo(({ userId, onEdit, onClose }) => {
             buttonContent="action.deleteUser"
             typeValue={user.name}
             typeContent="common.typeNameToConfirm"
+            confirmTestId="admin-user-delete-confirm"
             onConfirm={handleDeleteConfirm}
             onBack={handleBack}
           />
@@ -153,14 +155,22 @@ const ActionsStep = React.memo(({ userId, onEdit, onClose }) => {
       </Popup.Header>
       <Popup.Content>
         <Menu secondary vertical className={styles.menu}>
-          <Menu.Item className={styles.menuItem} onClick={handleEditClick}>
+          <Menu.Item
+            className={styles.menuItem}
+            data-testid="admin-user-open-edit"
+            onClick={handleEditClick}
+          >
             <Icon name="info" className={styles.menuItemIcon} />
             {t('action.editInformation', {
               context: 'title',
             })}
           </Menu.Item>
           {!user.lockedFieldNames.includes('role') && !isCurrentUser && (
-            <Menu.Item className={styles.menuItem} onClick={handleEditRoleClick}>
+            <Menu.Item
+              className={styles.menuItem}
+              data-testid="admin-user-change-role-open"
+              onClick={handleEditRoleClick}
+            >
               <Icon name="sun outline" className={styles.menuItemIcon} />
               {t('action.editRole', {
                 context: 'title',
@@ -176,6 +186,7 @@ const ActionsStep = React.memo(({ userId, onEdit, onClose }) => {
                   activeUsersTotal >= activeUsersLimit
                 }
                 className={styles.menuItem}
+                data-testid="admin-user-toggle-active"
                 onClick={user.isDeactivated ? handleActivateClick : handleDeactivateClick}
               >
                 <Icon
@@ -191,7 +202,11 @@ const ActionsStep = React.memo(({ userId, onEdit, onClose }) => {
                     })}
               </Menu.Item>
               {user.isDeactivated && !user.isDefaultAdmin && (
-                <Menu.Item className={styles.menuItem} onClick={handleDeleteClick}>
+                <Menu.Item
+                  className={styles.menuItem}
+                  data-testid="admin-user-delete"
+                  onClick={handleDeleteClick}
+                >
                   <Icon name="trash alternate outline" className={styles.menuItemIcon} />
                   {t('action.deleteUser', {
                     context: 'title',

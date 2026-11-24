@@ -48,6 +48,7 @@ const SelectTypeStep = React.memo(({ value, onSelect, onClose }) => {
               value={type}
               active={type === value}
               className={styles.menuItem}
+              data-testid="project-create-type-option"
               onClick={handleSelectClick}
             >
               <Icon name={ProjectTypeIcons[type]} className={styles.menuItemIcon} />

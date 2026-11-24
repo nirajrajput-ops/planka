@@ -68,6 +68,7 @@ const EditColorStep = React.memo(({ listId, onBack, onClose }) => {
                 color === defaultValue && styles.colorButtonActive,
                 globalStyles[`background${upperFirst(camelCase(color))}`],
               )}
+              data-testid="list-color-select"
               onClick={handleSelectClick}
             />
           ))}
@@ -77,6 +78,7 @@ const EditColorStep = React.memo(({ listId, onBack, onClose }) => {
             fluid
             content={t('action.removeColor')}
             className={styles.clearButton}
+            data-testid="list-color-remove"
             onClick={handleClearClick}
           />
         )}

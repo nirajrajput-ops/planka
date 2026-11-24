@@ -61,6 +61,7 @@ const GeneralPane = React.memo(() => {
       )}
       <Radio
         toggle
+        data-testid="project-settings-toggle-hidden"
         name="isHidden"
         checked={project.isHidden}
         label={t('common.hideFromProjectListAndFavorites')}
@@ -81,9 +82,14 @@ const GeneralPane = React.memo(() => {
               title="common.deleteProject"
               content="common.areYouSureYouWantToDeleteThisProject"
               buttonContent="action.deleteProject"
+              confirmTestId="project-settings-delete-confirm"
               onConfirm={handleDeleteConfirm}
             >
-              <Button disabled={hasBoards} className={styles.actionButton}>
+              <Button
+                data-testid="project-settings-delete"
+                disabled={hasBoards}
+                className={styles.actionButton}
+              >
                 {hasBoards
                   ? t('common.deleteAllBoardsToBeAbleToDeleteThisProject')
                   : t('action.deleteProject', {

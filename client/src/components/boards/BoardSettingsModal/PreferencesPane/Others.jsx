@@ -37,6 +37,7 @@ const Others = React.memo(() => {
     <Segment basic>
       <Radio
         toggle
+        data-testid="board-settings-toggle-card-creator"
         name="alwaysDisplayCardCreator"
         checked={board.alwaysDisplayCardCreator}
         label={t('common.alwaysDisplayCardCreator')}
@@ -45,6 +46,7 @@ const Others = React.memo(() => {
       />
       <Radio
         toggle
+        data-testid="board-settings-toggle-card-counter"
         name="showCardCounter"
         checked={board.showCardCounter}
         label={t('common.showCardCounter')}
@@ -54,6 +56,7 @@ const Others = React.memo(() => {
       <p className={styles.hint}>{t('common.showCardCounterHint')}</p>
       <Radio
         toggle
+        data-testid="board-settings-toggle-card-ages"
         name="displayCardAges"
         checked={board.displayCardAges}
         label={t('common.displayCardAges')}
@@ -62,6 +65,7 @@ const Others = React.memo(() => {
       />
       <Radio
         toggle
+        data-testid="board-settings-toggle-expand-task-lists"
         name="expandTaskListsByDefault"
         checked={board.expandTaskListsByDefault}
         label={t('common.expandTaskListsByDefault')}
