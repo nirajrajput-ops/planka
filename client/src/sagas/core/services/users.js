@@ -13,6 +13,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import { setAccessToken } from '../../../utils/access-token-storage';
 import mergeRecords from '../../../utils/merge-records';
+import { trackPendoEvent } from '../../../utils/pendo-track';
 import { isUserAdminOrProjectOwner } from '../../../utils/record-helpers';
 import { UserRoles } from '../../../constants/Enums';
 
@@ -39,6 +40,12 @@ export function* createUser(data) {
   }
 
   yield put(actions.createUser.success(user));
+
+  // Pendo: an administrator created a user and the server accepted it
+  yield call(trackPendoEvent, 'user_created', {
+    role: user.role,
+    outcome: 'success',
+  });
 }
 
 export function* handleUserCreate(user) {
@@ -428,6 +435,11 @@ export function* enableUserTotp(id, data) {
   }
 
   yield put(actions.enableUserTotp.success(user, recoveryCodes));
+
+  // Pendo: TOTP is active on the account
+  yield call(trackPendoEvent, 'two_factor_authentication_enabled', {
+    recoveryCodesCount: recoveryCodes ? recoveryCodes.length : 0,
+  });
 }
 
 export function* enableCurrentUserTotp(data) {

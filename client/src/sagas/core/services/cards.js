@@ -16,6 +16,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import i18n from '../../../i18n';
 import { createLocalId } from '../../../utils/local-id';
+import { trackPendoEvent } from '../../../utils/pendo-track';
 import { isListArchiveOrTrash, isListFinite } from '../../../utils/record-helpers';
 import ActionTypes from '../../../constants/ActionTypes';
 import ClipboardTypes from '../../../constants/ClipboardTypes';
@@ -112,6 +113,27 @@ export function* fetchCards(listId) {
       customFieldValues,
     ),
   );
+
+  // Pendo: a filtered or searched card fetch returned results (first page only)
+  const trimmedSearch = (search && search.trim()) || '';
+
+  if (
+    !lastCard &&
+    (trimmedSearch ||
+      filterUserIds.length > 0 ||
+      filterLabelIds.length > 0 ||
+      filterExcludedLabelIds.length > 0)
+  ) {
+    yield call(trackPendoEvent, 'board_cards_filtered', {
+      boardId,
+      listId,
+      search: trimmedSearch.slice(0, 100),
+      filterUserIdsCount: filterUserIds.length,
+      filterLabelIdsCount: filterLabelIds.length,
+      filterExcludedLabelIdsCount: filterExcludedLabelIds.length,
+      resultsCount: cards.length,
+    });
+  }
 }
 
 export function* fetchCardsInCurrentList() {
@@ -176,6 +198,20 @@ export function* createCard(listId, data, index, autoOpen) {
   // Inherit active board filters so the new card stays visible in the filtered view
   const filterUserIds = yield select(selectors.selectFilterUserIdsForCurrentBoard);
   const filterLabelIds = yield select(selectors.selectFilterLabelIdsForCurrentBoard);
+
+  // Pendo: the server created the card
+  const board = yield select(selectors.selectBoardById, list.boardId);
+
+  yield call(trackPendoEvent, 'card_created', {
+    cardId: card.id,
+    boardId: list.boardId,
+    listId,
+    listType: list.type,
+    boardView: board ? board.view : 'unknown',
+    autoOpen: !!autoOpen,
+    inheritedFilterUserCount: filterUserIds.length,
+    inheritedFilterLabelCount: filterLabelIds.length,
+  });
 
   yield all([
     ...filterUserIds.map((userId) => call(addUserToCard, userId, card.id)),
@@ -248,12 +284,17 @@ export function* handleCardCreate(card) {
 export function* updateCard(id, data) {
   let prevListId;
   let isClosed;
+  let fromListId;
+  let toList;
 
   if (data.listId) {
     const list = yield select(selectors.selectListById, data.listId);
 
     const card = yield select(selectors.selectCardById, id);
     const prevList = yield select(selectors.selectListById, card.listId);
+
+    fromListId = card.listId;
+    toList = list;
 
     if (prevList.type === ListTypes.TRASH) {
       prevListId = null;
@@ -295,6 +336,18 @@ export function* updateCard(id, data) {
   }
 
   yield put(actions.updateCard.success(card));
+
+  // Pendo: the card moved to a different list
+  if (data.listId && fromListId !== data.listId) {
+    yield call(trackPendoEvent, 'card_moved', {
+      cardId: card.id,
+      boardId: card.boardId,
+      fromListId,
+      toListId: data.listId,
+      toListType: toList ? toList.type : 'unknown',
+      isClosed: !!card.isClosed,
+    });
+  }
 }
 
 export function* updateCurrentCard(data) {
@@ -429,6 +482,7 @@ export function* transferCard(id, boardId, listId, index) {
   }
 
   const list = yield select(selectors.selectListById, listId);
+  const cardBeforeTransfer = yield select(selectors.selectCardById, id);
 
   const data = {
     listId,
@@ -525,6 +579,15 @@ export function* transferCard(id, boardId, listId, index) {
       customFieldValues,
     ),
   );
+
+  // Pendo: the card transfer succeeded
+  yield call(trackPendoEvent, 'card_transferred_to_board', {
+    cardId: id,
+    sourceBoardId: cardBeforeTransfer ? cardBeforeTransfer.boardId : 'unknown',
+    targetBoardId: boardId,
+    targetListId: listId,
+    outcome: 'success',
+  });
 }
 
 export function* transferCurrentCard(boardId, listId, index) {
@@ -533,7 +596,7 @@ export function* transferCurrentCard(boardId, listId, index) {
   yield call(transferCard, cardId, boardId, listId, index);
 }
 
-export function* duplicateCard(id, data) {
+export function* duplicateCard(id, data, source = 'duplicate') {
   const localId = yield call(createLocalId);
   const { cardId: currentCardId } = yield select(selectors.selectPath);
   const sourceCard = yield select(selectors.selectCardById, id);
@@ -633,6 +696,16 @@ export function* duplicateCard(id, data) {
       customFieldValues,
     ),
   );
+
+  // Pendo: the server duplicated the card
+  yield call(trackPendoEvent, 'card_duplicated', {
+    sourceCardId: id,
+    cardId: card.id,
+    source,
+    isCrossBoard: !sourceCard || boardId !== sourceCard.boardId,
+    attachmentsCount: attachments ? attachments.length : 0,
+    tasksCount: tasks ? tasks.length : 0,
+  });
 }
 
 export function* duplicateCurrentCard(data) {
@@ -667,7 +740,7 @@ export function* pasteCard(listId) {
       data.position = yield select(selectors.selectNextCardPosition, listId);
     }
 
-    yield call(duplicateCard, clipboard.cardId, data);
+    yield call(duplicateCard, clipboard.cardId, data, 'paste');
   } else if (clipboard.type === ClipboardTypes.CUT) {
     if (sourceCard && listId === sourceCard.listId) {
       return;
