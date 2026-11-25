@@ -13,6 +13,7 @@ import actions from '../../../actions';
 import api from '../../../api';
 import { createLocalId } from '../../../utils/local-id';
 import { rememberBoardView } from '../../../utils/board-view-memory';
+import { trackPendoEvent } from '../../../utils/pendo-track';
 import ActionTypes from '../../../constants/ActionTypes';
 import ModalTypes from '../../../constants/ModalTypes';
 
@@ -63,6 +64,17 @@ export function* createBoard(projectId, { import: boardImport, ...data }) {
   }
 
   yield put(actions.createBoard.success(localId, board, boardMemberships));
+
+  // Pendo: the board was created, including boards created from an import file
+  yield call(trackPendoEvent, 'board_created', {
+    boardId: board.id,
+    projectId,
+    isImport: !!boardImport,
+    ...(boardImport && {
+      importType: boardImport.type,
+    }),
+    boardMembershipsCount: boardMemberships ? boardMemberships.length : 0,
+  });
 
   if (watchForCreateBoardActionTask.isRunning()) {
     yield call(goToBoard, board.id);
