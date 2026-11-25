@@ -240,6 +240,24 @@ module.exports = {
         return card;
       }
 
+      // Pendo Track Event: values.list is only kept when the card changes to a different list
+      if (values.list) {
+        sails.helpers.utils.sendPendoTrackEvent.with({
+          event: 'Card moved',
+          userId: inputs.actorUser.id,
+          properties: {
+            card_id: card.id,
+            from_list_id: inputs.list.id,
+            from_list_type: inputs.list.type,
+            to_list_id: values.list.id,
+            to_list_type: values.list.type,
+            board_id: card.boardId,
+            project_id: project.id,
+            is_board_change: !!values.board,
+          },
+        });
+      }
+
       if (values.board) {
         const labels = await Label.qm.getByBoardId(card.boardId);
         const labelByName = _.keyBy(labels, 'name');

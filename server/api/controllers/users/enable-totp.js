@@ -166,6 +166,16 @@ module.exports = {
       totpRecoveryCodes: hashedRecoveryCodes,
     });
 
+    // Pendo Track Event: the verification code was confirmed and 2FA is on for the account
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Two-factor authentication enabled',
+      userId: updatedUser.id,
+      properties: {
+        user_role: updatedUser.role,
+        recovery_code_count: recoveryCodes.length,
+      },
+    });
+
     return {
       item: sails.helpers.users.presentOne(updatedUser, currentUser),
       included: {
