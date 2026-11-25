@@ -153,6 +153,21 @@ module.exports = {
           list: inputs.list,
         });
       }
+
+      // Pendo Track Event: fires only on the transition from not completed to completed
+      if (!inputs.record.isCompleted && task.isCompleted) {
+        sails.helpers.utils.sendPendoTrackEvent.with({
+          event: 'Task completed',
+          userId: inputs.actorUser.id,
+          properties: {
+            task_id: task.id,
+            task_list_id: task.taskListId,
+            card_id: inputs.card.id,
+            board_id: inputs.board.id,
+            project_id: inputs.project.id,
+          },
+        });
+      }
     }
 
     return task;

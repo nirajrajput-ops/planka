@@ -67,6 +67,18 @@ module.exports = {
       user: inputs.actorUser,
     });
 
+    // Pendo Track Event: a webhook that will receive event payloads was saved
+    sails.helpers.utils.sendPendoTrackEvent.with({
+      event: 'Webhook created',
+      userId: inputs.actorUser.id,
+      properties: {
+        webhook_id: webhook.id,
+        is_board_scoped: !!webhook.boardId,
+        is_project_scoped: !!webhook.projectId,
+        has_event_filter: !!(webhook.events || webhook.excludedEvents),
+      },
+    });
+
     return webhook;
   },
 };

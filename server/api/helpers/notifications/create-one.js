@@ -315,6 +315,22 @@ module.exports = {
           );
         }
       }
+
+      // Pendo Track Event: the notification was created and sent to the recipient
+      sails.helpers.utils.sendPendoTrackEvent.with({
+        event: 'Card notification sent',
+        userId: notification.userId,
+        properties: {
+          notification_id: notification.id,
+          notification_type: notification.type,
+          creator_user_id: notification.creatorUserId,
+          card_id: notification.cardId,
+          board_id: notification.boardId,
+          project_id: inputs.project.id,
+          sent_by_email: !!transporter,
+          service_count: notificationServices.length,
+        },
+      });
     }
 
     return notification;
