@@ -3,7 +3,7 @@
  * Licensed under the Fair Use License: https://github.com/plankanban/planka/blob/master/LICENSE.md
  */
 
-import { call, put, select } from 'redux-saga/effects';
+import { apply, call, put, select } from 'redux-saga/effects';
 
 import request from '../request';
 import requests from '../requests';
@@ -45,6 +45,34 @@ export function* initializeCore() {
     notifications,
     notificationServices,
   } = yield call(requests.fetchCore); // TODO: handle error
+
+  yield apply(window.pendo, window.pendo.identify, [
+    {
+      visitor: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        username: user.username,
+        organization: user.organization,
+        language: user.language,
+        isDeactivated: user.isDeactivated,
+        isTotpEnabled: user.isTotpEnabled,
+        totpEnabledAt: user.totpEnabledAt,
+        subscribeToOwnCards: user.subscribeToOwnCards,
+        subscribeToCardWhenCommenting: user.subscribeToCardWhenCommenting,
+        turnOffRecentCardHighlighting: user.turnOffRecentCardHighlighting,
+        enableFavoritesByDefault: user.enableFavoritesByDefault,
+        defaultEditorMode: user.defaultEditorMode,
+        defaultHomeView: user.defaultHomeView,
+        defaultProjectsOrder: user.defaultProjectsOrder,
+        autoLogoutMode: user.autoLogoutMode,
+        termsAcceptedAt: user.termsAcceptedAt,
+        passwordChangedAt: user.passwordChangedAt,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      },
+    },
+  ]);
 
   yield call(i18n.changeLanguage, user.language);
   yield call(i18n.loadCoreLocale);
@@ -118,6 +146,12 @@ export function* updateHomeView(value) {
 
 export function* logout(revokeAccessToken) {
   yield call(removeAccessToken);
+  // Reset Novus to a fresh anonymous visitor so the next person to sign in here
+  // isn't tracked under this user's identity. The install snippet doesn't stub
+  // clearSession, so it only exists once the agent script has loaded.
+  if (window.pendo && typeof window.pendo.clearSession === 'function') {
+    yield apply(window.pendo, window.pendo.clearSession);
+  }
   // Everything this window was holding about the boards it had open. None of it
   // belongs to the next person to sign in here.
   yield call(forgetBoardViews);
